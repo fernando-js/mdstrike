@@ -24,7 +24,7 @@ Duelo, competitivo e copa são contra bots. O desafio por link compara tentativa
 5. Cada participante abre o link, entra na própria conta e escolhe **Aceitar desafio**. O convite é preservado após o login.
 6. Consulte o mesmo link para comparar os resultados. Seus links ficam em **Competições → Meus desafios**.
 
-O link vale sete dias. O jogo seleciona até sete questões autorais da área. Cada conta tem uma tentativa; sair encerra essa tentativa, enquanto fechar e reabrir o link permite retomar uma partida não encerrada. Reabrir não reinicia o relógio da questão. O placar prioriza acertos, pontos e menor tempo acumulado nas questões; o período de leitura dos comentários não conta. O desafio rende pontos e XP de conclusão, sem alterar o rating. Nicknames e resultados finais ficam visíveis a quem tiver o link.
+O link vale sete dias e pode reunir vários colegas no mesmo placar. O jogo seleciona até sete questões autorais da área. Cada conta tem uma tentativa por desafio e pode participar de desafios diferentes em abas separadas, com progressos independentes. Use **Salvar e sair** para retomar depois; apenas **Encerrar minha tentativa** abandona definitivamente. O relógio da questão atual continua correndo e reabrir não o reinicia. O placar prioriza acertos, pontos e menor tempo acumulado nas questões; o período de leitura dos comentários não conta. O desafio rende pontos e XP de conclusão, sem alterar o rating. Nicknames e resultados finais ficam visíveis a quem tiver o link.
 
 ## Onde colocar a senha do banco
 

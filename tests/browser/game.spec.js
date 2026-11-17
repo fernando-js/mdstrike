@@ -412,6 +412,78 @@ test("shared challenge uses identical questions, supports two accounts and preve
     ),
   ).toBe(true);
   expect(errors).toEqual([]);
+  const third = await browser.newContext({ baseURL: "http://127.0.0.1:8088" });
+  const thirdSession = await (
+    await third.request.get("/api/index.php?action=session")
+  ).json();
+  const suffix = unique();
+  const signup = await third.request.post("/api/index.php?action=register", {
+    headers: { "X-CSRF-Token": thirdSession.csrf },
+    data: {
+      nickname: `third_${suffix}`.slice(0, 24),
+      email: `third_${suffix}@example.test`,
+      password: "Challenge-Test-123456",
+      consent: true,
+    },
+  });
+  expect(signup.ok()).toBeTruthy();
+  const thirdAccount = await signup.json();
+  const post = (action, data) =>
+    third.request.post(`/api/index.php?action=${action}`, {
+      headers: { "X-CSRF-Token": thirdAccount.csrf },
+      data,
+    });
+  const runA = await (await post("join-challenge", { challenge: id })).json();
+  const secondChallenge = await (
+    await post("create-challenge", { map: "all" })
+  ).json();
+  const runB = await (
+    await post("join-challenge", { challenge: secondChallenge.id })
+  ).json();
+  expect(runA.id).not.toBe(runB.id);
+  execFileSync("php", [
+    "-r",
+    '$db = new PDO("sqlite:.runtime/mdstrike.sqlite"); $q=$db->prepare("UPDATE md_matches SET issued_at = ? WHERE id = ?"); $q->execute([time()-45,$argv[1]]);',
+    runA.id,
+  ]);
+  const resumedA = await (
+    await post("join-challenge", { challenge: id })
+  ).json();
+  expect(resumedA.id).toBe(runA.id);
+  expect(resumedA.timeRemaining).toBeLessThanOrEqual(15);
+  expect(resumedA.timeRemaining).toBeGreaterThan(0);
+  const practice = await post("start-match", { mode: "practice", map: "all" });
+  expect(practice.ok()).toBeTruthy();
+  expect(
+    (
+      await (
+        await post("join-challenge", { challenge: secondChallenge.id })
+      ).json()
+    ).id,
+  ).toBe(runB.id);
+  const thirdPage = await third.newPage();
+  await thirdPage.goto(link);
+  await thirdPage
+    .getByRole("button", { name: "Continuar minha tentativa" })
+    .click();
+  await expect(thirdPage.locator(".answer")).toHaveCount(4);
+  await thirdPage.getByRole("button", { name: "Sair da partida" }).click();
+  await thirdPage.getByRole("button", { name: "Salvar e sair" }).click();
+  await expect(thirdPage.locator(".operation")).toBeVisible();
+  const stillActive = await (
+    await post("join-challenge", { challenge: id })
+  ).json();
+  expect(stillActive.id).toBe(runA.id);
+  const group = await (
+    await third.request.get(`/api/index.php?action=challenge&id=${id}`)
+  ).json();
+  expect(group.scores).toHaveLength(3);
+  const thirdRow = group.scores.find(
+    (s) => s.nickname === thirdAccount.user.nickname,
+  );
+  expect(thirdRow.status).toBe("playing");
+  expect(thirdRow.score).toBeNull();
+  await third.close();
   await guest.close();
   await host.close();
   await colleague.close();

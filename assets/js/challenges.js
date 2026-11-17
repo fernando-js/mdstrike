@@ -6,8 +6,8 @@ import {
   number,
   state,
   specialtyName,
-} from "./core.js?v=2.1.0";
-import { heading, areaOptions, statsStrip } from "./views.js?v=2.1.0";
+} from "./core.js?v=2.1.1";
+import { heading, areaOptions, statsStrip } from "./views.js?v=2.1.1";
 
 export function challengeForm() {
   return `<div class="modal-content"><div class="modal-top"><h2 id="modal-title">Desafie seu colega.</h2><button class="close-button" data-close aria-label="Fechar">×</button></div><p>Crie um link e compartilhe. Cada pessoa joga no seu horário, com as mesmas questões e alternativas.</p><form id="challenge-form" class="auth-form"><label class="field"><span>Mapa do desafio</span><select name="map"><option value="all">Operação ENAMED · todas as áreas</option>${areaOptions()}</select></label><div class="notice">Até 7 questões autorais · 60 segundos por questão · link válido por 7 dias. Uma tentativa por conta. O placar compara acertos, pontos e tempo de resposta. Desistir encerra sua tentativa. Este desafio não altera o rating.</div><div class="form-error" role="alert"></div><button class="btn" type="submit">Gerar link de desafio ${icon("arrow", 18)}</button></form></div>`;
@@ -35,7 +35,7 @@ export function challengePage(c) {
   ${statsStrip([
     [c.total, "Questões iguais para todos"],
     ["60 s", "Por questão"],
-    [number(finished), "Tentativas concluídas"],
+    [number(c.scores.length), "Participantes"],
     [c.expired ? "Encerrado" : "7 dias", "Prazo do link"],
   ])}
   <div class="row wrap challenge-actions">${button}${c.mine === "finished" ? '<span class="tag official">Sua tentativa foi concluída</span>' : ""}${c.mine === "aborted" ? '<span class="tag">Sua tentativa foi encerrada ao sair</span>' : ""}${c.expired ? '<span class="tag">Prazo encerrado</span>' : ""}<button class="btn outline" data-reload-challenge>Atualizar placar ${icon("repeat", 18)}</button></div>
@@ -43,7 +43,7 @@ export function challengePage(c) {
   <p class="small-text muted">Disponível para iniciar até ${esc(expired)}. Quem tiver o link poderá ver os nicknames e o placar final.</p></section>
   <div class="section-heading" style="margin-top:28px"><h2>Placar do desafio</h2><span class="muted small-text">Acertos → pontos → menor tempo</span></div>
   ${c.scores.length ? `<div class="table-wrap"><table><thead><tr><th>Posição</th><th>Operador</th><th>Status</th><th>Acertos</th><th>Pontos</th><th>Tempo nas questões</th></tr></thead><tbody>${c.scores.map((s) => `<tr class="${s.you ? "you" : ""}"><td class="rank-position">${s.position ? "#" + s.position : "—"}</td><td>${esc(s.nickname)}${s.you ? " · você" : ""}</td><td>${{ finished: "Concluído", playing: "Em andamento", aborted: "Tentativa encerrada" }[s.status]}</td><td>${s.correct === null ? "—" : s.correct + "/" + c.total}</td><td>${s.score === null ? "—" : number(s.score)}</td><td>${s.elapsed === null ? "—" : s.elapsed + " s"}</td></tr>`).join("")}</tbody></table></div>` : '<div class="empty"><h2>Quem aceita o primeiro round?</h2><p>Compartilhe o link e faça sua tentativa. Os resultados aparecerão aqui.</p></div>'}
-  <div class="notice">Cada conta tem uma tentativa. As questões e a ordem das alternativas são iguais para todos. Os pontos são calculados pelo servidor. Cada participante responde de forma independente e pode jogar antes ou depois do colega.</div>`
+  <div class="notice">Cada conta tem uma tentativa por desafio. O mesmo link pode reunir vários colegas no placar. Você pode participar de outros desafios em abas separadas; o relógio de cada questão continua contando. Cada participante responde no seu horário.</div>`
   );
 }
 

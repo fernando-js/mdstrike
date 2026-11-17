@@ -17,15 +17,15 @@ import {
   api,
   refreshProfile,
   beep,
-} from "./core.js?v=2.1.0";
-import * as views from "./views.js?v=2.1.0";
-import { Match } from "./game.js?v=2.1.0";
-import { renderPdf } from "./pdf-viewer.js?v=2.1.0";
+} from "./core.js?v=2.1.1";
+import * as views from "./views.js?v=2.1.1";
+import { Match } from "./game.js?v=2.1.1";
+import { renderPdf } from "./pdf-viewer.js?v=2.1.1";
 import {
   challengeForm,
   challengePage,
   loadMyChallenges,
-} from "./challenges.js?v=2.1.0";
+} from "./challenges.js?v=2.1.1";
 
 const modal = $("#modal"),
   view = $("#view");
@@ -79,7 +79,9 @@ async function route(page, force = false) {
   if (state.game && state.page === "match" && page !== "match" && !force) {
     pendingNavigation = page;
     openModal(
-      `<div class="modal-content"><div class="modal-top"><h2 id="modal-title">Sair da partida?</h2><button class="close-button" data-close aria-label="Fechar">×</button></div><p>A partida será encerrada sem bônus de conclusão ou pontos no ranking.</p><div class="row wrap"><button class="btn" data-abandon>Encerrar partida</button><button class="btn secondary" data-close>Continuar jogando</button></div></div>`,
+      state.game.current.mode === "challenge"
+        ? `<div class="modal-content"><div class="modal-top"><h2 id="modal-title">Continuar depois?</h2><button class="close-button" data-close aria-label="Fechar">×</button></div><p>Sua tentativa fica salva no link. O relógio da questão atual continua contando, mesmo em outra aba.</p><div class="row wrap"><button class="btn" data-save-challenge>Salvar e sair</button><button class="btn secondary" data-close>Continuar jogando</button><button class="text-button" data-abandon>Encerrar minha tentativa</button></div></div>`
+        : `<div class="modal-content"><div class="modal-top"><h2 id="modal-title">Sair da partida?</h2><button class="close-button" data-close aria-label="Fechar">×</button></div><p>A partida será encerrada sem bônus de conclusão ou pontos no ranking.</p><div class="row wrap"><button class="btn" data-abandon>Encerrar partida</button><button class="btn secondary" data-close>Continuar jogando</button></div></div>`,
     );
     return;
   }
@@ -538,6 +540,11 @@ document.addEventListener("click", async (event) => {
       const options = state.game.options;
       state.game = null;
       await start(options);
+    } else if (b.hasAttribute("data-save-challenge")) {
+      clearInterval(timer);
+      state.game = null;
+      closeModal();
+      await route(pendingNavigation || "competitions", true);
     } else if (b.hasAttribute("data-abandon")) {
       clearInterval(timer);
       await state.game.abort();

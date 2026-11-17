@@ -9,7 +9,7 @@ function challenge_record(string $id): array {
 }
 
 function challenge_public(array $challenge, ?array $viewer): array {
-    $rows = query('SELECT r.user_id, u.nickname, m.score, m.correct, m.question_index, m.finished_at, m.result_json, (SELECT COALESCE(SUM(a.elapsed), 0) FROM md_answers a WHERE a.match_id = m.id) AS elapsed FROM md_challenge_runs r JOIN md_users u ON u.id = r.user_id JOIN md_matches m ON m.id = r.match_id WHERE r.challenge_id = ? ORDER BY m.correct DESC, m.score DESC, elapsed ASC, m.finished_at ASC, r.id ASC LIMIT 100', [$challenge['id']])->fetchAll();
+    $rows = query('SELECT r.user_id, u.nickname, m.score, m.correct, m.question_index, m.finished_at, m.result_json, (SELECT COALESCE(SUM(a.elapsed), 0) FROM md_answers a WHERE a.match_id = m.id) AS elapsed FROM md_challenge_runs r JOIN md_users u ON u.id = r.user_id JOIN md_matches m ON m.id = r.match_id WHERE r.challenge_id = ? ORDER BY m.correct DESC, m.score DESC, elapsed ASC, m.finished_at ASC, r.id ASC', [$challenge['id']])->fetchAll();
     $scores = [];
     foreach ($rows as $row) {
         $result = $row['result_json'] ? json_decode($row['result_json'], true) : null;
@@ -69,7 +69,7 @@ function join_challenge(string $id, array $user): array {
         }
         $match=bin2hex(random_bytes(24));
         $payload=['items'=>json_decode($challenge['questions_json'],true),'challengeId'=>$id,'roundsWon'=>0,'roundsLost'=>0,'stageMe'=>0,'stageBot'=>0];
-        query('UPDATE md_matches SET finished_at = ?, result_json = ? WHERE user_id = ? AND finished_at IS NULL',[time(),json_encode(['aborted'=>true]),$user['id']]);
+        // Each invitation is independent: opening B must not abort the player's run in A.
         query('INSERT INTO md_matches (id,user_id,mode,map_id,questions_json,started_at,issued_at) VALUES (?,?,?,?,?,?,?)',[$match,$user['id'],'challenge',$challenge['map_id'],json_encode($payload),time(),time()]);
         query('INSERT INTO md_challenge_runs (challenge_id,user_id,match_id) VALUES (?,?,?)',[$id,$user['id'],$match]);
         $row=query('SELECT * FROM md_matches WHERE id = ?',[$match])->fetch();

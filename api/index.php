@@ -166,8 +166,8 @@ try {
         foreach ($selected as $q) { $order=range(0,count($q['options'])-1); if ($q['kind']==='original') shuffle($order); $items[]=['id'=>$q['id'],'order'=>$order]; }
         $id=bin2hex(random_bytes(24));
         $payload=['items'=>$items,'roundsWon'=>0,'roundsLost'=>0,'stageMe'=>0,'stageBot'=>0];
-        // Abandoned runs are closed without rewards; only one active run per player.
-        query('UPDATE md_matches SET finished_at = ?, result_json = ? WHERE user_id = ? AND finished_at IS NULL',[time(),json_encode(['aborted'=>true]),$user['id']]);
+        // Ordinary modes share one active run; invitations remain independent across tabs.
+        query("UPDATE md_matches SET finished_at = ?, result_json = ? WHERE user_id = ? AND finished_at IS NULL AND mode <> 'challenge'",[time(),json_encode(['aborted'=>true]),$user['id']]);
         query('INSERT INTO md_matches (id,user_id,mode,map_id,exam_id,questions_json,started_at,issued_at) VALUES (?,?,?,?,?,?,?,?)',[$id,$user['id'],$mode,$map,$exam,json_encode($payload),time(),time()]);
         $m=query('SELECT * FROM md_matches WHERE id = ?',[$id])->fetch(); send_json(match_state($m,$payload));
     }
