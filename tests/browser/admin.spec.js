@@ -203,7 +203,10 @@ test("administration protects records, records activity and renders desktop/mobi
     (await owner.request.get("/api/index.php?action=admin-users")).status(),
   ).toBe(403);
   await page.reload();
-  await expect(page.locator("h1")).toHaveText("Acesso restrito.");
+  await expect(page.locator("h1")).toHaveText(
+    "Conhecimento é a sua melhor arma.",
+  );
+  await expect(page).toHaveURL(/#lobby$/);
   expect(await page.locator('button[data-page="admin"]').count()).toBe(0);
   await owner.close();
   await player.close();

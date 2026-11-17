@@ -272,6 +272,8 @@ button svg {
 }
 .topbar nav {
   display: flex;
+  min-width: 0;
+  overflow-x: auto;
   align-items: center;
   gap: 14px;
   flex: 1;
@@ -302,6 +304,40 @@ button svg {
 .nav-tab.active {
   background: var(--accent);
   color: #151510;
+}
+.account-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  max-width: 50%;
+  min-width: 0;
+}
+.account-actions .account-button {
+  min-width: 0;
+  max-width: 190px;
+}
+.account-button > span:nth-child(2) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.logout-button {
+  flex-shrink: 0;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--line);
+  padding: 9px 12px;
+  font: 700 16px var(--display);
+  text-transform: uppercase;
+}
+.logout-button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.logout-button[hidden] {
+  display: none;
 }
 .account-button {
   border: 1px solid #8a9292;

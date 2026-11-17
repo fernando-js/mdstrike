@@ -17,16 +17,16 @@ import {
   api,
   refreshProfile,
   beep,
-} from "./core.js?v=2.2.1";
-import * as views from "./views.js?v=2.2.1";
-import { Match } from "./game.js?v=2.2.1";
-import { renderPdf } from "./pdf-viewer.js?v=2.2.1";
+} from "./core.js?v=2.2.2";
+import * as views from "./views.js?v=2.2.2";
+import { Match } from "./game.js?v=2.2.2";
+import { renderPdf } from "./pdf-viewer.js?v=2.2.2";
 import {
   challengeForm,
   challengePage,
   loadMyChallenges,
-} from "./challenges.js?v=2.2.1";
-import { openAdmin, stopAdmin } from "./admin.js?v=2.2.1";
+} from "./challenges.js?v=2.2.2";
+import { openAdmin, stopAdmin } from "./admin.js?v=2.2.2";
 
 const modal = $("#modal"),
   view = $("#view");
@@ -76,6 +76,8 @@ function shell() {
   $("#account-button").innerHTML =
     `<span class="status-dot ${state.user ? "online" : ""}"></span><span>${esc(state.user ? p.nickname : "CONVIDADO")}</span><span aria-hidden="true">⌄</span>`;
   $("#account-button").disabled = state.page === "match";
+  $("#logout-button").hidden = !state.user;
+  $("#logout-button").disabled = state.page === "match";
   $("#sidebar-profile").innerHTML =
     `<div class="row">${icon(state.user ? "user" : "monitor", 24)}<strong>${state.user ? esc(p.nickname) : "Progresso neste<br>dispositivo"}</strong></div><div class="bar"><i style="width:${(p.xp % 500) / 5}%"></i></div><small>${number(p.xp)} XP · nível ${Math.floor(p.xp / 500) + 1}</small>`;
 }
@@ -97,7 +99,7 @@ async function route(page, force = false) {
   }
   const adminRoute =
     /^admin(?:\/(overview|users|matches|challenges|logs))?$/.exec(page);
-  if (adminRoute) page = "admin";
+  if (adminRoute) page = state.user?.isAdmin ? "admin" : "lobby";
   stopAdmin();
   if (
     ![
@@ -570,11 +572,23 @@ document.addEventListener("click", async (event) => {
       storage.set("mdstrike_sound", state.sound);
       b.innerHTML = `${icon("sound", 16)} ${state.sound ? "Som ligado" : "Som desligado"}`;
     } else if (b.hasAttribute("data-logout")) {
-      await api("logout", {});
-      state.user = null;
-      state.profile = null;
-      await route("lobby");
-      toast("Você saiu da conta.");
+      b.disabled = true;
+      try {
+        await api("logout", {});
+        clearInterval(timer);
+        state.user = null;
+        state.profile = null;
+        state.game = null;
+        state.pendingAdmin = false;
+        state.pendingChallenge = null;
+        state.pendingCreateChallenge = false;
+        pendingNavigation = null;
+        closeModal();
+        await route("lobby", true);
+        toast("Você saiu da conta.");
+      } finally {
+        b.disabled = false;
+      }
     } else if (b.hasAttribute("data-ranking")) {
       rankingScope = b.dataset.ranking;
       document.querySelectorAll("[data-ranking]").forEach((el) => {

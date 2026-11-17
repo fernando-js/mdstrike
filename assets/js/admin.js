@@ -8,8 +8,8 @@ import {
   state,
   specialtyName,
   modeName,
-} from "./core.js?v=2.2.1";
-import { heading, statsStrip } from "./views.js?v=2.2.1";
+} from "./core.js?v=2.2.2";
+import { heading, statsStrip } from "./views.js?v=2.2.2";
 
 let generation = 0;
 let section = "overview";

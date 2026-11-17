@@ -17,8 +17,8 @@
       href="assets/favicon-32.png"
     />
     <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
-    <link rel="stylesheet" href="assets/style.css?v=2.2.1" />
-    <script type="module" src="assets/js/app.js?v=2.2.1"></script>
+    <link rel="stylesheet" href="assets/style.css?v=2.2.2" />
+    <script type="module" src="assets/js/app.js?v=2.2.2"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Pular para o conteúdo</a>
@@ -29,10 +29,21 @@
         ></a
       >
       <nav id="top-nav" aria-label="Navegação principal"></nav>
-      <button class="account-button" data-auth="login" id="account-button">
-        <span class="status-dot"></span><span>CONVIDADO</span
-        ><span aria-hidden="true">⌄</span>
-      </button>
+      <div class="account-actions" role="group" aria-label="Conta e sessão">
+        <button class="account-button" data-auth="login" id="account-button">
+          <span class="status-dot"></span><span>CONVIDADO</span
+          ><span aria-hidden="true">⌄</span>
+        </button>
+        <button
+          class="logout-button"
+          data-logout
+          id="logout-button"
+          aria-label="Sair da conta"
+          hidden
+        >
+          Sair
+        </button>
+      </div>
     </header>
     <div class="app-layout">
       <aside class="sidebar" aria-label="Central de operações">

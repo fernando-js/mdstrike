@@ -73,7 +73,9 @@ O `.htaccess` protege `app/` e diretórios de desenvolvimento e define cabeçalh
 
 ## Painel administrativo
 
-Abra `https://mdstrike.com/#admin` com a conta autorizada. A navegação inclui **Administração** somente para administradores. O painel consulta usuários (incluindo e-mail, rating e XP), histórico de partidas e respostas, desafios e logs, com busca, período e paginação. Senhas, hashes de senha e configurações privadas nunca são retornados.
+Entre com a conta autorizada e abra `https://mdstrike.com/#admin`. A navegação inclui **Administração** somente para administradores. Visitantes e contas comuns que tentam abrir um endereço administrativo são levados ao lobby, sem renderizar a página ou consultar dados administrativos; a API também exige permissão. O painel consulta usuários (incluindo e-mail, rating e XP), histórico de partidas e respostas, desafios e logs, com busca, período e paginação. Senhas, hashes de senha e configurações privadas nunca são retornados.
+
+O botão **Sair** fica no topo da tela inicial e nas demais telas fora de uma partida. Encerra a sessão no servidor e retorna ao lobby como convidado; não apaga o perfil nem o histórico. Durante a partida, saia primeiro pelo fluxo do jogo para salvar ou encerrar a tentativa.
 
 As tabelas aditivas `md_admins`, `md_migrations` e `md_audit_logs` são criadas automaticamente. A migração `owner_admin_20261117` concede acesso à conta do proprietário já existente no momento da implantação e guarda o ID dessa conta. Ela roda uma vez: cadastrar posteriormente o mesmo e-mail, enviar `isAdmin` no navegador ou alterar o perfil não concede acesso. A permissão é conferida no servidor em toda consulta; remover a associação em `md_admins` revoga o acesso imediatamente.
 

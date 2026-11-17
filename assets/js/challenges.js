@@ -6,8 +6,8 @@ import {
   number,
   state,
   specialtyName,
-} from "./core.js?v=2.2.1";
-import { heading, areaOptions, statsStrip } from "./views.js?v=2.2.1";
+} from "./core.js?v=2.2.2";
+import { heading, areaOptions, statsStrip } from "./views.js?v=2.2.2";
 
 export function challengeForm() {
   return `<div class="modal-content"><div class="modal-top"><h2 id="modal-title">Desafie seu colega.</h2><button class="close-button" data-close aria-label="Fechar">×</button></div><p>Crie um link e compartilhe. Cada pessoa joga no seu horário, com as mesmas questões e alternativas.</p><form id="challenge-form" class="auth-form"><label class="field"><span>Mapa do desafio</span><select name="map"><option value="all">Operação ENAMED · todas as áreas</option>${areaOptions()}</select></label><div class="notice">Até 7 questões autorais · 60 segundos por questão · link válido por 7 dias. Uma tentativa por conta. O placar compara acertos, pontos e tempo de resposta. Desistir encerra sua tentativa. Este desafio não altera o rating.</div><div class="form-error" role="alert"></div><button class="btn" type="submit">Gerar link de desafio ${icon("arrow", 18)}</button></form></div>`;
