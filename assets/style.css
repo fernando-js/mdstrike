@@ -1531,6 +1531,34 @@ dialog::backdrop {
 .prose {
   max-width: 800px;
 }
+.policy-table td {
+  min-width: 170px;
+  max-width: 300px;
+  white-space: normal;
+  vertical-align: top;
+}
+.education-fields {
+  min-width: 0;
+  padding: 16px;
+  margin: 0;
+  border: 1px solid var(--line);
+}
+.education-fields legend {
+  padding: 0 7px;
+  font-weight: 600;
+}
+.education-fields > .field,
+.education-fields .form-grid {
+  margin-top: 14px;
+}
+.education-fields .field,
+.education-fields select {
+  min-width: 0;
+  max-width: 100%;
+}
+.education-fields [hidden] {
+  display: none;
+}
 .prose h2 {
   margin: 28px 0 14px;
 }

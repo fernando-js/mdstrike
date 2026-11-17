@@ -92,10 +92,10 @@ try {
         $map = substr((string)($_GET['map'] ?? ''),0,90);
         $specialty = substr((string)($_GET['specialty'] ?? ''),0,90);
         $rows = $map !== ''
-            ? query('SELECT u.id, u.nickname, u.specialty, u.institution, u.status, u.rating, SUM(m.score) AS points, COUNT(*) AS played FROM md_users u JOIN md_matches m ON m.user_id = u.id WHERE ' . completed_match_filter() . ' AND m.map_id = ? GROUP BY u.id,u.nickname,u.specialty,u.institution,u.status,u.rating ORDER BY points DESC, u.id ASC LIMIT 100', [$map])->fetchAll()
+            ? query('SELECT u.id, u.nickname, u.specialty, u.rating, SUM(m.score) AS points, COUNT(*) AS played FROM md_users u JOIN md_matches m ON m.user_id = u.id WHERE ' . completed_match_filter() . ' AND m.map_id = ? GROUP BY u.id,u.nickname,u.specialty,u.rating ORDER BY points DESC, u.id ASC LIMIT 100', [$map])->fetchAll()
             : ($specialty !== ''
-                ? query('SELECT id,nickname,specialty,institution,status,rating,points,played FROM md_users WHERE played > 0 AND specialty = ? ORDER BY rating DESC,points DESC,id ASC LIMIT 100',[$specialty])->fetchAll()
-                : query('SELECT id,nickname,specialty,institution,status,rating,points,played FROM md_users WHERE played > 0 ORDER BY rating DESC,points DESC,id ASC LIMIT 100')->fetchAll());
+                ? query('SELECT id,nickname,specialty,rating,points,played FROM md_users WHERE played > 0 AND specialty = ? ORDER BY rating DESC,points DESC,id ASC LIMIT 100',[$specialty])->fetchAll()
+                : query('SELECT id,nickname,specialty,rating,points,played FROM md_users WHERE played > 0 ORDER BY rating DESC,points DESC,id ASC LIMIT 100')->fetchAll());
         foreach ($rows as &$row) { foreach (['id','rating','points','played'] as $key) $row[$key]=(int)$row[$key]; $row['rank']=rank_name($row['rating']); }
         send_json(['rows'=>$rows,'scope'=>$map ?: ($specialty ?: 'global')]);
     }
@@ -150,9 +150,20 @@ try {
         if (!preg_match('/^[\p{L}\p{N}_.-]{3,24}$/u',$nick)) fail('Nickname inválido.');
         if (!in_array($status,['available','studying','away'],true)) fail('Status inválido.');
         if ($specialty && !in_array($specialty,array_column(catalog()['specialties'],'id'),true)) fail('Especialidade inválida.');
-        try { query('UPDATE md_users SET nickname = ?, specialty = ?, institution = ?, status = ? WHERE id = ?',[$nick,$specialty,mb_substr(trim((string)($data['institution'] ?? '')),0,100),$status,$user['id']]); }
-        catch (PDOException $e) { if ((string)$e->getCode()==='23000') fail('Esse nickname já está em uso.',409); throw $e; }
-        audit_event('profile.updated',(int)$user['id'],(int)$user['id'],['fields'=>['nickname','specialty','institution','status']]);
+        $keepEducation = ($data['educationStatus'] ?? '') === 'keep';
+        $hasEducation = array_key_exists('educationStatus', $data) && !$keepEducation;
+        $education = $hasEducation ? education_input($data) : null;
+        $institution = $keepEducation ? $user['institution'] : ($hasEducation ? ($education['institution'] ?? '') : trim((string)($data['institution'] ?? '')));
+        $db=database(); $db->beginTransaction();
+        try {
+            query('UPDATE md_users SET nickname = ?, specialty = ?, institution = ?, status = ? WHERE id = ?',[$nick,$specialty,mb_substr($institution,0,100),$status,$user['id']]);
+            if ($hasEducation) save_education((int)$user['id'], $education);
+            $db->commit();
+        } catch (PDOException $e) {
+            if ($db->inTransaction()) $db->rollBack();
+            if ((string)$e->getCode()==='23000') fail('Esse nickname já está em uso.',409); throw $e;
+        }
+        audit_event('profile.updated',(int)$user['id'],(int)$user['id'],['fields'=>['nickname','specialty','institution','status',...($hasEducation?['education']:[])]]);
         send_json(player_payload(require_user()));
     }
     if ($action === 'change-password') {

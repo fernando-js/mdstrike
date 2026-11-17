@@ -8,8 +8,8 @@ import {
   state,
   specialtyName,
   modeName,
-} from "./core.js?v=2.2.2";
-import { heading, statsStrip } from "./views.js?v=2.2.2";
+} from "./core.js?v=2.3.0";
+import { heading, statsStrip } from "./views.js?v=2.3.0";
 
 let generation = 0;
 let section = "overview";
@@ -253,7 +253,7 @@ async function userDetail(id) {
             "Precisão",
           ],
         ],
-      )}<div class="row wrap"><span class="tag">Cadastro: ${stamp(u.created_at)}</span><span class="tag">Última visita: ${stamp(u.last_seen)}</span><span class="tag">${esc(specialtyName(u.specialty))}</span><span class="tag">${esc(statusLabel(u.status))}</span></div>${u.institution ? `<p class="small-text" style="margin-top:12px">Instituição: ${esc(u.institution)}</p>` : ""}<button class="text-button" data-admin-user-logs="${Number(u.id)}" style="margin-top:20px">Consultar logs deste usuário ↗</button></section><div class="section-heading" style="margin-top:26px"><h2>Últimas partidas</h2></div>${matchesTable(data.matches)}<div class="section-heading" style="margin-top:26px"><h2>Últimas respostas</h2></div>${table(
+      )}<div class="row wrap"><span class="tag">Cadastro: ${stamp(u.created_at)}</span><span class="tag">Última visita: ${stamp(u.last_seen)}</span><span class="tag">${esc(specialtyName(u.specialty))}</span><span class="tag">${esc(statusLabel(u.status))}</span></div>${u.education ? `<p class="small-text" style="margin-top:12px">Formação autodeclarada: ${esc(u.education.institution)} · ${u.education.status === "studying" ? "Atualmente cursando" : "Formado(a)"}${u.education.municipality ? " · " + esc(u.education.municipality) : ""}${u.education.state ? " / " + esc(u.education.state) : ""}</p>` : u.institution ? `<p class="small-text" style="margin-top:12px">Instituição: ${esc(u.institution)}</p>` : ""}<button class="text-button" data-admin-user-logs="${Number(u.id)}" style="margin-top:20px">Consultar logs deste usuário ↗</button></section><div class="section-heading" style="margin-top:26px"><h2>Últimas partidas</h2></div>${matchesTable(data.matches)}<div class="section-heading" style="margin-top:26px"><h2>Últimas respostas</h2></div>${table(
         [
           "Questão",
           "Área",

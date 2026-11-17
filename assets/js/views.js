@@ -10,9 +10,15 @@ import {
   guest,
   specialtyName,
   modeName,
-} from "./core.js?v=2.2.2";
+} from "./core.js?v=2.3.0";
+import {
+  privacyDocument,
+  rankingDocument,
+  rankingSummary,
+} from "./policies.js?v=2.3.0";
+import { educationFields } from "./education.js?v=2.3.0";
 export const heading = (title, description, action = "") =>
-  `<div class="breadcrumb"><span>Jogar</span> / ${esc({ lobby: "Lobby", maps: "Mapas", competitions: "Competições", ranking: "Ranking", profile: "Meu perfil", archive: "Arquivo", sources: "Fontes", challenge: "Desafio", admin: "Administração" }[state.page] || "Lobby")}</div><div class="page-heading"><div><h1>${title}</h1><p>${description}</p></div>${action}</div>`;
+  `<div class="breadcrumb"><span>Jogar</span> / ${esc({ lobby: "Lobby", maps: "Mapas", competitions: "Competições", ranking: "Ranking", profile: "Meu perfil", archive: "Arquivo", sources: "Fontes", challenge: "Desafio", admin: "Administração", privacy: "Privacidade", "ranking-rules": "Regras do ranking" }[state.page] || "Lobby")}</div><div class="page-heading"><div><h1>${title}</h1><p>${description}</p></div>${action}</div>`;
 export const areaOptions = (selected = "", includeGeneral = false) =>
   Object.entries(catalog.areas)
     .filter(([k]) => includeGeneral || k !== "GERAL")
@@ -135,7 +141,7 @@ export function ranking() {
       "O conhecimento sobe de patente.",
       "Compare seu desempenho com jogadores reais do MD Strike.",
     ) +
-    `<div class="segmented" role="group" aria-label="Escopo do ranking"><button data-ranking="global" class="active" aria-pressed="true">Ranking global</button><button data-ranking="relative" aria-pressed="false">Por especialidade</button><button data-ranking="map" aria-pressed="false">Por mapa jogado</button></div><div id="ranking-controls"></div><div id="ranking-content"><div class="loading">Consultando classificação…</div></div><div class="notice">Global e especialidade: rating, depois pontos. Por mapa: soma de pontos das partidas concluídas naquele mapa. Somente contas com partidas concluídas aparecem. Os 100 primeiros são exibidos. Seu e-mail nunca aparece na tabela.</div><div class="section-heading" style="margin-top:26px"><h2>Patentes do MD Strike</h2></div><div class="badge-list">${[
+    `<div class="segmented" role="group" aria-label="Escopo do ranking"><button data-ranking="global" class="active" aria-pressed="true">Ranking global</button><button data-ranking="relative" aria-pressed="false">Por especialidade</button><button data-ranking="map" aria-pressed="false">Por mapa jogado</button></div><div id="ranking-controls"></div><div id="ranking-content"><div class="loading">Consultando classificação…</div></div><div class="notice">${esc(rankingSummary)} <button class="text-button" data-page="ranking-rules">Ler as regras completas ↗</button></div><div class="section-heading" style="margin-top:26px"><h2>Patentes do MD Strike</h2></div><div class="badge-list">${[
       [0, "Recruta"],
       [900, "Prata I"],
       [1000, "Prata Elite"],
@@ -192,7 +198,7 @@ ${statsStrip([
       )
       .join(
         "",
-      )}</select></label><label class="field full-width"><span>Instituição (opcional e pública)</span><input name="institution" value="${esc(p.institution || "")}" maxlength="100" placeholder="Sua universidade ou grupo de estudo"></label><div class="full-width form-error" role="alert"></div><div class="full-width row wrap"><button class="btn small" type="submit">Salvar perfil</button>${state.user ? '<button class="text-button" type="button" data-logout>Sair da conta</button>' : ""}</div></form></section>
+      )}</select></label>${educationFields(p)}<div class="full-width form-error" role="alert"></div><div class="full-width row wrap"><button class="btn small" type="submit">Salvar perfil</button>${state.user ? '<button class="text-button" type="button" data-logout>Sair da conta</button>' : ""}</div></form></section>
 <section class="panel"><h2>Precisão por área</h2>${Object.entries(catalog.areas)
       .map(([key, label]) => {
         const s = stats.find((s) => s.area === key);
@@ -213,6 +219,23 @@ export function sources() {
       "Transparência faz parte do jogo.",
       "Conteúdo, dados e regras do MD Strike.",
     ) +
-    `<div class="prose"><h2>Como o conteúdo funciona</h2><p>Os cadernos oficiais são exibidos em PDF, com identificação da banca, edição e questão. As respostas são comparadas aos gabaritos definitivos. Questões anuladas ou excluídas não entram nas partidas. Comentários clínicos não são atribuídos ao Inep ou à FGV.</p><p>As questões autorais do protótipo são identificadas como demonstração, ainda sem revisão médica. São exercícios educacionais, não orientações para atendimento de pacientes.</p><h2>ENAMED e ENARE</h2><p>O ENAMED começou em 2025. Sua nota pode ser usada na seleção de residência de acesso direto do ENARE, mediante as inscrições e regras dos editais. As seleções com pré-requisito usam provas próprias. Consulte sempre o edital da edição desejada; o jogo não realiza inscrições nem calcula nota TRI.</p><h2>Especialidades e mapas</h2><p>O catálogo reúne as 55 especialidades reconhecidas pelo CFM. Mapas sem questões próprias indicam treino da área-base. A presença no catálogo não significa oferta de vaga de residência, tipo de acesso ou existência de caderno específico no ENARE.</p><h2>Conta e privacidade</h2><p>Nickname, instituição informada, especialidade e resultados podem aparecer nos rankings. O e-mail não aparece nos rankings e pode ser consultado pela administração. A atividade da conta, como acessos, partidas e respostas, é registrada para operação e suporte do jogo. A senha é armazenada como hash; o navegador usa um cookie de sessão HttpOnly. Dados de convidados ficam somente no navegador e não são transferidos para a conta.</p><p>Não há rastreadores ou fontes externas carregadas pela interface. Os links de fontes oficiais abrem outros sites. O site utiliza imagens ilustrativas geradas para o jogo.</p><h2>Ranking e competição</h2><p>As partidas competitivas são contra bots identificados. O resultado altera o rating do jogo em +20 na vitória ou −12 na derrota. Acertos valem 100 pontos; em modos com relógio há até 50 pontos de velocidade. XP: 20 por acerto e bônus de conclusão. Abandonar não rende bônus ou pontos no ranking. O ranking não corresponde a resultado de exame oficial.</p><h2>Fontes consultadas</h2>${catalog.sources.map((s) => `<p><a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.title)} ↗</a></p>`).join("")}<p>Conteúdo e links verificados em 17/11/2026.</p></div>`
+    `<div class="prose"><h2>Como o conteúdo funciona</h2><p>Os cadernos oficiais são exibidos em PDF, com identificação da banca, edição e questão. As respostas são comparadas aos gabaritos definitivos. Questões anuladas ou excluídas não entram nas partidas. Comentários clínicos não são atribuídos ao Inep ou à FGV.</p><p>As questões autorais do protótipo são identificadas como demonstração, ainda sem revisão médica. São exercícios educacionais, não orientações para atendimento de pacientes.</p><h2>ENAMED e ENARE</h2><p>O ENAMED começou em 2025. Sua nota pode ser usada na seleção de residência de acesso direto do ENARE, mediante as inscrições e regras dos editais. As seleções com pré-requisito usam provas próprias. Consulte sempre o edital da edição desejada; o jogo não realiza inscrições nem calcula nota TRI.</p><h2>Especialidades e mapas</h2><p>O catálogo reúne as 55 especialidades reconhecidas pelo CFM. Mapas sem questões próprias indicam treino da área-base. A presença no catálogo não significa oferta de vaga de residência, tipo de acesso ou existência de caderno específico no ENARE.</p><h2>Privacidade e regras</h2><p>Os dados usados, os registros de atividade e os prazos de retenção estão descritos na política. As regras explicam pontuação, rating, desempates e desafios.</p><div class="row wrap"><button class="btn secondary small" data-page="privacy">Política de privacidade</button><button class="btn secondary small" data-page="ranking-rules">Regras do ranking</button></div><h2>Fontes consultadas</h2>${catalog.sources.map((s) => `<p><a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.title)} ↗</a></p>`).join("")}<p>Conteúdo e links verificados em 17/11/2026.</p></div>`
+  );
+}
+
+export function privacy() {
+  return (
+    heading(
+      "Política de privacidade.",
+      "Como os dados são usados no MD Strike.",
+    ) + privacyDocument
+  );
+}
+export function rankingRules() {
+  return (
+    heading(
+      "Regras do ranking.",
+      "Pontuação, classificação e desafios entre colegas.",
+    ) + rankingDocument
   );
 }

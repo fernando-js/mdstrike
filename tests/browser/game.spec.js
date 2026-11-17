@@ -136,6 +136,8 @@ test("account, server scoring, replay protection, ranking privacy and password c
   expect(row.nickname).toBe(nick);
   expect(row.email).toBeUndefined();
   expect(row.password_hash).toBeUndefined();
+  expect(row.institution).toBeUndefined();
+  expect(row.status).toBeUndefined();
   const relative = await (
     await request.get("/api/index.php?action=leaderboard&specialty=neurologia")
   ).json();

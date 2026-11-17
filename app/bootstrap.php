@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/security.php';
+require_once __DIR__ . '/education.php';
 
 function private_directory(): string {
     $directory = getenv('MDSTRIKE_PRIVATE_DIR') ?: dirname(__DIR__, 2) . '/.mdstrike';
@@ -62,6 +63,7 @@ function migrate(PDO $db): void {
         "CREATE TABLE IF NOT EXISTS md_challenges (id VARCHAR(32) PRIMARY KEY, creator_id BIGINT NOT NULL, map_id VARCHAR(90) NOT NULL, questions_json TEXT NOT NULL, created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL)$tail",
         "CREATE TABLE IF NOT EXISTS md_challenge_runs (id $id, challenge_id VARCHAR(32) NOT NULL, user_id BIGINT NOT NULL, match_id VARCHAR(64) NOT NULL UNIQUE, UNIQUE(challenge_id, user_id))$tail",
         "CREATE TABLE IF NOT EXISTS md_admins (user_id BIGINT PRIMARY KEY, granted_at BIGINT NOT NULL)$tail",
+        "CREATE TABLE IF NOT EXISTS md_education (user_id BIGINT PRIMARY KEY, education_status VARCHAR(16) NOT NULL, selection_mode VARCHAR(16) NOT NULL, institution_id VARCHAR(32) NOT NULL DEFAULT '', institution_name VARCHAR(255) NOT NULL, state VARCHAR(2) NOT NULL DEFAULT '', municipality_id VARCHAR(7) NOT NULL DEFAULT '', municipality_name VARCHAR(150) NOT NULL DEFAULT '', source_version VARCHAR(32) NOT NULL, updated_at BIGINT NOT NULL)$tail",
         "CREATE TABLE IF NOT EXISTS md_migrations (name VARCHAR(100) PRIMARY KEY, applied_at BIGINT NOT NULL)$tail",
         "CREATE TABLE IF NOT EXISTS md_audit_logs (id $id, event VARCHAR(80) NOT NULL, actor_id BIGINT, subject_id BIGINT, metadata_json TEXT NOT NULL, client_ip VARCHAR(45) NOT NULL DEFAULT '', user_agent VARCHAR(255) NOT NULL DEFAULT '', request_id VARCHAR(32) NOT NULL, created_at BIGINT NOT NULL$auditIndexes)$tail",
     ];
@@ -117,7 +119,7 @@ function input(): array {
     if (!is_array($data)) fail('Dados inválidos.');
     foreach ($data as $key => $value) {
         if (is_array($value) || is_object($value)) fail('Campo inválido.');
-        if (in_array($key, ['nickname','email','password','currentPassword','specialty','identity','institution','status','mode','map','exam','match','question','challenge'], true) && !is_string($value)) fail('Campo de texto inválido.');
+        if (in_array($key, ['nickname','email','password','currentPassword','specialty','identity','institution','status','mode','map','exam','match','question','challenge','educationStatus','educationMode','educationState','educationMunicipality','educationInstitution'], true) && !is_string($value)) fail('Campo de texto inválido.');
     }
     return $data;
 }
@@ -153,7 +155,7 @@ function require_user(): array { return current_user() ?: fail('Sua sessão expi
 function public_user(array $u, bool $owner = false): array {
     $result = array_intersect_key($u, array_flip(['id','nickname','specialty','institution','status','xp','points','rating','played','wins','answered','correct','created_at','last_seen']));
     foreach (['id','xp','points','rating','played','wins','answered','correct','created_at','last_seen'] as $key) $result[$key] = (int)$result[$key];
-    if ($owner) { $result['email'] = $u['email']; $result['isAdmin'] = is_admin($u); }
+    if ($owner) { $result['email'] = $u['email']; $result['isAdmin'] = is_admin($u); $result['education'] = education_for_user((int)$u['id']); }
     $result['rank'] = rank_name((int)$u['rating']);
     return $result;
 }

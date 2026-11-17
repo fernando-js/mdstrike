@@ -17,16 +17,17 @@ import {
   api,
   refreshProfile,
   beep,
-} from "./core.js?v=2.2.2";
-import * as views from "./views.js?v=2.2.2";
-import { Match } from "./game.js?v=2.2.2";
-import { renderPdf } from "./pdf-viewer.js?v=2.2.2";
+} from "./core.js?v=2.3.0";
+import * as views from "./views.js?v=2.3.0";
+import { Match } from "./game.js?v=2.3.0";
+import { renderPdf } from "./pdf-viewer.js?v=2.3.0";
 import {
   challengeForm,
   challengePage,
   loadMyChallenges,
-} from "./challenges.js?v=2.2.2";
-import { openAdmin, stopAdmin } from "./admin.js?v=2.2.2";
+} from "./challenges.js?v=2.3.0";
+import { openAdmin, stopAdmin } from "./admin.js?v=2.3.0";
+import { mountEducation, educationFromForm } from "./education.js?v=2.3.0";
 
 const modal = $("#modal"),
   view = $("#view");
@@ -34,7 +35,8 @@ let routeGeneration = 0,
   timer = null,
   answerBusy = false,
   pendingNavigation = null,
-  rankingScope = "global";
+  rankingScope = "global",
+  rankingRequest = 0;
 const nav = [
   ["lobby", "crosshair", "Visão geral"],
   ["maps", "map", "Mapas e especialidades"],
@@ -110,6 +112,8 @@ async function route(page, force = false) {
       "profile",
       "archive",
       "sources",
+      "privacy",
+      "ranking-rules",
       "challenge",
       "admin",
     ].includes(page)
@@ -129,7 +133,9 @@ async function route(page, force = false) {
       ? '<div class="loading">Abrindo o desafio…</div>'
       : page === "admin"
         ? ""
-        : views[page]();
+        : page === "ranking-rules"
+          ? views.rankingRules()
+          : views[page]();
   window.scrollTo({ top: 0 });
   if (page === "ranking") await loadRanking();
   if (page === "admin") await openAdmin(adminRoute?.[1] || "overview");
@@ -157,6 +163,8 @@ async function route(page, force = false) {
       toast(error.message);
     }
   }
+  if (page === "profile" && routeGeneration === generation)
+    await mountEducation(player());
 }
 
 function openModal(html) {
@@ -177,7 +185,7 @@ function auth(type = "login") {
   const register = type === "register";
   openModal(`<div class="modal-content"><div class="modal-top"><h2 id="modal-title">${register ? "Crie seu operador." : "De volta ao round."}</h2><button class="close-button" data-close aria-label="Fechar">×</button></div><p>${register ? "Seu nickname no placar. Sua evolução salva entre dispositivos." : "Entre para continuar sua preparação."}</p><div class="auth-tabs"><button data-auth="login" class="${register ? "" : "active"}">Entrar</button><button data-auth="register" class="${register ? "active" : ""}">Criar conta</button></div>
   ${!state.configured ? '<div class="notice">O cadastro será liberado quando o banco for conectado na hospedagem. Você já pode jogar como convidado.</div>' : ""}
-  <form class="auth-form" id="auth-form" data-kind="${type}">${register ? `<label class="field"><span>Nickname</span><input name="nickname" placeholder="Seu nome no placar" autocomplete="nickname" minlength="3" maxlength="24" required></label><label class="field"><span>E-mail</span><input type="email" name="email" placeholder="voce@exemplo.com" autocomplete="email" maxlength="190" required></label>` : `<label class="field"><span>E-mail ou nickname</span><input name="identity" placeholder="Seu e-mail ou nickname" autocomplete="username" required></label>`}<label class="field"><span>Senha ${register ? "· mínimo de 10 caracteres" : ""}</span><input type="password" name="password" autocomplete="${register ? "new-password" : "current-password"}" ${register ? 'minlength="10" maxlength="72"' : ""} required></label>${register ? `<label class="field"><span>Especialidade de interesse</span><select name="specialty">${views.specialtyOptions("")}</select></label><label class="check-label"><input type="checkbox" name="consent" required><span>Concordo com a exibição do meu nickname e resultados no ranking. Meu e-mail fica privado. <button class="text-button" type="button" data-privacy>Ver privacidade</button></span></label>` : ""}<div class="form-error" role="alert"></div><button class="btn" type="submit">${register ? "Criar meu operador" : "Entrar na conta"} ${icon("arrow", 18)}</button><button class="text-button" type="button" data-close>Continuar como convidado</button></form></div>`);
+  <form class="auth-form" id="auth-form" data-kind="${type}">${register ? `<label class="field"><span>Nickname</span><input name="nickname" placeholder="Seu nome no placar" autocomplete="nickname" minlength="3" maxlength="24" required></label><label class="field"><span>E-mail</span><input type="email" name="email" placeholder="voce@exemplo.com" autocomplete="email" maxlength="190" required></label>` : `<label class="field"><span>E-mail ou nickname</span><input name="identity" placeholder="Seu e-mail ou nickname" autocomplete="username" required></label>`}<label class="field"><span>Senha ${register ? "· mínimo de 10 caracteres" : ""}</span><input type="password" name="password" autocomplete="${register ? "new-password" : "current-password"}" ${register ? 'minlength="10" maxlength="72"' : ""} required></label>${register ? `<label class="field"><span>Especialidade de interesse</span><select name="specialty">${views.specialtyOptions("")}</select></label><label class="check-label"><input type="checkbox" name="consent" required><span>Concordo com a exibição pública do meu nickname, especialidade e resultados no ranking e li as <a href="#ranking-rules" target="_blank" rel="noopener noreferrer">regras do ranking</a> e a <a href="#privacy" target="_blank" rel="noopener noreferrer">política de privacidade</a>. Meu e-mail não aparece na classificação pública.</span></label>` : ""}<div class="form-error" role="alert"></div><button class="btn" type="submit">${register ? "Criar meu operador" : "Entrar na conta"} ${icon("arrow", 18)}</button><button class="text-button" type="button" data-close>Continuar como convidado</button></form></div>`);
 }
 
 function mapDetails(id) {
@@ -264,6 +272,7 @@ function filterExams() {
 }
 
 async function loadRanking() {
+  const request = ++rankingRequest;
   const container = $("#ranking-content");
   if (!container) return;
   container.innerHTML = '<div class="loading">Consultando classificação…</div>';
@@ -296,12 +305,17 @@ async function loadRanking() {
       throw new Error(data.error || "Não foi possível consultar.");
     if (
       state.page === "ranking" &&
+      request === rankingRequest &&
       rankingScope === scope &&
       $("#ranking-content") === container
     )
       container.innerHTML = views.rankingTable(data.rows);
   } catch (error) {
-    if (container.isConnected)
+    if (
+      container.isConnected &&
+      request === rankingRequest &&
+      state.page === "ranking"
+    )
       container.innerHTML = `<div class="empty"><h2>Placar temporariamente indisponível.</h2><p>${esc(error.message)}</p><button class="btn small" data-retry-ranking>Tentar novamente</button></div>`;
   }
 }
@@ -520,7 +534,7 @@ document.addEventListener("click", async (event) => {
     else if (b.hasAttribute("data-auth")) auth(b.dataset.auth);
     else if (b.hasAttribute("data-privacy")) {
       closeModal();
-      await route("sources");
+      await route("privacy");
     } else if (b.hasAttribute("data-map")) mapDetails(b.dataset.map);
     else if (b.hasAttribute("data-rules")) rules(b.dataset.rules);
     else if (b.hasAttribute("data-mode")) {
@@ -669,7 +683,16 @@ document.addEventListener("submit", async (event) => {
           throw new Error(
             "Use de 3 a 24 letras, números, ponto, hífen ou sublinhado.",
           );
-        Object.assign(guest, data);
+        const profileFields = Object.fromEntries(
+          Object.entries(data).filter(
+            ([key]) => !key.startsWith("education") && key !== "institution",
+          ),
+        );
+        Object.assign(guest, profileFields);
+        if (data.educationStatus !== "keep") {
+          guest.education = educationFromForm(data);
+          guest.institution = guest.education?.institution || "";
+        }
         saveGuest();
       }
       shell();

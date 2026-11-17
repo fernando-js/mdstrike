@@ -81,6 +81,20 @@ As tabelas aditivas `md_admins`, `md_migrations` e `md_audit_logs` são criadas 
 
 Os logs registram criação de conta, login/falhas, logout, expiração da sessão, alteração de perfil/senha, partidas, respostas, desafios, consultas administrativas e erros da API. Registram horário, IDs dos envolvidos, metadados limitados, IP recebido, navegador e ID da requisição; nunca o corpo bruto da requisição nem senhas. O painel é de consulta, sem exclusão ou edição de contas. O acesso às consultas também é registrado. Logs com mais de 90 dias são removidos gradualmente em lotes de até 1.000, no máximo a cada dez minutos durante o uso da API. Perfis, partidas e respostas permanecem no histórico. Erros repetidos e acessos administrativos negados têm limite de cinco registros por evento/IP/minuto; eventos de conta e senha continuam registrados.
 
+## Privacidade e regras públicas
+
+As páginas `/#privacy` e `/#ranking-rules` descrevem coleta, visibilidade, sessão, retenção, hospedagem, pontuação, desempates e desafios. Os links ficam no rodapé, em Fontes e no cadastro; no cadastro, abrem em outra aba para preservar o formulário. Textos em `assets/js/policies.js`, atualizados em 17/11/2026. Contato público indicado pelo proprietário: `info@mdstrike.com`. A identificação formal do responsável permanece pendente; a publicação não declara conformidade integral com a LGPD nem inventa CNPJ. A caixa desse endereço precisa estar ativa e acompanhada; incluir o link não provisiona e-mail. Infraestrutura internacional e retenção de backups do provedor precisam de confirmação operacional.
+
+A API pública de ranking retorna apenas ID, nickname, especialidade, rating/patente, pontos e partidas. Instituição e status do perfil ficam restritos ao próprio usuário e à administração; não compõem a resposta pública. Trocas rápidas de filtro descartam respostas antigas para manter o placar correspondente à seleção atual. Ranking global/especialidade usa rating, pontos e ID crescente; por mapa usa pontos e ID crescente. Tentativas abandonadas não pontuam; empates no placar do desafio seguem acertos, pontos e tempo, com a mesma posição para resultados idênticos.
+
+## Formação acadêmica opcional
+
+Em **Meu perfil → Formação acadêmica**, o jogador pode indicar se está cursando ou se formou, escolher estado, município e faculdade, ou informar uma instituição manualmente (inclusive no exterior). A opção **Prefiro não informar** remove a formação atual ao salvar. Informações legadas de instituição são preservadas até o usuário decidir atualizar/remover. O vínculo é autodeclarado, visível ao titular e aos administradores, fora do ranking público; não comprova matrícula ou diploma. Convidados mantêm a informação somente no navegador.
+
+O catálogo de 2.561 instituições em 1.125 municípios e 27 UFs vem do **Censo Superior 2024**, a edição mais recente disponível na página do Inep consultada em 17/11/2026. Inclui sedes e municípios de oferta presencial, sem garantir todos os campi ou a situação regulatória em tempo real. Novas instituições, nomes antigos e faculdades estrangeiras podem ser informados manualmente. Fontes e SHA256 ficam em `app/institutions.json` e sua cópia pública `assets/data/institutions.json`, sem endereços ou dados individuais de estudantes. Nenhuma busca do usuário é enviada ao Inep.
+
+Para atualizar a lista, baixe o ZIP oficial indicado no catálogo para fora do repositório e execute `python3 scripts/import-institutions.py /caminho/arquivo.zip`. O gerador exporta somente nomes, siglas, códigos e localidades das IES; não publique o ZIP bruto. O backend valida as combinações escolhidas e deriva o nome a partir do catálogo. A tabela aditiva `md_education` guarda um vínculo opcional por conta; editar perfil e formação é uma operação atômica.
+
 ## Proteções contra abuso
 
 Entradas com rota, método, parâmetros ou tipos inválidos são rejeitadas antes de gerar exceções. O corpo deve ser um objeto JSON de até 32 KiB, com leitura limitada aos bytes reais. O catálogo público e o treino de convidado continuam disponíveis sem banco configurado.

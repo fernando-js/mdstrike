@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 for (const file of [
   "app/bootstrap.php",
   "app/security.php",
+  "app/education.php",
   "app/challenges.php",
   "app/admin.php",
   "api/index.php",

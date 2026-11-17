@@ -68,6 +68,7 @@ function admin_dispatch(string $action, array $params, array $operator): array {
         $user=query('SELECT id,nickname,email,specialty,institution,status,xp,points,rating,played,wins,answered,correct,created_at,last_seen FROM md_users WHERE id = ?',[$id])->fetch();
         if(!$user)fail('Usuário não encontrado.',404);
         $user['isAdmin']=is_admin($user);
+        $user['education']=education_for_user($id);
         $stats=query('SELECT area,COUNT(*) AS answered,SUM(correct) AS correct FROM md_answers WHERE user_id = ? GROUP BY area',[$id])->fetchAll();
         $matches=query('SELECT id,user_id,mode,map_id,score,correct,question_index,started_at,issued_at,finished_at,result_json FROM md_matches WHERE user_id = ? ORDER BY started_at DESC LIMIT 30',[$id])->fetchAll();
         $answers=query('SELECT question_id,area,match_id,choice,correct,points,elapsed,created_at FROM md_answers WHERE user_id = ? ORDER BY id DESC LIMIT 50',[$id])->fetchAll();
