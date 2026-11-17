@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#111719" />
+    <meta
+      name="description"
+      content="MD Strike: sua preparação para ENAMED e ENARE em rounds. Mapas por especialidade, provas oficiais e ranking entre jogadores."
+    />
+    <title>MD Strike — Conhecimento em jogo</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="assets/favicon-32.png"
+    />
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+    <link rel="stylesheet" href="assets/style.css" />
+    <script type="module" src="assets/js/app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Pular para o conteúdo</a>
+    <header class="topbar">
+      <a class="brand" href="#lobby" aria-label="MD Strike — início"
+        ><img src="assets/favicon.svg" alt="" width="39" height="39" /><span
+          >MD <i>/</i> STRIKE</span
+        ></a
+      >
+      <nav id="top-nav" aria-label="Navegação principal"></nav>
+      <button class="account-button" data-auth="login" id="account-button">
+        <span class="status-dot"></span><span>CONVIDADO</span
+        ><span aria-hidden="true">⌄</span>
+      </button>
+    </header>
+    <div class="app-layout">
+      <aside class="sidebar" aria-label="Central de operações">
+        <div class="sidebar-heading">
+          CENTRAL DE<br />OPERAÇÕES <span>///</span>
+        </div>
+        <nav id="side-nav" aria-label="Seções do jogo"></nav>
+        <div class="sidebar-bottom" id="sidebar-profile"></div>
+      </aside>
+      <main id="main" tabindex="-1">
+        <div id="view"><div class="loading">Preparando o lobby…</div></div>
+        <footer class="site-footer">
+          <span>MD / STRIKE</span>
+          <p>
+            Projeto independente, sem vínculo com Inep, FGV ou HU Brasil.
+            Questões identificadas por fonte.
+          </p>
+          <button class="text-button" data-page="sources">
+            Fontes e privacidade ↗
+          </button>
+        </footer>
+      </main>
+    </div>
+    <dialog id="modal" aria-labelledby="modal-title"></dialog>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <noscript
+      ><p class="notice">
+        Ative o JavaScript para jogar. Você pode consultar as
+        <a
+          href="https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enamed/provas-e-gabaritos"
+          >provas oficiais do Inep</a
+        >.
+      </p></noscript
+    >
+  </body>
+</html>

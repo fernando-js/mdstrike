@@ -1,0 +1,248 @@
+import { test, expect } from "@playwright/test";
+import fs from "node:fs";
+const bank = JSON.parse(fs.readFileSync("app/questions.json"));
+const lookup = (q) => {
+  const raw = bank.find((x) => x.id === q.id);
+  return raw.kind === "official"
+    ? raw.answer
+    : q.options.indexOf(raw.options[raw.answer]);
+};
+const unique = () => `${Date.now()}${Math.floor(Math.random() * 100000)}`;
+
+test("lobby, map filters, guest round, review and mobile layout", async ({
+  page,
+}) => {
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("/");
+  await expect(page.locator("h1")).toHaveText(
+    "Conhecimento é a sua melhor arma.",
+  );
+  await page.getByRole("button", { name: "Mapas", exact: true }).click();
+  await page.locator("#map-search").fill("anestesiologia");
+  await expect(page.locator(".map-card")).toHaveCount(1);
+  await page.locator('[data-map="anestesiologia"]').click();
+  await expect(page.locator("#modal")).toContainText("Anestesiologia");
+  await page.getByRole("button", { name: "Treinar específicas" }).click();
+  await expect(page.locator(".answer")).toHaveCount(4);
+  await page.keyboard.press("1");
+  await expect(page.locator(".feedback")).toBeVisible();
+  await expect(page.locator(".answer.correct")).toHaveCount(1);
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".feedback")).toHaveCount(0);
+  await page.getByRole("button", { name: "Sair da partida" }).click();
+  await page.getByRole("button", { name: "Encerrar partida" }).click();
+  await expect(page.locator(".operation")).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await expect(
+    page.getByRole("button", { name: "Iniciar treino" }),
+  ).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("account, server scoring, replay protection, ranking privacy and password changes", async ({
+  request,
+  playwright,
+}) => {
+  const suffix = unique(),
+    nick = `op_${suffix}`.slice(0, 24),
+    email = `${suffix}@example.test`,
+    password = "Correct-Horse-12345";
+  let session = await (
+    await request.get("/api/index.php?action=session")
+  ).json();
+  const post = async (action, data, token = session.csrf) =>
+    request.post(`/api/index.php?action=${action}`, {
+      headers: { "X-CSRF-Token": token },
+      data,
+    });
+  const invalid = await request.post("/api/index.php?action=register", {
+    data: { nickname: nick, email, password, consent: true },
+  });
+  expect(invalid.status()).toBe(403);
+  const registered = await post("register", {
+    nickname: nick,
+    email,
+    password,
+    consent: true,
+    specialty: "cardiologia",
+  });
+  expect(registered.status()).toBe(201);
+  const account = await registered.json();
+  session.csrf = account.csrf;
+  expect(account.user.email).toBe(email);
+  let response = await post("start-match", {
+    mode: "practice",
+    map: "all",
+    score: 999999,
+  });
+  expect(response.ok()).toBeTruthy();
+  let current = await response.json();
+  expect(current.question.answer).toBeUndefined();
+  expect(current.question.explanation).toBeUndefined();
+  let result;
+  for (let i = 0; i < current.total; i++) {
+    const answer = await post("answer", {
+      match: current.id,
+      question: current.question.id,
+      choice: lookup(current.question),
+      points: 999999,
+      rating: 999999,
+    });
+    expect(answer.ok()).toBeTruthy();
+    const graded = await answer.json();
+    expect(graded.points).toBe(100);
+    const replay = await post("answer", {
+      match: current.id,
+      question: current.question.id,
+      choice: 0,
+    });
+    expect(replay.status()).toBe(409);
+    if (graded.result) {
+      result = graded.result;
+      break;
+    }
+    response = await post("next-question", { match: current.id });
+    expect(response.ok()).toBeTruthy();
+    current = await response.json();
+  }
+  expect(result.score).toBe(1000);
+  expect(result.ratingDelta).toBe(0);
+  const profile = await (
+    await request.get("/api/index.php?action=profile")
+  ).json();
+  expect(profile.user.points).toBe(1000);
+  expect(profile.user.played).toBe(1);
+  expect(profile.user.rating).toBe(1000);
+  expect(profile.user.xp).toBe(210);
+  const board = await (
+    await request.get("/api/index.php?action=leaderboard")
+  ).json();
+  const row = board.rows.find((u) => u.id === account.user.id);
+  expect(row.nickname).toBe(nick);
+  expect(row.email).toBeUndefined();
+  expect(row.password_hash).toBeUndefined();
+  const relative = await (
+    await request.get("/api/index.php?action=leaderboard&specialty=neurologia")
+  ).json();
+  expect(relative.rows.find((u) => u.id === account.user.id)).toBeUndefined();
+  const second = await playwright.request.newContext({
+    baseURL: "http://127.0.0.1:8088",
+  });
+  const otherSession = await (
+    await second.get("/api/index.php?action=session")
+  ).json();
+  const otherLogin = await second.post("/api/index.php?action=login", {
+    headers: { "X-CSRF-Token": otherSession.csrf },
+    data: { identity: email, password },
+  });
+  expect(otherLogin.ok()).toBeTruthy();
+  response = await post("change-password", {
+    currentPassword: password,
+    password: "Another-Correct-12345",
+  });
+  expect(response.ok()).toBeTruthy();
+  session.csrf = (await response.json()).csrf;
+  const revoked = await second.get("/api/index.php?action=profile");
+  expect(revoked.status()).toBe(401);
+  const stillAuthenticated = await request.get("/api/index.php?action=profile");
+  expect(stillAuthenticated.ok()).toBeTruthy();
+  await second.dispose();
+});
+
+test("private files stay inaccessible and official question uses a valid PDF", async ({
+  request,
+  page,
+}) => {
+  for (const path of [
+    "/app/questions.json",
+    "/app/config.example.php",
+    "/.env",
+    "/.runtime/mdstrike.sqlite",
+  ])
+    expect((await request.get(path)).status()).toBe(404);
+  await page.goto("/#archive");
+  await page.locator('[data-exam="enamed-2025"]').click();
+  await expect(page.locator("iframe")).toHaveAttribute(
+    "src",
+    /enamed-2025-caderno-1\.pdf#page=3/,
+  );
+  await expect(page.locator(".answer")).toHaveCount(4);
+  expect(
+    (
+      await request.get("/assets/documents/enamed-2025-caderno-1.pdf")
+    ).headers()["content-type"],
+  ).toContain("application/pdf");
+});
+
+test("server competitions finish once and update game rating", async ({
+  request,
+}) => {
+  const suffix = unique();
+  let csrf = (await (await request.get("/api/index.php?action=session")).json())
+    .csrf;
+  const post = (action, data) =>
+    request.post(`/api/index.php?action=${action}`, {
+      headers: { "X-CSRF-Token": csrf },
+      data,
+    });
+  const registered = await post("register", {
+    nickname: `rank_${suffix}`.slice(0, 24),
+    email: `rank_${suffix}@example.test`,
+    password: "Secure-Test-Password123",
+    consent: true,
+  });
+  expect(registered.ok()).toBeTruthy();
+  csrf = (await registered.json()).csrf;
+  let expectedRating = 1000,
+    played = 0;
+  for (const mode of ["duel", "competitive", "cup"]) {
+    let current = await (
+      await post("start-match", { mode, map: "all" })
+    ).json();
+    const ids = new Set();
+    let result;
+    for (let i = 0; i < 15; i++) {
+      expect(ids.has(current.question.id)).toBe(false);
+      ids.add(current.question.id);
+      const response = await post("answer", {
+        match: current.id,
+        question: current.question.id,
+        choice: lookup(current.question),
+      });
+      expect(response.ok()).toBeTruthy();
+      const graded = await response.json();
+      expect(graded.points).toBeLessThanOrEqual(150);
+      if (graded.result) {
+        result = graded.result;
+        break;
+      }
+      current = await (
+        await post("next-question", { match: current.id })
+      ).json();
+    }
+    expect(result).toBeTruthy();
+    expect(result.ranked).toBe(true);
+    expect([20, -12]).toContain(result.ratingDelta);
+    if (mode === "cup") {
+      expect(result.win).toBe(true);
+      expect(result.answered).toBe(15);
+    }
+    if (mode === "competitive")
+      expect(Math.max(result.roundsWon, result.roundsLost)).toBe(5);
+    expectedRating += result.ratingDelta;
+    played++;
+    const profile = await (
+      await request.get("/api/index.php?action=profile")
+    ).json();
+    expect(profile.user.rating).toBe(expectedRating);
+    expect(profile.user.played).toBe(played);
+    const replay = await post("next-question", { match: current.id });
+    expect(replay.status()).toBe(409);
+  }
+});

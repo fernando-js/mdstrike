@@ -1,0 +1,12 @@
+node_modules/
+.runtime/
+.env
+.env.*
+!.env.example
+config.local.php
+*.sqlite*
+release/
+backups/
+test-results/
+playwright-report/
+.DS_Store

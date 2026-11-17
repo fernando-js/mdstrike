@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MD Strike</title>
+<style>
+:root{
+  /* Layout: HUD fixo no topo, lobby em duas colunas (modos | missões), arena de coluna única com o traçado de ECG como relógio. Tema único: centro cirúrgico à noite. */
+  --bg:#0d1b20; --panel:#14272e; --panel2:#1a323a; --line:#2a4a54;
+  --text:#e8f0ea; --muted:#8fa9aa;
+  --accent:#ffa033; --accent-ink:#1d1204;
+  --good:#52d394; --bad:#ff6166; --ally:#62b8ff; --foe:#e9b44c;
+  --display:"Arial Narrow",sans-serif;
+  --body:system-ui,sans-serif;
+  --mono:ui-monospace,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--text);font:400 16px/1.5 var(--body);
+  background-image:linear-gradient(var(--panel) 1px,transparent 1px),linear-gradient(90deg,var(--panel) 1px,transparent 1px);background-size:48px 48px;}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:.02em}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.wrap{max-width:1120px;margin:0 auto;padding:0 16px}
+
+.top{background:var(--bg);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.top .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px;padding-top:10px;padding-bottom:10px}
+.logo{font:700 24px/1 var(--display);letter-spacing:.06em;text-transform:uppercase}
+.logo b{color:var(--accent)}
+.hud{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;margin-left:auto;font-size:14px}
+.hud div{display:flex;flex-direction:column}
+.hud small{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+.hud strong{font-family:var(--mono);font-weight:600}
+.rank{color:var(--accent)}
+.xpbar{width:120px;height:4px;background:var(--panel2);margin-top:4px}
+.xpbar i{display:block;height:100%;background:var(--accent)}
+.tabs{border-bottom:1px solid var(--line);background:var(--panel)}
+.tabs .wrap{display:flex;gap:4px;overflow-x:auto}
+.tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:10px 12px;color:var(--muted);font:600 14px var(--display);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+.tabs button[aria-current="true"]{color:var(--text);border-color:var(--accent)}
+.ghost{background:none;border:1px solid var(--line);padding:6px 10px;font-size:13px;color:var(--muted)}
+.ghost:hover{color:var(--text);border-color:var(--muted)}
+
+main{padding:24px 0 56px}
+.lobby{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:24px}
+.lead{font:600 30px/1.15 var(--display);max-width:22ch;margin-bottom:6px}
+.sub{color:var(--muted);max-width:60ch;margin:0 0 20px}
+.modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.mode{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);padding:16px;text-align:left;display:flex;flex-direction:column;gap:6px}
+.mode:hover{background:var(--panel2)}
+.mode h3{font-size:20px;text-transform:uppercase}
+.mode p{margin:0;color:var(--muted);font-size:14px}
+.mode .spec{font:500 12px var(--mono);color:var(--accent);margin-top:auto;padding-top:8px}
+.mode.alt{border-left-color:var(--ally)} .mode.alt .spec{color:var(--ally)}
+.panel{background:var(--panel);border:1px solid var(--line);padding:16px}
+.panel h2{font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:12px}
+.side{display:flex;flex-direction:column;gap:16px}
+.mission{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+.mission:first-of-type{border-top:0;padding-top:0}
+.mission .bar{grid-column:1/-1;height:4px;background:var(--panel2)}
+.mission .bar i{display:block;height:100%;background:var(--good)}
+.mission.done{color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--panel2);border:1px solid var(--line);padding:5px 9px;font-size:13px}
+.chip:hover,.chip[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.field{display:flex;gap:8px;align-items:center;font-size:14px}
+.field input{background:var(--bg);border:1px solid var(--line);padding:6px 8px;width:100%;min-width:0}
+.note{font-size:13px;color:var(--muted);margin:12px 0 0}
+
+/* arena */
+.arena{max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.mhud{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 16px;font:600 15px var(--display);text-transform:uppercase;letter-spacing:.05em}
+.mhud .score{font:600 22px var(--mono)}
+.me{color:var(--ally)} .op{color:var(--foe)}
+.ecg{height:26px;background:var(--panel);border:1px solid var(--line);position:relative;overflow:hidden}
+.ecg i{position:absolute;inset:0 auto 0 0;width:100%;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='24'%3E%3Cpath d='M0 13h22l4-3 4 3h6l3 4 5-16 5 19 3-7h8l5-4 5 4h10' fill='none' stroke='%23ffa033' stroke-width='1.6'/%3E%3C/svg%3E") repeat-x left center}
+.ecg.low i{filter:hue-rotate(-35deg) saturate(1.6)}
+.ecg span{position:absolute;right:8px;top:3px;font:600 13px var(--mono);background:var(--panel);padding:0 4px}
+.tag{font:500 12px var(--mono);color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.stem{font-size:18px;line-height:1.55;margin:4px 0 0;max-width:68ch}
+.src{font-size:12px;color:var(--muted)}
+.targets{display:grid;gap:10px}
+.target{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;text-align:left;background:var(--panel);border:1px solid var(--line);padding:12px 14px;min-height:60px}
+.target .ret{width:40px;height:40px;border:2px solid var(--muted);border-radius:50%;display:grid;place-items:center;font:700 16px var(--display);position:relative}
+.target .ret::before,.target .ret::after{content:"";position:absolute;background:var(--muted)}
+.target .ret::before{width:2px;height:8px;top:-8px;left:17px;box-shadow:0 46px 0 var(--muted)}
+.target .ret::after{height:2px;width:8px;left:-8px;top:17px;box-shadow:46px 0 0 var(--muted)}
+.target:not(:disabled):hover{border-color:var(--accent);background:var(--panel2)}
+.target:not(:disabled):hover .ret{border-color:var(--accent);color:var(--accent)}
+.target:disabled{cursor:default}
+.target.hit{border-color:var(--good)} .target.hit .ret{background:var(--good);border-color:var(--good);color:var(--bg)}
+.target.miss{border-color:var(--bad)} .target.miss .ret{background:var(--bad);border-color:var(--bad);color:var(--bg)}
+.target.cut{opacity:.3;text-decoration:line-through}
+.target .votes{font:500 12px var(--mono);color:var(--ally)}
+.fb{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--good);padding:16px;display:flex;flex-direction:column;gap:10px}
+.fb.bad{border-left-color:var(--bad)}
+.fb h3{font-size:20px;text-transform:uppercase;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.hs{background:var(--accent);color:var(--accent-ink);font:700 12px var(--display);padding:3px 8px;letter-spacing:.1em}
+.fb p{margin:0;max-width:68ch}
+.feed{font:500 13px/1.7 var(--mono);color:var(--muted)}
+.feed b{color:var(--text);font-weight:600}
+.cta{background:var(--accent);color:var(--accent-ink);border:0;padding:12px 20px;font:700 15px var(--display);text-transform:uppercase;letter-spacing:.08em;align-self:flex-start}
+.cta:hover{filter:brightness(1.1)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.result{max-width:560px;margin:24px auto;text-align:left}
+.result h1{font-size:44px;text-transform:uppercase;line-height:1}
+.result h1.win{color:var(--good)} .result h1.lose{color:var(--bad)}
+.kv{display:grid;grid-template-columns:1fr auto;gap:6px 16px;margin:20px 0;padding:16px;background:var(--panel);border:1px solid var(--line)}
+.kv dt{color:var(--muted)} .kv dd{margin:0;font-family:var(--mono);text-align:right}
+.buy{display:grid;gap:10px}
+.item{display:grid;grid-template-columns:1fr auto;gap:2px 12px;background:var(--panel);border:1px solid var(--line);padding:12px 14px;text-align:left}
+.item[aria-pressed="true"]{border-color:var(--accent);background:var(--panel2)}
+.item:disabled{opacity:.45;cursor:not-allowed}
+.item small{grid-column:1/-1;color:var(--muted)}
+.dots{display:inline-flex;gap:4px;vertical-align:middle}
+.dots i{width:10px;height:10px;border-radius:50%;background:var(--panel2);border:1px solid var(--line)}
+.dots i.on{background:currentColor;border-color:currentColor}
+
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line)}
+th{font:600 12px var(--display);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+td.num,th.num{text-align:right}
+tr.you td{background:var(--panel2);color:var(--accent)}
+.tablebox{overflow-x:auto}
+.abar{display:grid;grid-template-columns:minmax(0,200px) 1fr 90px;gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.abar .track{height:10px;background:var(--panel2)}
+.abar .track i{display:block;height:100%;background:var(--good)}
+.abar.weak .track i{background:var(--bad)}
+.shop{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.sku{background:var(--panel);border:1px solid var(--line);padding:14px;display:flex;flex-direction:column;gap:8px}
+.sw{width:36px;height:36px;border-radius:50%;border:3px solid}
+textarea{width:100%;min-height:160px;background:var(--bg);border:1px solid var(--line);padding:10px;font:13px/1.5 var(--mono)}
+pre{background:var(--bg);border:1px solid var(--line);padding:10px;overflow-x:auto;font:12px/1.5 var(--mono);margin:8px 0}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;font-weight:600;font-size:14px;max-width:calc(100% - 32px);display:none;z-index:9}
+@media (max-width:800px){.lobby{grid-template-columns:1fr}.lead{font-size:24px}}
+@media (max-width:520px){.modes{grid-template-columns:1fr}.abar{grid-template-columns:1fr 70px}.abar .track{grid-column:1/-1;order:3}.stem{font-size:16px}}
+@media (prefers-reduced-motion:no-preference){.target.hit,.target.miss{animation:pop .18s ease-out}.hs{animation:pop .25s ease-out}}
+@keyframes pop{from{transform:scale(1.03)}to{transform:scale(1)}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="logo">MD<b>//</b>Strike</div>
+  <div class="hud" id="hud"></div>
+</div></header>
+<nav class="tabs" aria-label="Seções"><div class="wrap" id="tabs"></div></nav>
+<main><div class="wrap" id="view"></div></main>
+<div id="toast" role="status"></div>
+
+<script>
+"use strict";
+const AREAS={CM:"Clínica Médica",CIR:"Cirurgia",GO:"Ginecologia e Obstetrícia",PED:"Pediatria",MFC:"Medicina de Família e Comunidade",SM:"Saúde Mental",SC:"Saúde Coletiva"};
+
+/* Questões-amostra originais. A alternativa correta é sempre a primeira; a ordem é embaralhada na tela. */
+const SEED=[
+{a:"CM",q:"Homem de 58 anos chega ao pronto-socorro com dor torácica opressiva há 40 minutos. O ECG mostra supradesnivelamento de ST em D2, D3 e aVF. Qual parede está acometida e qual a artéria mais provavelmente envolvida?",o:["Parede inferior; coronária direita","Parede anterior; descendente anterior","Parede lateral alta; primeira diagonal","Parede septal; tronco da coronária esquerda"],e:"D2, D3 e aVF são as derivações inferiores. Na maioria das pessoas a parede inferior é irrigada pela coronária direita."},
+{a:"CM",q:"Mulher de 24 anos com diabetes tipo 1 apresenta vômitos, dor abdominal e respiração de Kussmaul. Glicemia de 480 mg/dL, pH 7,12 e cetonúria positiva. Qual é a primeira medida terapêutica?",o:["Reposição volêmica com solução cristaloide isotônica","Bicarbonato de sódio endovenoso em bolus","Insulina NPH subcutânea","Insulina regular endovenosa antes de conhecer o potássio"],e:"Na cetoacidose diabética a hidratação vem primeiro. A insulina só entra depois de conferir o potássio, e o bicarbonato fica reservado para acidose extrema."},
+{a:"CM",q:"Homem de 67 anos, tabagista de 50 maços-ano, refere dispneia progressiva e tosse crônica. A espirometria mostra relação VEF1/CVF de 0,58 após broncodilatador. Qual é o diagnóstico?",o:["Doença pulmonar obstrutiva crônica","Asma com obstrução totalmente reversível","Distúrbio ventilatório restritivo","Espirometria normal para a idade"],e:"VEF1/CVF abaixo de 0,70 depois do broncodilatador confirma obstrução persistente, que no tabagista sintomático define DPOC."},
+{a:"CM",q:"Adulto de 30 anos é atendido com febre alta, cefaleia intensa, rigidez de nuca e confusão mental há 12 horas. Diante da suspeita de meningite bacteriana, qual é a conduta correta quanto ao antibiótico?",o:["Iniciar antibiótico empírico o quanto antes, sem aguardar o resultado dos exames","Aguardar o resultado da cultura do líquor para escolher o antibiótico","Iniciar apenas sintomáticos e reavaliar em 24 horas","Só iniciar após ressonância magnética de crânio"],e:"O atraso do antibiótico piora o prognóstico. Colhem-se hemoculturas e, se possível, líquor, mas nenhum exame deve adiar a primeira dose."},
+{a:"CM",q:"Mulher de 45 anos queixa-se de cansaço, ganho de peso, pele seca e constipação. Exames: TSH elevado e T4 livre baixo. Qual o diagnóstico e o tratamento?",o:["Hipotireoidismo primário; levotiroxina","Hipotireoidismo central; corticoide","Hipertireoidismo; metimazol","Tireoidite subaguda; anti-inflamatório apenas"],e:"TSH alto com T4 livre baixo indica falência da própria tireoide. O tratamento é a reposição com levotiroxina."},
+{a:"CM",q:"Homem de 62 anos tem hipertensão, diabetes tipo 2 e albuminúria persistente. Qual classe de anti-hipertensivo deve ser priorizada?",o:["Inibidor da ECA ou bloqueador do receptor de angiotensina","Betabloqueador","Alfabloqueador","Vasodilatador direto, como hidralazina"],e:"IECA e BRA reduzem a pressão intraglomerular e a albuminúria, retardando a progressão da doença renal do diabetes."},
+
+{a:"CIR",q:"Jovem de 19 anos refere dor periumbilical que migrou para a fossa ilíaca direita há 18 horas, com anorexia e náuseas. Há dor à descompressão brusca no ponto de McBurney. Qual é a conduta?",o:["Apendicectomia","Alta com analgésico e retorno se piorar","Colonoscopia de urgência","Antiparasitário e observação por 72 horas"],e:"A história e o exame físico são típicos de apendicite aguda, cujo tratamento padrão é cirúrgico."},
+{a:"CIR",q:"Vítima de colisão automobilística chega taquipneica e hipotensa, com turgência jugular, desvio da traqueia para a esquerda, murmúrio abolido e hipertimpanismo à direita. Qual é a conduta imediata?",o:["Descompressão torácica imediata à direita","Radiografia de tórax para confirmar o diagnóstico","Pericardiocentese","Intubação orotraqueal e tomografia de tórax"],e:"O quadro é de pneumotórax hipertensivo. O diagnóstico é clínico e a descompressão não espera exame de imagem."},
+{a:"CIR",q:"Mulher de 44 anos tem dor em hipocôndrio direito há 2 dias, febre e sinal de Murphy positivo. A ultrassonografia mostra cálculos e parede vesicular espessada. Qual o tratamento de escolha?",o:["Antibiótico e colecistectomia videolaparoscópica precoce","Apenas analgesia e dieta hipogordurosa","Colecistectomia somente após 6 meses","Litotripsia extracorpórea"],e:"Na colecistite aguda litiásica, a colecistectomia por vídeo na mesma internação reduz complicações e tempo de hospital."},
+{a:"CIR",q:"Politraumatizado chega inconsciente, com respiração ruidosa e sangue na cavidade oral. Pela sistematização do atendimento ao trauma, qual é a primeira prioridade?",o:["Garantir a via aérea com proteção da coluna cervical","Obter dois acessos venosos calibrosos","Realizar tomografia de crânio","Fazer exame neurológico detalhado"],e:"A avaliação primária segue a ordem ABCDE. Via aérea pérvia, com a coluna cervical protegida, vem antes de tudo."},
+{a:"CIR",q:"Adulto sofre queimadura de segundo grau em todo o membro superior direito e em toda a face anterior do tronco. Pela regra dos nove, qual a superfície corporal queimada?",o:["27%","18%","36%","45%"],e:"Cada membro superior vale 9% e a face anterior do tronco vale 18%, somando 27%."},
+{a:"CIR",q:"Homem de 70 anos, com laparotomia há 5 anos, apresenta distensão abdominal, vômitos e parada de eliminação de gases e fezes. Qual é a causa mais comum de obstrução do intestino delgado nesse contexto?",o:["Aderências (bridas) pós-operatórias","Neoplasia de intestino delgado","Íleo biliar","Volvo de sigmoide"],e:"Em quem já foi operado do abdome, as bridas respondem pela maior parte das obstruções de delgado."},
+
+{a:"GO",q:"Gestante de 34 semanas apresenta pressão arterial de 160 x 110 mmHg, proteinúria, cefaleia e escotomas. Além do anti-hipertensivo, qual medicação é obrigatória?",o:["Sulfato de magnésio","Diazepam endovenoso","Furosemida","Inibidor da ECA"],e:"É pré-eclâmpsia com sinais de gravidade. O sulfato de magnésio previne a eclâmpsia. IECA é contraindicado na gestação."},
+{a:"GO",q:"Mulher de 26 anos, com 7 semanas de atraso menstrual, tem dor em fossa ilíaca esquerda e sangramento discreto. Beta-hCG positivo, cavidade uterina vazia e massa anexial à ultrassonografia transvaginal. Qual a principal hipótese?",o:["Gravidez ectópica","Ameaça de abortamento","Doença trofoblástica gestacional","Cisto de corpo lúteo isolado"],e:"Beta-hCG positivo com útero vazio e massa anexial é gravidez ectópica até prova em contrário."},
+{a:"GO",q:"Logo após parto vaginal, a puérpera apresenta sangramento volumoso. O útero está amolecido e palpável acima da cicatriz umbilical. Qual a causa mais provável e a conduta inicial?",o:["Atonia uterina; massagem uterina e ocitocina","Laceração de trajeto; sutura imediata","Retenção placentária; curetagem","Coagulopatia; plasma fresco"],e:"A atonia é a principal causa de hemorragia pós-parto. Útero amolecido e subinvoluído aponta para ela."},
+{a:"GO",q:"Puérpera de 6 semanas, em aleitamento materno exclusivo, deseja contracepção hormonal por via oral. Qual é a opção adequada?",o:["Pílula de progestagênio isolado","Pílula combinada de estrogênio e progestagênio","Anel vaginal combinado","Adesivo transdérmico combinado"],e:"O estrogênio pode reduzir a produção de leite e aumenta o risco trombótico no puerpério. Nessa fase usam-se métodos só com progestagênio."},
+{a:"GO",q:"Gestante de 16 semanas tem VDRL 1:32 e teste treponêmico reagente, sem tratamento anterior. Qual é a conduta?",o:["Penicilina G benzatina para a gestante e tratamento do parceiro","Doxiciclina por 14 dias","Repetir a sorologia em 30 dias antes de tratar","Ceftriaxona em dose única"],e:"A penicilina benzatina é a única droga que trata a gestante e o feto. A doxiciclina é contraindicada na gravidez."},
+{a:"GO",q:"Mulher de 52 anos está há 12 meses sem menstruar e refere fogachos. Como se confirma o diagnóstico de menopausa?",o:["Pelo critério clínico de 12 meses de amenorreia, sem necessidade de exames","Pela dosagem obrigatória de FSH e estradiol","Por ultrassonografia transvaginal","Por biópsia de endométrio"],e:"Depois dos 45 anos, o diagnóstico é clínico e retrospectivo. Dosagens hormonais ficam para casos atípicos ou mulheres mais jovens."},
+
+{a:"PED",q:"Lactente de 4 meses, no inverno, apresenta coriza seguida de tosse, taquipneia e sibilos difusos. É o primeiro episódio. Qual é a base do tratamento?",o:["Suporte: oxigênio se houver hipoxemia e manutenção da hidratação","Corticoide sistêmico para todos os casos","Antibiótico de amplo espectro","Broncodilatador de horário e fisioterapia de rotina"],e:"Bronquiolite viral aguda trata-se com suporte. Corticoide, antibiótico e broncodilatador de rotina não mudam a evolução."},
+{a:"PED",q:"Criança de 2 anos com diarreia aguda está irritada, com olhos fundos, bebe água avidamente e o sinal da prega desaparece lentamente. Qual o plano de tratamento?",o:["Plano B: reidratação oral supervisionada na unidade de saúde","Plano A: tratamento em casa com mais líquidos","Plano C: hidratação endovenosa imediata","Antibiótico e antiemético em casa"],e:"Esses sinais indicam desidratação sem choque. A conduta é a terapia de reidratação oral na unidade, com reavaliação."},
+{a:"PED",q:"Qual é a recomendação sobre aleitamento materno para uma criança saudável?",o:["Exclusivo até os 6 meses e complementado até 2 anos ou mais","Exclusivo até os 4 meses e suspenso aos 12 meses","Exclusivo até 1 ano","Com água e chás desde o primeiro mês"],e:"Leite materno exclusivo, sem água ou chás, até os 6 meses. Depois, alimentação complementar com o aleitamento mantido."},
+{a:"PED",q:"Criança de 3 anos tem febre há 6 dias, conjuntivite bilateral sem secreção, língua em framboesa, exantema, edema de mãos e adenomegalia cervical. Qual o diagnóstico e a complicação mais temida?",o:["Doença de Kawasaki; aneurisma de artérias coronárias","Escarlatina; glomerulonefrite","Sarampo; pneumonia","Mononucleose; ruptura esplênica"],e:"Febre por 5 dias ou mais com esses achados fecha critérios de Kawasaki. Imunoglobulina endovenosa precoce reduz o risco coronariano."},
+{a:"PED",q:"Menino de 6 anos apresenta edema periorbitário, urina escura e hipertensão arterial duas semanas depois de uma faringoamigdalite. O complemento C3 está baixo. Qual o diagnóstico?",o:["Glomerulonefrite pós-estreptocócica","Síndrome nefrótica por lesões mínimas","Infecção urinária alta","Púrpura de Henoch-Schönlein"],e:"Síndrome nefrítica depois de infecção estreptocócica, com C3 consumido, caracteriza a glomerulonefrite pós-estreptocócica."},
+{a:"PED",q:"Lactente de 5 semanas tem vômitos não biliosos em jato depois das mamadas e uma oliva palpável no epigástrio. Qual distúrbio metabólico é esperado?",o:["Alcalose metabólica hipoclorêmica e hipocalêmica","Acidose metabólica com hipercalemia","Acidose respiratória","Alcalose respiratória"],e:"Na estenose hipertrófica do piloro, a perda de ácido clorídrico pelos vômitos gera alcalose com cloro e potássio baixos."},
+
+{a:"MFC",q:"Uma paciente é acompanhada pelo mesmo médico de família há 10 anos, em diferentes fases da vida e por problemas diversos. Qual atributo essencial da atenção primária esse vínculo ao longo do tempo representa?",o:["Longitudinalidade","Primeiro contato","Coordenação do cuidado","Orientação comunitária"],e:"Longitudinalidade é a relação contínua entre a pessoa e a equipe ao longo do tempo, independente de haver doença."},
+{a:"MFC",q:"Durante a consulta, o médico pergunta: \"O que o senhor acha que está causando essa dor, e o que espera de hoje?\". Qual componente do método clínico centrado na pessoa está sendo aplicado?",o:["Explorar a doença e a experiência da pessoa com ela","Incorporar prevenção e promoção da saúde","Ser realista quanto a tempo e recursos","Elaborar um plano conjunto de manejo"],e:"Perguntar sobre sentimentos, ideias, função e expectativas é explorar a experiência da doença, o primeiro componente do método."},
+{a:"MFC",q:"Homem assintomático de 35 anos pede uma bateria de exames de check-up sem indicação. A médica explica os riscos de sobrediagnóstico e não os solicita. Qual nível de prevenção ela exerceu?",o:["Prevenção quaternária","Prevenção primária","Prevenção secundária","Prevenção terciária"],e:"Prevenção quaternária é proteger a pessoa de intervenções desnecessárias e do dano que elas causam."},
+{a:"MFC",q:"A equipe quer representar graficamente as relações de uma família com a igreja, a escola, o trabalho e os serviços de saúde do território. Qual ferramenta é a indicada?",o:["Ecomapa","Genograma","Escala de Coelho-Savassi","APGAR familiar"],e:"O ecomapa mostra os vínculos da família com a rede externa. O genograma mostra a estrutura e as relações internas."},
+{a:"MFC",q:"Tabagista de 50 anos diz: \"Sei que faz mal e penso em parar nos próximos meses, mas agora não\". Em qual estágio de mudança ele está?",o:["Contemplação","Pré-contemplação","Preparação","Ação"],e:"Na contemplação a pessoa reconhece o problema e cogita mudar, mas ainda sem data. A entrevista motivacional ajuda a avançar."},
+{a:"MFC",q:"Diante de um caso complexo, a equipe multiprofissional constrói junto com o usuário um plano com diagnóstico ampliado, metas, divisão de responsabilidades e reavaliação. Como se chama esse instrumento?",o:["Projeto Terapêutico Singular","Protocolo de classificação de risco","Programação Pactuada Integrada","Plano Diretor de Regionalização"],e:"O Projeto Terapêutico Singular organiza o cuidado de casos complexos em quatro momentos: diagnóstico, metas, responsáveis e reavaliação."},
+
+{a:"SM",q:"Mulher de 32 anos tem humor deprimido, anedonia, insônia e fadiga há 2 meses. Antes de prescrever um antidepressivo, o que é indispensável investigar na história?",o:["Episódios anteriores de mania ou hipomania","Alergia a anti-inflamatórios","Preferência por psicoterapia de grupo","Tipo sanguíneo"],e:"Antidepressivo isolado em quem tem transtorno bipolar pode desencadear virada maníaca. Por isso a busca ativa de mania prévia."},
+{a:"SM",q:"Homem etilista, internado há 3 dias por fratura, apresenta tremores, sudorese, taquicardia, desorientação e alucinações visuais. Qual o diagnóstico e o tratamento?",o:["Delirium tremens; benzodiazepínico e tiamina","Esquizofrenia; haloperidol isolado","Encefalopatia hepática; lactulose","Crise de pânico; orientação e alta"],e:"Abstinência alcoólica grave surge de 48 a 96 horas depois da última dose. Benzodiazepínicos são a base, com tiamina para prevenir Wernicke."},
+{a:"SM",q:"Em consulta na unidade básica, um paciente com sintomas depressivos fala em \"sumir\". Sobre a abordagem do risco de suicídio, qual afirmativa é correta?",o:["Perguntar diretamente sobre ideação e planos faz parte da avaliação e não induz o ato","Deve-se evitar o assunto para não sugerir a ideia","Só o psiquiatra pode perguntar sobre suicídio","Ausência de tentativa anterior exclui risco"],e:"Perguntar de forma aberta e acolhedora permite estimar o risco e organizar a proteção. Não há evidência de que a pergunta induza o comportamento."},
+{a:"SM",q:"Homem de 22 anos apresenta, há 8 meses, delírios persecutórios, alucinações auditivas, isolamento social e abandono da faculdade, sem uso de substâncias. Qual o diagnóstico mais provável?",o:["Esquizofrenia","Transtorno psicótico breve","Transtorno de pânico","Transtorno obsessivo-compulsivo"],e:"Sintomas psicóticos com prejuízo funcional por 6 meses ou mais caracterizam esquizofrenia. O psicótico breve dura menos de 1 mês."},
+{a:"SM",q:"Mulher de 28 anos tem crises súbitas e recorrentes de palpitação, falta de ar e sensação de morte iminente, com pico em 10 minutos e exames normais. Vive com medo de novas crises. Qual o tratamento de manutenção?",o:["Inibidor seletivo da recaptação de serotonina e terapia cognitivo-comportamental","Benzodiazepínico contínuo como única medida","Betabloqueador em dose alta","Antipsicótico de depósito"],e:"É transtorno de pânico. ISRS e terapia cognitivo-comportamental são a primeira linha. Benzodiazepínico serve só como ponte de curto prazo."},
+{a:"SM",q:"Usuário com transtorno mental grave e persistente tem crises recorrentes e vínculo frágil com a família. Qual ponto da Rede de Atenção Psicossocial é a referência para o cuidado intensivo no território?",o:["Centro de Atenção Psicossocial (CAPS)","Hospital psiquiátrico de longa permanência","Pronto-socorro geral, a cada crise","Ambulatório de neurologia"],e:"O CAPS é o serviço comunitário que substitui o modelo asilar e articula o cuidado com a atenção primária."},
+
+{a:"SC",q:"Um município decide ampliar equipes de saúde da família primeiro nos bairros com piores indicadores sociais. Qual princípio do SUS orienta essa decisão?",o:["Equidade","Universalidade","Descentralização","Hierarquização"],e:"Equidade é dar mais a quem mais precisa, reduzindo desigualdades injustas."},
+{a:"SC",q:"Um teste foi aplicado em 100 doentes, com 90 resultados positivos, e em 200 sadios, com 180 resultados negativos. Qual é a sensibilidade do teste?",o:["90%","45%","60%","95%"],e:"Sensibilidade é a proporção de doentes com teste positivo: 90 em 100. A especificidade aqui também é 90%, 180 em 200."},
+{a:"SC",q:"Pesquisadores acompanham por 10 anos um grupo de fumantes e um de não fumantes para comparar a incidência de câncer de pulmão. Qual o desenho do estudo e a medida de associação?",o:["Coorte; risco relativo","Caso-controle; odds ratio","Transversal; razão de prevalências","Ensaio clínico; número necessário para tratar"],e:"Partir da exposição e seguir no tempo até o desfecho é uma coorte, que permite calcular incidência e risco relativo."},
+{a:"SC",q:"Criança é atendida com febre, exantema maculopapular, tosse e conjuntivite, com suspeita de sarampo. Qual é a conduta de vigilância?",o:["Notificação compulsória imediata, em até 24 horas, já na suspeita","Notificação semanal, depois da confirmação laboratorial","Notificar somente se houver óbito","Não é doença de notificação"],e:"Sarampo é de notificação imediata. Notifica-se o caso suspeito, sem esperar confirmação, para permitir o bloqueio vacinal."},
+{a:"SC",q:"Um novo tratamento prolonga a sobrevida de pessoas com uma doença crônica, sem curá-la e sem alterar o número de casos novos. O que acontece com a prevalência?",o:["Aumenta","Diminui","Não se altera","Passa a ser igual à incidência"],e:"Prevalência depende da incidência e da duração. Se as pessoas vivem mais tempo com a doença, a prevalência sobe."},
+{a:"SC",q:"Trabalhador morre no hospital dois dias depois de cair de um andaime. Quem deve emitir a declaração de óbito?",o:["O médico legista, depois de necropsia no Instituto Médico Legal","O médico plantonista que constatou o óbito","O médico da unidade básica do bairro","O serviço de verificação de óbito"],e:"Morte por causa externa exige necropsia médico-legal, qualquer que seja o tempo entre o acidente e o óbito."}
+];
+
+const RANKS=[[0,"Calouro"],[850,"Acadêmico I"],[950,"Acadêmico II"],[1050,"Interno I"],[1150,"Interno II"],[1250,"Residente R1"],[1350,"Residente R2"],[1450,"Residente R3"],[1550,"Preceptor"],[1700,"Chefe de Plantão"],[1850,"Lenda do ENAMED"]];
+const BOTS=[["dra.lima",1890],["R3_Azevedo",1720],["interna_bia",1610],["plantao24h",1540],["mfc_raiz",1460],["cirurgiao_jr",1380],["ped_nando",1290],["GO_carol",1210],["sus_forever",1120],["calouro_caio",1040],["semiologia",960],["R1_Souza",880]];
+const SKINS=[["ambar","Âmbar","#ffa033",0],["bisturi","Bisturi","#e8f0ea",500],["campo","Campo cirúrgico","#52d394",1500],["cianose","Cianose","#62b8ff",2500],["eritema","Eritema","#ff6166",4000]];
+const MISSIONS=[["ans","Responda 15 questões",15,150,300],["win","Vença 1 partida",1,200,400],["hs","Faça 3 headshots",3,200,400]];
+
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const DEF={nick:"Você",elo:1000,xp:0,cr:1000,stats:{},wrong:[],wins:0,played:0,cups:0,skin:"ambar",owned:["ambar"],day:"",streak:0,m:{date:"",ans:0,win:0,hs:0,claimed:[]},mute:false};
+let P=Object.assign({},DEF,store.get("mds_profile",{}));
+let extra=store.get("mds_bank",[]);
+let sessionCount=0, tab="lobby", inMatch=false, keyFn=null, trainArea="";
+const save=()=>store.set("mds_profile",P);
+const $=s=>document.querySelector(s);
+const view=$("#view");
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+const bank=()=>SEED.map((q,i)=>Object.assign({id:"s"+i},q)).concat(extra.map((q,i)=>Object.assign({id:"i"+i},q)));
+const rankOf=e=>{let r=RANKS[0][1];for(const [min,n] of RANKS) if(e>=min) r=n;return r};
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()};
+const skinColor=()=>(SKINS.find(s=>s[0]===P.skin)||SKINS[0])[2];
+const botP=e=>clamp(.3+(e-700)/2000,.35,.88);
+
+let actx=null;
+function beep(f,d){if(P.mute)return;try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=f;o.type="square";g.gain.value=.04;o.connect(g);g.connect(actx.destination);o.start();o.stop(actx.currentTime+d)}catch(e){}}
+let toastT;function toast(t){const el=$("#toast");el.textContent=t;el.style.display="block";clearTimeout(toastT);toastT=setTimeout(()=>el.style.display="none",4200)}
+
+function rollDay(){const t=today();if(P.m.date!==t)P.m={date:t,ans:0,win:0,hs:0,claimed:[]}}
+function checkMissions(){for(const [id,label,goal,xp,cr] of MISSIONS){if(P.m[id]>=goal&&!P.m.claimed.includes(id)){P.m.claimed.push(id);P.xp+=xp;P.cr+=cr;toast("Missão cumprida: "+label+". +"+xp+" XP, +"+cr+" créditos")}}}
+function record(q,ok,hs){
+  rollDay();const t=today();
+  if(P.day!==t){const y=new Date();y.setDate(y.getDate()-1);const ys=y.getFullYear()+"-"+(y.getMonth()+1)+"-"+y.getDate();P.streak=P.day===ys?P.streak+1:1;P.day=t}
+  const s=P.stats[q.a]=P.stats[q.a]||{n:0,ok:0};s.n++;if(ok)s.ok++;
+  P.wrong=P.wrong.filter(id=>id!==q.id);if(!ok)P.wrong.push(q.id);
+  P.xp+=ok?20:5;P.m.ans++;if(hs)P.m.hs++;
+  sessionCount++;if(sessionCount===40)toast("Timeout tático: 40 questões nesta sessão. Cinco minutos de pausa fixam mais do que cinco questões a mais.");
+  checkMissions();save();renderTop();
+}
+function matchEnd(won){P.played++;if(won){P.wins++;rollDay();P.m.win++;checkMissions()}save();renderTop()}
+
+function renderTop(){
+  const lvl=Math.floor(P.xp/500)+1,pct=(P.xp%500)/5;
+  $("#hud").innerHTML=`<div><small>Patente</small><strong class="rank">${esc(rankOf(P.elo))}</strong></div>
+  <div><small>Rating</small><strong>${P.elo}</strong></div>
+  <div><small>Nível ${lvl}</small><span class="xpbar"><i style="width:${pct}%"></i></span></div>
+  <div><small>Créditos</small><strong>$${P.cr}</strong></div>
+  <div><small>Sequência</small><strong>${P.streak} ${P.streak===1?"dia":"dias"}</strong></div>
+  <button class="ghost" id="mute" type="button">${P.mute?"Som desligado":"Som ligado"}</button>`;
+  $("#mute").onclick=()=>{P.mute=!P.mute;save();renderTop()};
+  const names={lobby:"Lobby",ranking:"Ranking",stats:"Desempenho",shop:"Loja",bank:"Banco de questões"};
+  $("#tabs").innerHTML=Object.keys(names).map(k=>`<button type="button" data-tab="${k}" aria-current="${tab===k&&!inMatch}">${names[k]}</button>`).join("");
+  $("#tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>go(b.dataset.tab));
+}
+function go(t){if(inMatch&&keyFn){keyFn({key:"Escape",force:true});}inMatch=false;tab=t;({lobby,ranking,stats,shop,bank:bankView})[t]();renderTop();window.scrollTo(0,0)}
+
+/* ---------- telas ---------- */
+function lobby(){
+  rollDay();
+  const total=bank().length;
+  view.innerHTML=`<div class="lobby"><section>
+    <h1 class="lead">Cada questão é um round. Suba de patente até o ENAMED.</h1>
+    <p class="sub">Partidas curtas no formato da prova: caso clínico, quatro alternativas, uma correta. Toda resposta mostra o comentário, e o que você erra volta na revisão.</p>
+    <div class="modes">
+      <button class="mode" type="button" data-mode="duel"><h3>Duelo 1v1</h3><p>Você e um adversário recebem as mesmas questões. Acerto vale 100 pontos, velocidade vale até 50.</p><span class="spec">7 questões · 60 s · vale rating</span></button>
+      <button class="mode" type="button" data-mode="comp"><h3>Competitivo 5v5</h3><p>Rounds por time, com dinheiro para comprar 50/50, tempo extra e segunda opinião.</p><span class="spec">primeiro a 5 rounds · 75 s · vale rating</span></button>
+      <button class="mode" type="button" data-mode="cup"><h3>Copa MD Strike</h3><p>Mata-mata de oito jogadores. Quartas, semifinal e final contra adversários cada vez mais fortes.</p><span class="spec">3 duelos de 5 questões · prêmio $3000</span></button>
+      <button class="mode alt" type="button" data-mode="review"><h3>Revisar erros</h3><p>As questões que você errou, sem relógio, até acertar cada uma.</p><span class="spec">${P.wrong.length} ${P.wrong.length===1?"questão na fila":"questões na fila"}</span></button>
+    </div>
+    <div class="panel" style="margin-top:12px"><h2>Treino livre por área, sem relógio</h2>
+      <div class="chips"><button class="chip" type="button" data-area="">Todas as áreas</button>${Object.keys(AREAS).map(k=>`<button class="chip" type="button" data-area="${k}">${AREAS[k]}</button>`).join("")}</div>
+    </div>
+    <p class="note">Protótipo: os adversários e colegas de time são bots, e o progresso fica salvo só neste navegador. O banco tem ${total} questões.</p>
+  </section>
+  <aside class="side">
+    <div class="panel"><h2>Missões de hoje</h2>${MISSIONS.map(([id,label,goal,xp,cr])=>{const v=Math.min(P.m[id],goal);return `<div class="mission ${v>=goal?"done":""}"><span>${label}</span><span class="num">${v}/${goal}</span><div class="bar"><i style="width:${v/goal*100}%"></i></div><small class="num" style="color:var(--muted)">+${xp} XP · +$${cr}</small></div>`}).join("")}
+      <p class="note">Headshot é a resposta certa em menos de 30% do tempo.</p></div>
+    <div class="panel"><h2>Jogador</h2>
+      <label class="field" for="nick">Nick <input id="nick" maxlength="16" value="${esc(P.nick)}"></label>
+      <p class="note">${P.wins} vitórias em ${P.played} partidas · ${P.cups} ${P.cups===1?"copa":"copas"}</p></div>
+  </aside></div>`;
+  view.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>({duel:()=>playDuel(),comp,cup,review:()=>train("",true)})[b.dataset.mode]());
+  view.querySelectorAll("[data-area]").forEach(b=>b.onclick=()=>train(b.dataset.area,false));
+  $("#nick").onchange=e=>{P.nick=e.target.value.trim()||"Você";save()};
+}
+function ranking(){
+  const rows=BOTS.map(([n,e])=>({n,e})).concat([{n:P.nick,e:P.elo,you:true}]).sort((a,b)=>b.e-a.e);
+  view.innerHTML=`<h1 class="lead">Ranking da temporada</h1><p class="sub">Os outros jogadores desta tabela são bots de demonstração. O ranking real entre estudantes depende do servidor online.</p>
+  <div class="panel tablebox"><table><thead><tr><th>#</th><th>Jogador</th><th>Patente</th><th class="num">Rating</th></tr></thead><tbody>
+  ${rows.map((r,i)=>`<tr class="${r.you?"you":""}"><td class="num">${i+1}</td><td>${esc(r.n)}${r.you?" (você)":""}</td><td>${rankOf(r.e)}</td><td class="num">${r.e}</td></tr>`).join("")}</tbody></table></div>
+  <div class="panel" style="margin-top:16px"><h2>Patentes</h2><div class="chips">${RANKS.map(([m,n])=>`<span class="chip">${n} <span class="num" style="color:var(--muted)">${m||"&lt;850"}</span></span>`).join("")}</div></div>`;
+}
+function stats(){
+  let n=0,ok=0;const rows=Object.keys(AREAS).map(k=>{const s=P.stats[k]||{n:0,ok:0};n+=s.n;ok+=s.ok;return {k,n:s.n,p:s.n?Math.round(s.ok/s.n*100):null}});
+  const seen=rows.filter(r=>r.n>=3);const weak=seen.length?seen.reduce((a,b)=>b.p<a.p?b:a):null;
+  view.innerHTML=`<h1 class="lead">Desempenho por área</h1><p class="sub">${n?`Você respondeu ${n} ${n===1?"questão":"questões"} e acertou ${Math.round(ok/n*100)}%.`:"Ainda não há respostas registradas. Jogue uma partida para ver seus números."} ${weak&&weak.p<70?`Sua área mais fraca é ${AREAS[weak.k]}.`:""}</p>
+  <div class="panel">${rows.map(r=>`<div class="abar ${weak&&r.k===weak.k&&r.p<70?"weak":""}"><span>${AREAS[r.k]}</span><div class="track"><i style="width:${r.p||0}%"></i></div><span class="num">${r.p===null?"sem dados":r.p+"% de "+r.n}</span></div>`).join("")}</div>
+  ${weak&&weak.p<70?`<div class="row" style="margin-top:16px"><button class="cta" type="button" id="fix">Treinar ${AREAS[weak.k]}</button></div>`:""}
+  <p class="note">O ENAMED tem 100 questões em 5 horas, uma média de 3 minutos por questão.</p>`;
+  if($("#fix"))$("#fix").onclick=()=>train(weak.k,false);
+}
+function shop(){
+  view.innerHTML=`<h1 class="lead">Loja de miras</h1><p class="sub">Créditos vêm de partidas, missões e copas. As miras só mudam a aparência.</p>
+  <div class="shop">${SKINS.map(([id,n,c,price])=>{const own=P.owned.includes(id);return `<div class="sku"><span class="sw" style="border-color:${c}"></span><strong>${n}</strong><span class="num" style="color:var(--muted)">${price?"$"+price:"Padrão"}</span>
+  <button class="ghost" type="button" data-skin="${id}" ${P.skin===id||(!own&&P.cr<price)?"disabled":""}>${P.skin===id?"Em uso":own?"Usar":P.cr<price?"Créditos insuficientes":"Comprar"}</button></div>`}).join("")}</div>`;
+  view.querySelectorAll("[data-skin]").forEach(b=>b.onclick=()=>{const s=SKINS.find(x=>x[0]===b.dataset.skin);if(!P.owned.includes(s[0])){P.cr-=s[3];P.owned.push(s[0])}P.skin=s[0];save();renderTop();shop()});
+}
+function bankView(){
+  const count=k=>bank().filter(q=>q.a===k).length;
+  view.innerHTML=`<h1 class="lead">Banco de questões</h1><p class="sub">As ${SEED.length} questões que vêm com o protótipo são amostras originais e ainda precisam de revisão por um médico. Cole abaixo as questões de provas anteriores no formato indicado.</p>
+  <div class="panel"><h2>Questões por área</h2><div class="chips">${Object.keys(AREAS).map(k=>`<span class="chip">${AREAS[k]} <span class="num">${count(k)}</span></span>`).join("")}</div>
+  <p class="note">${extra.length} ${extra.length===1?"questão importada":"questões importadas"} neste navegador.</p></div>
+  <div class="panel" style="margin-top:16px"><h2>Importar questões</h2>
+  <label for="imp">Lista em JSON. Áreas aceitas: ${Object.keys(AREAS).join(", ")}. O campo correta vai de 0 a 3.</label>
+  <pre>[{"area":"CM","enunciado":"...","alternativas":["...","...","...","..."],"correta":2,"comentario":"...","fonte":"ENAMED 2025, questão 12"}]</pre>
+  <textarea id="imp" spellcheck="false"></textarea>
+  <div class="row" style="margin-top:10px"><button class="cta" type="button" id="doimp">Importar</button><button class="ghost" type="button" id="clr">Remover importadas</button><span id="impmsg" role="status"></span></div></div>`;
+  $("#doimp").onclick=()=>{const msg=$("#impmsg");try{
+    const arr=JSON.parse($("#imp").value);if(!Array.isArray(arr))throw new Error("O conteúdo precisa ser uma lista entre colchetes.");
+    const out=arr.map((x,i)=>{const n=i+1;
+      if(!AREAS[x.area])throw new Error("Questão "+n+": área inválida.");
+      if(!x.enunciado||!Array.isArray(x.alternativas)||x.alternativas.length!==4)throw new Error("Questão "+n+": faltam o enunciado ou as 4 alternativas.");
+      const c=Number(x.correta);if(!(c>=0&&c<=3))throw new Error("Questão "+n+": o campo correta deve ser 0, 1, 2 ou 3.");
+      const o=x.alternativas.map(String);o.unshift(o.splice(c,1)[0]);
+      return {a:x.area,q:String(x.enunciado),o,e:String(x.comentario||"Sem comentário."),src:x.fonte?String(x.fonte):""}});
+    extra=extra.concat(out);store.set("mds_bank",extra);bankView();toast(out.length+" questões importadas.");
+  }catch(err){msg.textContent="Não foi possível importar. "+err.message;msg.style.color="var(--bad)"}};
+  $("#clr").onclick=()=>{extra=[];store.set("mds_bank",extra);P.wrong=P.wrong.filter(id=>id[0]==="s");save();bankView()};
+}
+
+/* ---------- motor ---------- */
+function pick(n,area){let pool=bank();if(area)pool=pool.filter(q=>q.a===area);pool=shuffle(pool);while(pool.length&&pool.length<n)pool=pool.concat(shuffle(pool));return pool.slice(0,n)}
+function cursor(){const c=encodeURIComponent(skinColor());return `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cg stroke='${c}' stroke-width='2' fill='none'%3E%3Ccircle cx='16' cy='16' r='7'/%3E%3Cpath d='M16 2v8M16 22v8M2 16h8M22 16h8'/%3E%3C/g%3E%3C/svg%3E") 16 16, crosshair`}
+
+function ask(q,o){return new Promise(resolve=>{
+  inMatch=true;renderTop();
+  const opts=shuffle(q.o.map((t,i)=>({t,ok:i===0})));
+  if(o.fifty)shuffle(opts.filter(x=>!x.ok)).slice(0,2).forEach(x=>x.cut=true);
+  const T=o.time?o.time+(o.extra?20:0):0;let done=false;const t0=performance.now();
+  view.innerHTML=`<section class="arena" style="cursor:${cursor()}">
+    <div class="mhud">${o.hud()}<button class="ghost" type="button" id="quit">Sair da partida</button></div>
+    ${T?`<div class="ecg" id="ecg"><i></i><span id="clock">${T}s</span></div>`:""}
+    <div><span class="tag">${esc(AREAS[q.a])}</span><p class="stem">${esc(q.q)}</p>${q.src?`<span class="src">Fonte: ${esc(q.src)}</span>`:""}</div>
+    <div class="targets">${opts.map((x,i)=>{const v=o.votes?o.votes.filter(t=>t===x.t).length:0;return `<button class="target ${x.cut?"cut":""}" type="button" data-i="${i}" ${x.cut?"disabled":""}><span class="ret">${"ABCD"[i]}</span><span>${esc(x.t)}</span>${v?`<span class="votes">${v} ${v===1?"colega":"colegas"}</span>`:"<span></span>"}</button>`}).join("")}</div>
+    <div id="fb"></div></section>`;
+  window.scrollTo(0,0);
+  const btns=[...view.querySelectorAll(".target")];
+  const timer=T?setInterval(()=>{if(done)return;const left=T-(performance.now()-t0)/1000;const bar=$("#ecg");if(!bar)return;
+    bar.firstElementChild.style.width=Math.max(0,left/T*100)+"%";bar.classList.toggle("low",left<T*.25);$("#clock").textContent=Math.max(0,Math.ceil(left))+"s";if(left<=0)finish(-1)},100):null;
+  function end(res){clearInterval(timer);document.removeEventListener("keydown",keyFn);keyFn=null;resolve(res)}
+  function finish(i){if(done)return;done=true;clearInterval(timer);
+    const used=(performance.now()-t0)/1000,ok=i>=0&&opts[i].ok,hs=!!(ok&&T&&used<T*.3);
+    btns.forEach((b,j)=>{b.disabled=true;if(opts[j].ok)b.classList.add("hit");else if(j===i)b.classList.add("miss")});
+    beep(ok?(hs?990:740):180,ok?.09:.22);record(q,ok,hs);
+    const res={ok,used,T,hs};const more=o.after?o.after(res):"";
+    $("#fb").innerHTML=`<div class="fb ${ok?"":"bad"}"><h3>${i<0?"Tempo esgotado":ok?"Acertou":"Errou"}${hs?'<span class="hs">HEADSHOT</span>':""}</h3><p>${esc(q.e)}</p>${more}<button class="cta" type="button" id="next">Continuar</button></div>`;
+    $("#next").onclick=()=>end(res);$("#next").focus();$("#fb").scrollIntoView({block:"nearest"});
+  }
+  btns.forEach(b=>b.onclick=()=>finish(+b.dataset.i));
+  $("#quit").onclick=()=>{done=true;end({abort:true});go("lobby")};
+  keyFn=e=>{if(e.force){done=true;end({abort:true});return}
+    const k="1234".indexOf(e.key),l="abcd".indexOf(String(e.key).toLowerCase());const i=k>=0?k:l;
+    if(!done&&i>=0&&btns[i]&&!btns[i].disabled)finish(i)};
+  document.addEventListener("keydown",keyFn);
+})}
+function resultScreen(cls,title,rows,label){return new Promise(resolve=>{
+  inMatch=false;renderTop();
+  view.innerHTML=`<section class="result"><span class="tag">Fim de partida</span><h1 class="${cls}">${title}</h1>
+  <dl class="kv">${rows.map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>
+  <div class="row"><button class="cta" type="button" id="again">${label}</button><button class="ghost" type="button" id="home">Voltar ao lobby</button></div></section>`;
+  $("#again").onclick=()=>resolve(true);$("#home").onclick=()=>{resolve(false);go("lobby")};$("#again").focus();window.scrollTo(0,0);
+})}
+const signed=n=>(n>0?"+":"")+n;
+
+async function duel(bot,n,stage){
+  const qs=pick(n);let me=0,op=0,hits=0;
+  for(let i=0;i<n;i++){
+    const r=await ask(qs[i],{time:60,
+      hud:()=>`<span>${stage||"Duelo ranqueado"} · questão ${i+1}/${n}</span><span class="score"><span class="me">${esc(P.nick)} ${me}</span> × <span class="op">${op} ${esc(bot.n)}</span></span>`,
+      after:res=>{const bok=Math.random()<botP(bot.e),bt=60*rnd(.2,.85);
+        const mp=res.ok?100+Math.round(50*(1-res.used/res.T)):0,bp=bok?100+Math.round(50*(1-bt/60)):0;me+=mp;op+=bp;if(res.ok)hits++;
+        return `<div class="feed"><b>${esc(P.nick)}</b> +${mp} em ${res.used.toFixed(1)}s<br><b>${esc(bot.n)}</b> ${bok?"acertou":"errou"} em ${bt.toFixed(1)}s, +${bp}</div>`}});
+    if(r.abort)return null;
+  }
+  return {me,op,hits,n,win:me>op,draw:me===op};
+}
+async function playDuel(){
+  const [bn,]=BOTS[Math.floor(Math.random()*BOTS.length)];const bot={n:bn,e:Math.round(P.elo+rnd(-80,80))};
+  const r=await duel(bot,7);if(!r)return;
+  const exp=1/(1+Math.pow(10,(bot.e-P.elo)/400)),d=Math.round(24*((r.win?1:r.draw?.5:0)-exp)),cr=r.win?250:100,xp=r.win?120:50;
+  P.elo+=d;P.cr+=cr;P.xp+=xp;matchEnd(r.win);
+  const again=await resultScreen(r.win?"win":r.draw?"":"lose",r.win?"Vitória":r.draw?"Empate":"Derrota",[["Placar",r.me+" × "+r.op],["Acertos",r.hits+" de "+r.n],["Rating",signed(d)+" ("+P.elo+")"],["Patente",rankOf(P.elo)],["Créditos","+$"+cr],["XP","+"+xp]],"Jogar outro duelo");
+  if(again)playDuel();
+}
+async function cup(){
+  const stages=[["Quartas de final",-60],["Semifinal",30],["Final",130]];const names=shuffle(BOTS.map(b=>b[0]));
+  for(let s=0;s<3;s++){
+    const bot={n:names[s],e:P.elo+stages[s][1]};
+    const r=await duel(bot,5,"Copa · "+stages[s][0]);if(!r)return;
+    if(!r.win){matchEnd(false);P.xp+=40;save();const a=await resultScreen("lose","Eliminado",[["Fase",stages[s][0]],["Placar",r.me+" × "+r.op],["XP","+40"]],"Tentar outra copa");if(a)cup();return}
+    if(s<2){const a=await resultScreen("win","Classificado",[["Fase vencida",stages[s][0]],["Placar",r.me+" × "+r.op],["Próximo adversário",esc(names[s+1])]],"Jogar a "+stages[s+1][0].toLowerCase());if(!a)return}
+  }
+  P.cups++;P.cr+=3000;P.xp+=400;matchEnd(true);
+  const a=await resultScreen("win","Campeão",[["Título","Copa MD Strike"],["Créditos","+$3000"],["XP","+400"],["Copas",P.cups]],"Jogar outra copa");if(a)cup();
+}
+function buyPhase(st){return new Promise(resolve=>{
+  inMatch=true;renderTop();
+  const items=[["fifty","Kit 50/50",2500,"Remove duas alternativas erradas."],["extra","Tempo extra",1000,"Mais 20 segundos neste round."],["opinion","Segunda opinião",1500,"Mostra o que seus quatro colegas marcaram. Eles também erram."]];
+  const sel={};const cost=()=>items.reduce((s,[id,,p])=>s+(sel[id]?p:0),0);
+  const dots=(n,c)=>`<span class="dots ${c}">${[0,1,2,3,4].map(i=>`<i class="${i<n?"on":""}"></i>`).join("")}</span>`;
+  function draw(){
+    view.innerHTML=`<section class="arena"><div class="mhud"><span>Competitivo 5v5 · round ${st.round}</span><button class="ghost" type="button" id="quit">Sair da partida</button></div>
+    <div class="panel"><div class="row" style="justify-content:space-between"><span class="me">Seu time ${dots(st.a,"me")}</span><span class="score num">${st.a} × ${st.b}</span><span class="op">${dots(st.b,"op")} Adversários</span></div></div>
+    <h2 style="font-size:22px;text-transform:uppercase">Fase de compra <span class="num" style="color:var(--accent)">$${st.money-cost()}</span></h2>
+    <div class="buy">${items.map(([id,n,p,d])=>`<button class="item" type="button" data-id="${id}" aria-pressed="${!!sel[id]}" ${!sel[id]&&st.money-cost()<p?"disabled":""}><strong>${n}</strong><span class="num">$${p}</span><small>${d}</small></button>`).join("")}</div>
+    <button class="cta" type="button" id="start">Iniciar round</button>
+    <p class="note">Vencer o round rende $3000, perder rende $1800, e acertar a questão soma $500. Seu acerto vale duas eliminações.</p></section>`;
+    view.querySelectorAll(".item").forEach(b=>b.onclick=()=>{sel[b.dataset.id]=!sel[b.dataset.id];draw()});
+    $("#start").onclick=()=>resolve({sel,cost:cost()});
+    $("#quit").onclick=()=>{resolve(null);go("lobby")};
+  }
+  draw();window.scrollTo(0,0);
+})}
+async function comp(){
+  const names=shuffle(BOTS.map(b=>b[0])),mates=names.slice(0,4),foes=names.slice(4,9);
+  const st={a:0,b:0,money:800,round:0};const qs=pick(9);
+  while(st.a<5&&st.b<5){
+    const q=qs[st.round];st.round++;
+    const buy=await buyPhase(st);if(!buy)return;st.money-=buy.cost;
+    const mateOk=mates.map(()=>Math.random()<.5);
+    const votes=mateOk.map(ok=>ok?q.o[0]:q.o[1+Math.floor(Math.random()*3)]);
+    const r=await ask(q,{time:75,fifty:buy.sel.fifty,extra:buy.sel.extra,votes:buy.sel.opinion?votes:null,
+      hud:()=>`<span>5v5 · round ${st.round}</span><span class="score"><span class="me">Time ${st.a}</span> × <span class="op">${st.b} Adv</span></span>`,
+      after:res=>{const foeOk=foes.map(()=>Math.random()<botP(P.elo));
+        const mine=(res.ok?2:0)+mateOk.filter(Boolean).length,theirs=foeOk.filter(Boolean).length;
+        const won=mine>theirs||(mine===theirs&&res.ok);if(won)st.a++;else st.b++;
+        st.money+=(won?3000:1800)+(res.ok?500:0);
+        const scorers=won?[...(res.ok?[P.nick,P.nick]:[]),...mates.filter((_,i)=>mateOk[i])]:foes.filter((_,i)=>foeOk[i]);
+        const victims=shuffle(won?foes:[P.nick,...mates]);
+        const lines=scorers.slice(0,5).map((s,i)=>`<b>${esc(s)}</b> eliminou ${esc(victims[i])}`);
+        return `<div class="feed">${lines.join("<br>")||"Ninguém acertou."}<br><b>${won?"Round do seu time":"Round dos adversários"}</b> · acertos ${mine} × ${theirs} · caixa $${st.money}</div>`}});
+    if(r.abort)return;
+  }
+  const win=st.a>st.b,d=win?20:-16,cr=win?400:150,xp=win?180:70;P.elo+=d;P.cr+=cr;P.xp+=xp;matchEnd(win);
+  const again=await resultScreen(win?"win":"lose",win?"Vitória":"Derrota",[["Placar",st.a+" × "+st.b],["Rating",signed(d)+" ("+P.elo+")"],["Patente",rankOf(P.elo)],["Créditos","+$"+cr],["XP","+"+xp]],"Jogar outra partida");
+  if(again)comp();
+}
+async function train(area,review){
+  let n=0,ok=0;
+  for(;;){
+    let pool=review?bank().filter(q=>P.wrong.includes(q.id)):bank().filter(q=>!area||q.a===area);
+    if(!pool.length){inMatch=false;go("lobby");toast(review?(n?"Fila de revisão zerada.":"Você não tem erros para revisar. Jogue uma partida primeiro."):"Não há questões nessa área.");return}
+    const q=pool[Math.floor(Math.random()*pool.length)];
+    const r=await ask(q,{time:0,hud:()=>`<span>${review?"Revisão de erros":"Treino · "+(area?AREAS[area]:"todas as áreas")}</span><span class="score num">${ok}/${n}</span>`});
+    if(r.abort)return;n++;if(r.ok)ok++;
+  }
+}
+
+renderTop();lobby();
+</script>
+</body>
+</html>
