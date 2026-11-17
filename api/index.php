@@ -3,7 +3,8 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/app/bootstrap.php';
 require dirname(__DIR__) . '/app/challenges.php';
 require dirname(__DIR__) . '/app/admin.php';
-start_session();
+header_remove('X-Powered-By');
+if (!development()) { ini_set('display_errors', '0'); ini_set('log_errors', '1'); }
 
 function player_payload(array $u): array {
     $id = (int)$u['id'];
@@ -20,6 +21,7 @@ function begin_auth(array $u): void {
     session_regenerate_id(true);
     $_SESSION['user_id'] = (int)$u['id'];
     $_SESSION['authenticated_at'] = time();
+    $_SESSION['last_activity'] = time();
     $_SESSION['password_fingerprint'] = hash('sha256',$u['password_hash']);
     $_SESSION['csrf'] = bin2hex(random_bytes(32));
 }
@@ -59,6 +61,12 @@ function finish_match(array $m, array $payload): array {
 }
 
 try {
+    guard_request();
+    start_session();
+    if (($_GET['action'] ?? 'session') !== 'catalog' && (development() || configuration()['db_password'])) {
+        rate_limit('api', 600, 60);
+        security_maintenance();
+    }
     $action = $_GET['action'] ?? 'session';
     $method = $_SERVER['REQUEST_METHOD'];
     if ($method === 'GET' && $action === 'catalog') send_json(catalog());
@@ -84,7 +92,7 @@ try {
         $map = substr((string)($_GET['map'] ?? ''),0,90);
         $specialty = substr((string)($_GET['specialty'] ?? ''),0,90);
         $rows = $map !== ''
-            ? query('SELECT u.id, u.nickname, u.specialty, u.institution, u.status, u.rating, SUM(m.score) AS points, COUNT(*) AS played FROM md_users u JOIN md_matches m ON m.user_id = u.id WHERE m.finished_at IS NOT NULL AND m.map_id = ? GROUP BY u.id,u.nickname,u.specialty,u.institution,u.status,u.rating ORDER BY points DESC, u.id ASC LIMIT 100', [$map])->fetchAll()
+            ? query('SELECT u.id, u.nickname, u.specialty, u.institution, u.status, u.rating, SUM(m.score) AS points, COUNT(*) AS played FROM md_users u JOIN md_matches m ON m.user_id = u.id WHERE ' . completed_match_filter() . ' AND m.map_id = ? GROUP BY u.id,u.nickname,u.specialty,u.institution,u.status,u.rating ORDER BY points DESC, u.id ASC LIMIT 100', [$map])->fetchAll()
             : ($specialty !== ''
                 ? query('SELECT id,nickname,specialty,institution,status,rating,points,played FROM md_users WHERE played > 0 AND specialty = ? ORDER BY rating DESC,points DESC,id ASC LIMIT 100',[$specialty])->fetchAll()
                 : query('SELECT id,nickname,specialty,institution,status,rating,points,played FROM md_users WHERE played > 0 ORDER BY rating DESC,points DESC,id ASC LIMIT 100')->fetchAll());
@@ -114,6 +122,8 @@ try {
         rate_limit('login',12,900);
         $identity = strtolower(trim((string)($data['identity'] ?? '')));
         $u = query('SELECT * FROM md_users WHERE email = ? OR LOWER(nickname) = ?',[$identity,$identity])->fetch();
+        $loginSubject = $u ? 'user:' . $u['id'] : 'identity:' . $identity;
+        rate_limit('login-account', 20, 900, $loginSubject);
         // Always perform a password hash check, including unknown accounts.
         $valid = password_verify((string)($data['password'] ?? ''),$u['password_hash'] ?? '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.');
         if (!$u || !$valid) { audit_event('auth.login_failed',null,$u?(int)$u['id']:null);fail('E-mail, nickname ou senha incorretos.',401); }
@@ -121,6 +131,7 @@ try {
             $u['password_hash']=password_hash($data['password'],PASSWORD_DEFAULT);
             query('UPDATE md_users SET password_hash = ? WHERE id = ?',[$u['password_hash'],$u['id']]);
         }
+        query('DELETE FROM md_auth_limits WHERE bucket = ?', [limit_key('login-account', $loginSubject)]);
         begin_auth($u); audit_event('auth.login',(int)$u['id'],(int)$u['id']);send_json(['user'=>public_user($u,true),'csrf'=>$_SESSION['csrf']]);
     }
     if ($action === 'logout') {
@@ -129,6 +140,7 @@ try {
         send_json(['csrf'=>$_SESSION['csrf']]);
     }
     $user = require_user();
+    rate_limit('write-user', 180, 60, 'user:' . $user['id']);
     if ($action === 'create-challenge') send_json(create_challenge($data,$user),201);
     if ($action === 'join-challenge') send_json(join_challenge((string)($data['challenge']??''),$user));
     if ($action === 'update-profile') {

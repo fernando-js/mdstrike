@@ -41,7 +41,7 @@ function admin_dispatch(string $action, array $params, array $operator): array {
         $summary=[
             'users'=>(int)query('SELECT COUNT(*) FROM md_users')->fetchColumn(),
             'active7d'=>(int)query('SELECT COUNT(*) FROM md_users WHERE last_seen >= ?',[$since])->fetchColumn(),
-            'matches'=>(int)query('SELECT COUNT(*) FROM md_matches WHERE finished_at IS NOT NULL AND result_json <> ?',[json_encode(['aborted'=>true])])->fetchColumn(),
+            'matches'=>(int)query('SELECT COUNT(*) FROM md_matches m WHERE ' . completed_match_filter())->fetchColumn(),
             'challenges'=>(int)query('SELECT COUNT(*) FROM md_challenges')->fetchColumn(),
             'answers'=>(int)query('SELECT COUNT(*) FROM md_answers')->fetchColumn(),
             'correct'=>(int)query('SELECT COALESCE(SUM(correct),0) FROM md_answers')->fetchColumn(),

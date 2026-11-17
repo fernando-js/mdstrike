@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/security.php';
 
 function private_directory(): string {
     $directory = getenv('MDSTRIKE_PRIVATE_DIR') ?: dirname(__DIR__, 2) . '/.mdstrike';
@@ -75,6 +76,7 @@ function migrate(PDO $db): void {
         $db->exec('CREATE INDEX IF NOT EXISTS md_audit_actor ON md_audit_logs(actor_id, id)');
     }
     bootstrap_owner_admin($db);
+    security_indexes($db);
 }
 
 function query(string $sql, array $params = []): PDOStatement {
@@ -95,6 +97,8 @@ function fail(string $message, int $status = 400): never { send_json(['error' =>
 function start_session(): void {
     if (session_status() === PHP_SESSION_ACTIVE) return;
     ini_set('session.use_strict_mode', '1');
+    ini_set('session.use_only_cookies', '1');
+    ini_set('session.use_trans_sid', '0');
     ini_set('session.gc_maxlifetime', '86400');
     session_name('mdstrike_session');
     session_set_cookie_params(['lifetime' => 0, 'path' => '/', 'secure' => !development(), 'httponly' => true, 'samesite' => 'Lax']);
@@ -104,9 +108,17 @@ function start_session(): void {
 
 function input(): array {
     if ((int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 32768) fail('Requisição muito grande.', 413);
-    try { $data = json_decode(file_get_contents('php://input'), true, 32, JSON_THROW_ON_ERROR); }
+    if (strtolower(trim(explode(';', $_SERVER['CONTENT_TYPE'] ?? '')[0])) !== 'application/json') fail('Envie os dados em JSON.', 415);
+    $raw = file_get_contents('php://input', false, null, 0, 32769);
+    if ($raw === false || strlen($raw) > 32768) fail('Requisição muito grande.', 413);
+    if (!str_starts_with(ltrim($raw), '{')) fail('Envie um objeto JSON.');
+    try { $data = json_decode($raw, true, 32, JSON_THROW_ON_ERROR); }
     catch (JsonException) { fail('JSON inválido.'); }
     if (!is_array($data)) fail('Dados inválidos.');
+    foreach ($data as $key => $value) {
+        if (is_array($value) || is_object($value)) fail('Campo inválido.');
+        if (in_array($key, ['nickname','email','password','currentPassword','specialty','identity','institution','status','mode','map','exam','match','question','challenge'], true) && !is_string($value)) fail('Campo de texto inválido.');
+    }
     return $data;
 }
 
@@ -123,10 +135,20 @@ function current_user(): ?array {
     if (!$u || !hash_equals(hash('sha256',$u['password_hash']), (string)($_SESSION['password_fingerprint'] ?? ''))) {
         unset($_SESSION['user_id']); return null;
     }
+    $now = time();
+    $admin = is_admin($u);
+    $authenticated = (int)($_SESSION['authenticated_at'] ?? 0);
+    $lastActivity = (int)($_SESSION['last_activity'] ?? $now);
+    if (!$authenticated || $now - $authenticated >= ($admin ? 28800 : 86400) || $now - $lastActivity >= ($admin ? 1800 : 7200)) {
+        audit_event('auth.session_expired', (int)$u['id'], (int)$u['id']);
+        $_SESSION = []; session_regenerate_id(true); $_SESSION['csrf'] = bin2hex(random_bytes(32));
+        return null;
+    }
+    $_SESSION['last_activity'] = $now;
     return $u;
 }
 
-function require_user(): array { return current_user() ?: fail('Entre na sua conta para continuar.', 401); }
+function require_user(): array { return current_user() ?: fail('Sua sessão expirou ou você não está conectado. Atualize a página e entre novamente.', 401); }
 
 function public_user(array $u, bool $owner = false): array {
     $result = array_intersect_key($u, array_flip(['id','nickname','specialty','institution','status','xp','points','rating','played','wins','answered','correct','created_at','last_seen']));
@@ -142,18 +164,9 @@ function rank_name(int $rating): string {
     return $rank;
 }
 
-function rate_limit(string $name, int $max = 10, int $seconds = 900): void {
-    $key = hash('sha256', $name . '|' . ($_SERVER['REMOTE_ADDR'] ?? 'local'));
-    $db = database(); $db->beginTransaction();
-    try {
-        $suffix = $db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql' ? ' FOR UPDATE' : '';
-        $row = query('SELECT * FROM md_auth_limits WHERE bucket = ?' . $suffix, [$key])->fetch();
-        if (!$row) query('INSERT INTO md_auth_limits (bucket, attempts, window_start) VALUES (?, 1, ?)', [$key, time()]);
-        elseif (time() - (int)$row['window_start'] >= $seconds) query('UPDATE md_auth_limits SET attempts = 1, window_start = ? WHERE bucket = ?', [time(), $key]);
-        elseif ((int)$row['attempts'] >= $max) { $db->rollBack(); fail('Muitas tentativas. Aguarde alguns minutos.', 429); }
-        else query('UPDATE md_auth_limits SET attempts = attempts + 1 WHERE bucket = ?', [$key]);
-        $db->commit();
-    } catch (Throwable $e) { if ($db->inTransaction()) $db->rollBack(); throw $e; }
+function rate_limit(string $name, int $max = 10, int $seconds = 900, ?string $subject = null): void {
+    $retry = consume_limit($name, $max, $seconds, $subject);
+    if ($retry) { header('Retry-After: ' . $retry); fail('Muitas tentativas. Aguarde alguns minutos.', 429); }
 }
 
 function catalog(): array { return json_decode(file_get_contents(__DIR__ . '/catalog.json'), true, 512, JSON_THROW_ON_ERROR); }
@@ -182,6 +195,7 @@ function audit_event(string $event, ?int $actor = null, ?int $subject = null, ar
     static $requestId;
     $requestId ??= bin2hex(random_bytes(12));
     try {
+        if (in_array($event, ['api.error','admin.denied'], true) && consume_limit('audit:' . $event, 5, 60)) return;
         query('INSERT INTO md_audit_logs (event,actor_id,subject_id,metadata_json,client_ip,user_agent,request_id,created_at) VALUES (?,?,?,?,?,?,?,?)', [
             $event,$actor,$subject,json_encode($metadata,JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE),
             substr((string)($_SERVER['REMOTE_ADDR']??''),0,45),mb_substr((string)($_SERVER['HTTP_USER_AGENT']??''),0,255),$requestId,time(),

@@ -77,7 +77,21 @@ Abra `https://mdstrike.com/#admin` com a conta autorizada. A navegação inclui 
 
 As tabelas aditivas `md_admins`, `md_migrations` e `md_audit_logs` são criadas automaticamente. A migração `owner_admin_20261117` concede acesso à conta do proprietário já existente no momento da implantação e guarda o ID dessa conta. Ela roda uma vez: cadastrar posteriormente o mesmo e-mail, enviar `isAdmin` no navegador ou alterar o perfil não concede acesso. A permissão é conferida no servidor em toda consulta; remover a associação em `md_admins` revoga o acesso imediatamente.
 
-Os logs registram criação de conta, login/falhas, logout, alteração de perfil/senha, partidas, respostas, desafios, consultas administrativas e erros da API. Registram horário, IDs dos envolvidos, metadados limitados, IP recebido, navegador e ID da requisição; nunca o corpo bruto da requisição nem senhas. Começam nesta atualização; partidas e respostas anteriores já armazenadas continuam consultáveis. O painel é de consulta, sem exclusão ou edição de contas. O acesso às consultas também é registrado. Não há expurgo automático dos logs nesta versão.
+Os logs registram criação de conta, login/falhas, logout, expiração da sessão, alteração de perfil/senha, partidas, respostas, desafios, consultas administrativas e erros da API. Registram horário, IDs dos envolvidos, metadados limitados, IP recebido, navegador e ID da requisição; nunca o corpo bruto da requisição nem senhas. O painel é de consulta, sem exclusão ou edição de contas. O acesso às consultas também é registrado. Logs com mais de 90 dias são removidos gradualmente em lotes de até 1.000, no máximo a cada dez minutos durante o uso da API. Perfis, partidas e respostas permanecem no histórico. Erros repetidos e acessos administrativos negados têm limite de cinco registros por evento/IP/minuto; eventos de conta e senha continuam registrados.
+
+## Proteções contra abuso
+
+Entradas com rota, método, parâmetros ou tipos inválidos são rejeitadas antes de gerar exceções. O corpo deve ser um objeto JSON de até 32 KiB, com leitura limitada aos bytes reais. O catálogo público e o treino de convidado continuam disponíveis sem banco configurado.
+
+A API conectada ao banco aceita até 600 requisições por minuto/IP, usando somente `REMOTE_ADDR`; cabeçalhos encaminhados enviados pelo cliente não trocam a identidade do limitador. Escritas autenticadas têm limite adicional de 180 por minuto/conta. O catálogo público não abre conexão com o banco. As cotas usam incremento atômico e retornam HTTP 429 com `Retry-After`. Redes de universidades/hospitais podem compartilhar um IP; monitore os 429 antes de ajustar os limites em `app/security.php` e `api/index.php`.
+
+Login mantém o limite de 12 tentativas/IP em 15 minutos e adiciona 20 tentativas/conta no mesmo período. E-mail e nickname da mesma conta compartilham a cota; um login bem-sucedido limpa a cota da conta. Muitas falhas podem bloquear novas tentativas por até 15 minutos, inclusive com a senha correta; sessões já autenticadas não são encerradas por esse bloqueio. Cotas antigas, sem uso há dois dias, são removidas em lotes indexados. Os demais limites de cadastro, início de partida, desafios e troca de senha continuam ativos.
+
+Sessões de jogadores expiram após duas horas sem atividade na API ou 24 horas desde o login. Para administradores: 30 minutos sem atividade ou oito horas desde o login. Trocar a senha continua revogando outras sessões. A conexão HTTPS envia HSTS por sete dias, sem forçar subdomínios ou preload.
+
+Ranking por mapa e contador de partidas concluídas do painel usam a mesma regra de conclusão: JSON válido com resultado de vitória/derrota, respostas e ausência de abandono. Tentativas abandonadas permanecem no histórico, sem crédito no ranking. Não há resistência garantida a robôs que resolvem o banco educacional público.
+
+Esses controles não substituem WAF/CDN, 2FA nas contas, backups com restauração testada ou monitoramento da hospedagem. MFA dentro do jogo ainda não foi configurado. O pacote de publicação não inclui as contas de teste, o banco local nem o `.env` privado.
 
 ## Desenvolvimento local
 

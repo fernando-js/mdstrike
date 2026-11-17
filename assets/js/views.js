@@ -10,7 +10,7 @@ import {
   guest,
   specialtyName,
   modeName,
-} from "./core.js?v=2.2.0";
+} from "./core.js?v=2.2.1";
 export const heading = (title, description, action = "") =>
   `<div class="breadcrumb"><span>Jogar</span> / ${esc({ lobby: "Lobby", maps: "Mapas", competitions: "Competições", ranking: "Ranking", profile: "Meu perfil", archive: "Arquivo", sources: "Fontes", challenge: "Desafio", admin: "Administração" }[state.page] || "Lobby")}</div><div class="page-heading"><div><h1>${title}</h1><p>${description}</p></div>${action}</div>`;
 export const areaOptions = (selected = "", includeGeneral = false) =>

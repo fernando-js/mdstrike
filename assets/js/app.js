@@ -17,16 +17,16 @@ import {
   api,
   refreshProfile,
   beep,
-} from "./core.js?v=2.2.0";
-import * as views from "./views.js?v=2.2.0";
-import { Match } from "./game.js?v=2.2.0";
-import { renderPdf } from "./pdf-viewer.js?v=2.2.0";
+} from "./core.js?v=2.2.1";
+import * as views from "./views.js?v=2.2.1";
+import { Match } from "./game.js?v=2.2.1";
+import { renderPdf } from "./pdf-viewer.js?v=2.2.1";
 import {
   challengeForm,
   challengePage,
   loadMyChallenges,
-} from "./challenges.js?v=2.2.0";
-import { openAdmin, stopAdmin } from "./admin.js?v=2.2.0";
+} from "./challenges.js?v=2.2.1";
+import { openAdmin, stopAdmin } from "./admin.js?v=2.2.1";
 
 const modal = $("#modal"),
   view = $("#view");

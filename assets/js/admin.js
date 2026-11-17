@@ -8,8 +8,8 @@ import {
   state,
   specialtyName,
   modeName,
-} from "./core.js?v=2.2.0";
-import { heading, statsStrip } from "./views.js?v=2.2.0";
+} from "./core.js?v=2.2.1";
+import { heading, statsStrip } from "./views.js?v=2.2.1";
 
 let generation = 0;
 let section = "overview";
@@ -27,6 +27,7 @@ const labels = {
   "auth.login": "Login realizado",
   "auth.login_failed": "Falha no login",
   "auth.logout": "Logout realizado",
+  "auth.session_expired": "Sessão expirada",
   "auth.password_changed": "Senha alterada",
   "profile.updated": "Perfil atualizado",
   "match.started": "Partida iniciada",
@@ -221,7 +222,7 @@ async function load() {
         icon("repeat", 18) +
         "</button>",
     ) +
-    `<div class="segmented admin-tabs" role="group" aria-label="Consultas administrativas">${tabs.map(([id, label]) => `<button data-admin-tab="${id}" class="${id === section ? "active" : ""}" aria-pressed="${id === section}">${label}</button>`).join("")}</div>${filters()}<div id="admin-content"><div class="loading">Consultando os dados…</div></div><p class="notice">Os logs de acesso e atividade são gravados a partir desta atualização. As partidas e respostas anteriores permanecem no histórico. Todas as consultas deste painel ficam registradas.</p>`;
+    `<div class="segmented admin-tabs" role="group" aria-label="Consultas administrativas">${tabs.map(([id, label]) => `<button data-admin-tab="${id}" class="${id === section ? "active" : ""}" aria-pressed="${id === section}">${label}</button>`).join("")}</div>${filters()}<div id="admin-content"><div class="loading">Consultando os dados…</div></div><p class="notice">Os logs de atividade têm retenção de 90 dias. Partidas e respostas anteriores permanecem no histórico. Consultas administrativas são registradas; eventos de erro repetidos são limitados para evitar excesso de registros.</p>`;
   try {
     const data = await api("admin-" + section, undefined, params);
     if (current === generation && state.page === "admin")
