@@ -1,4 +1,4 @@
-import catalog from "./catalog.js?v=2.0.1";
+import catalog from "./catalog.js?v=2.1.0";
 export { catalog };
 export const $ = (selector) => document.querySelector(selector);
 export const esc = (value) =>
@@ -52,6 +52,8 @@ export const state = {
   sound: storage.get("mdstrike_sound", true),
   profile: null,
   game: null,
+  challengeId: null,
+  pendingChallenge: null,
 };
 export const player = () => state.user || guest;
 export const saveGuest = () => storage.set("mdstrike_guest_v2", guest);
@@ -67,6 +69,7 @@ export const modeName = (mode) =>
     cup: "Copa MD Strike",
     exam: "Caderno oficial",
     review: "Revisar erros",
+    challenge: "Desafio entre colegas",
   })[mode] || mode;
 export function rankName(rating) {
   let rank = "Recruta";
@@ -122,9 +125,9 @@ export function toast(message) {
     4200,
   );
 }
-export async function api(action, data) {
+export async function api(action, data, params = {}) {
   const response = await fetch(
-    `api/index.php?action=${encodeURIComponent(action)}`,
+    `api/index.php?${new URLSearchParams({ action, ...params })}`,
     {
       method: data === undefined ? "GET" : "POST",
       credentials: "same-origin",

@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import { execFileSync } from "node:child_process";
-for (const file of ["app/bootstrap.php", "api/index.php", "scripts/router.php"])
+for (const file of ["app/bootstrap.php", "app/challenges.php", "api/index.php", "scripts/router.php"])
   execFileSync("php", ["-l", file], { stdio: "inherit" });
 for (const file of fs.readdirSync("assets/js").filter((f) => f.endsWith(".js")))
   execFileSync("node", ["--check", `assets/js/${file}`], { stdio: "inherit" });

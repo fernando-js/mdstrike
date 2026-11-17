@@ -257,3 +257,162 @@ test("server competitions finish once and update game rating", async ({
     expect(replay.status()).toBe(409);
   }
 });
+
+test("shared challenge uses identical questions, supports two accounts and prevents repeat attempts", async ({
+  browser,
+}) => {
+  const host = await browser.newContext({ baseURL: "http://127.0.0.1:8088" });
+  const colleague = await browser.newContext({
+    baseURL: "http://127.0.0.1:8088",
+  });
+  const accounts = [];
+  for (const context of [host, colleague]) {
+    const suffix = unique();
+    const session = await (
+      await context.request.get("/api/index.php?action=session")
+    ).json();
+    const response = await context.request.post(
+      "/api/index.php?action=register",
+      {
+        headers: { "X-CSRF-Token": session.csrf },
+        data: {
+          nickname: `duel_${suffix}`.slice(0, 24),
+          email: `duel_${suffix}@example.test`,
+          password: "Challenge-Test-123456",
+          consent: true,
+        },
+      },
+    );
+    expect(response.status()).toBe(201);
+    accounts.push(await response.json());
+  }
+  const page = await host.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("/#competitions");
+  await page
+    .getByRole("button", { name: "Criar desafio", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Gerar link de desafio" }).click();
+  await expect(page.locator("#challenge-link")).toBeVisible();
+  const link = await page.locator("#challenge-link").inputValue();
+  expect(link).toMatch(/#challenge\/[a-f0-9]{32}$/);
+  const id = link.split("/").at(-1);
+  const invited = await colleague.newPage();
+  await invited.goto(link);
+  await expect(invited.locator("h1")).toHaveText("Um link. O mesmo desafio.");
+  await expect(
+    invited.getByRole("button", { name: "Aceitar desafio" }),
+  ).toBeVisible();
+  const guest = await browser.newContext({ baseURL: "http://127.0.0.1:8088" });
+  const guestPage = await guest.newPage();
+  await guestPage.goto(link);
+  await expect(
+    guestPage.getByRole("button", { name: "Entrar para participar" }),
+  ).toBeVisible();
+  await guestPage
+    .getByRole("button", { name: "Entrar para participar" })
+    .click();
+  await expect(guestPage.locator("#auth-form")).toBeVisible();
+  await guestPage.locator('[name="identity"]').fill(accounts[1].user.email);
+  await guestPage.locator('[name="password"]').fill("Challenge-Test-123456");
+  await guestPage
+    .getByRole("button", { name: "Entrar na conta", exact: true })
+    .click();
+  await expect(guestPage.locator("h1")).toHaveText("Um link. O mesmo desafio.");
+  await expect(
+    guestPage.getByRole("button", { name: "Aceitar desafio" }),
+  ).toBeVisible();
+  const runs = [];
+  for (let i = 0; i < 2; i++) {
+    const context = [host, colleague][i];
+    const r = await context.request.post(
+      "/api/index.php?action=join-challenge",
+      {
+        headers: { "X-CSRF-Token": accounts[i].csrf },
+        data: { challenge: id },
+      },
+    );
+    expect(r.ok()).toBeTruthy();
+    runs.push(await r.json());
+  }
+  expect(runs[0].question).toEqual(runs[1].question);
+  expect(runs[0].timeLimit).toBe(60);
+  expect(runs[0].question.answer).toBeUndefined();
+  const firstId = runs[0].question.id;
+  const resume = await host.request.post(
+    "/api/index.php?action=join-challenge",
+    { headers: { "X-CSRF-Token": accounts[0].csrf }, data: { challenge: id } },
+  );
+  expect((await resume.json()).question.id).toBe(firstId);
+  for (let i = 0; i < 2; i++) {
+    const context = [host, colleague][i],
+      csrf = accounts[i].csrf;
+    let current = runs[i];
+    let result;
+    const ids = [];
+    for (let round = 0; round < 7; round++) {
+      ids.push(current.question.id);
+      const graded = await (
+        await context.request.post("/api/index.php?action=answer", {
+          headers: { "X-CSRF-Token": csrf },
+          data: {
+            match: current.id,
+            question: current.question.id,
+            choice: i === 0 ? lookup(current.question) : -1,
+          },
+        })
+      ).json();
+      expect(graded.botPoints).toBe(0);
+      if (graded.result) {
+        result = graded.result;
+        break;
+      }
+      current = await (
+        await context.request.post("/api/index.php?action=next-question", {
+          headers: { "X-CSRF-Token": csrf },
+          data: { match: current.id },
+        })
+      ).json();
+    }
+    expect(result.answered).toBe(7);
+    expect(result.ratingDelta).toBe(0);
+    expect(new Set(ids).size).toBe(7);
+    if (i === 0) runs.push(ids);
+    else expect(ids).toEqual(runs[2]);
+    const again = await context.request.post(
+      "/api/index.php?action=join-challenge",
+      { headers: { "X-CSRF-Token": csrf }, data: { challenge: id } },
+    );
+    expect(again.status()).toBe(409);
+  }
+  const scoreboard = await (
+    await guest.request.get(`/api/index.php?action=challenge&id=${id}`)
+  ).json();
+  expect(scoreboard.scores).toHaveLength(2);
+  expect(scoreboard.scores[0].correct).toBe(7);
+  expect(scoreboard.scores[1].correct).toBe(0);
+  expect(scoreboard.questions_json).toBeUndefined();
+  expect(scoreboard.scores[0].email).toBeUndefined();
+  await page.reload();
+  await expect(page.locator(".table-wrap tbody tr")).toHaveCount(2);
+  await expect(page.locator(".table-wrap")).toContainText("Concluído");
+  await page.screenshot({
+    path: "/private/tmp/mdstrike-challenge-desktop.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({
+    path: "/private/tmp/mdstrike-challenge-mobile.png",
+    fullPage: true,
+  });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  expect(errors).toEqual([]);
+  await guest.close();
+  await host.close();
+  await colleague.close();
+});

@@ -10,9 +10,9 @@ import {
   guest,
   specialtyName,
   modeName,
-} from "./core.js?v=2.0.1";
+} from "./core.js?v=2.1.0";
 export const heading = (title, description, action = "") =>
-  `<div class="breadcrumb"><span>Jogar</span> / ${esc({ lobby: "Lobby", maps: "Mapas", competitions: "Competições", ranking: "Ranking", profile: "Meu perfil", archive: "Arquivo", sources: "Fontes" }[state.page] || "Lobby")}</div><div class="page-heading"><div><h1>${title}</h1><p>${description}</p></div>${action}</div>`;
+  `<div class="breadcrumb"><span>Jogar</span> / ${esc({ lobby: "Lobby", maps: "Mapas", competitions: "Competições", ranking: "Ranking", profile: "Meu perfil", archive: "Arquivo", sources: "Fontes", challenge: "Desafio" }[state.page] || "Lobby")}</div><div class="page-heading"><div><h1>${title}</h1><p>${description}</p></div>${action}</div>`;
 export const areaOptions = (selected = "", includeGeneral = false) =>
   Object.entries(catalog.areas)
     .filter(([k]) => includeGeneral || k !== "GERAL")
@@ -35,7 +35,7 @@ export function lobby() {
       "Conhecimento é a sua melhor arma.",
       "Escolha seu mapa. Prepare-se para o próximo round.",
       state.user
-        ? `<button class="btn" data-page="profile">Meu operador ${icon("user", 18)}</button>`
+        ? `<button class="btn" data-new-challenge>Desafiar colega ${icon("trophy", 18)}</button>`
         : '<button class="btn" data-auth="register">Criar conta</button>',
     ) +
     `
@@ -70,7 +70,7 @@ export function competitions() {
       "Entre na competição.",
       "Rounds curtos. Decisões rápidas. Conhecimento que fica.",
     ) +
-    `<div class="competition-list">${[
+    `<section class="panel challenge-intro"><div><h2>Convide um colega para o round.</h2><p>Gere um link, responda às mesmas questões e compare os resultados. Cada um joga no seu horário.</p></div><button class="btn" data-new-challenge>Criar desafio ${icon("arrow", 18)}</button></section><section class="panel" style="margin-bottom:24px"><h2>Meus desafios</h2><div id="my-challenges"><p class="muted">Carregando seus links…</p></div></section><div class="competition-list">${[
       [
         "duel",
         "1v1",
@@ -114,7 +114,7 @@ export function competitions() {
       )
       .join(
         "",
-      )}</div><div class="notice">As competições desta versão são contra bots. O ranking global reúne resultados de contas reais; não representa classificação oficial no ENAMED ou ENARE.</div>`
+      )}</div><div class="notice">Duelo, competitivo e copa são contra bots. Desafios por link comparam colegas reais, cada um no seu horário. O ranking global reúne resultados de contas reais; não representa classificação oficial no ENAMED ou ENARE.</div>`
   );
 }
 export function archive() {

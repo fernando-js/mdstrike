@@ -17,10 +17,15 @@ import {
   api,
   refreshProfile,
   beep,
-} from "./core.js?v=2.0.1";
-import * as views from "./views.js?v=2.0.1";
-import { Match } from "./game.js?v=2.0.1";
-import { renderPdf } from "./pdf-viewer.js?v=2.0.1";
+} from "./core.js?v=2.1.0";
+import * as views from "./views.js?v=2.1.0";
+import { Match } from "./game.js?v=2.1.0";
+import { renderPdf } from "./pdf-viewer.js?v=2.1.0";
+import {
+  challengeForm,
+  challengePage,
+  loadMyChallenges,
+} from "./challenges.js?v=2.1.0";
 
 const modal = $("#modal"),
   view = $("#view");
@@ -39,7 +44,11 @@ const nav = [
 
 function shell() {
   const active =
-    state.page === "match" || state.page === "result" ? "lobby" : state.page;
+    state.page === "challenge"
+      ? "competitions"
+      : state.page === "match" || state.page === "result"
+        ? "lobby"
+        : state.page;
   $("#top-nav").innerHTML = [
     ["lobby", "Jogar"],
     ["maps", "Mapas"],
@@ -74,6 +83,11 @@ async function route(page, force = false) {
     );
     return;
   }
+  const invite = /^challenge\/([a-f0-9]{32})$/.exec(page);
+  if (invite) {
+    state.challengeId = invite[1];
+    page = "challenge";
+  }
   if (
     ![
       "lobby",
@@ -83,17 +97,38 @@ async function route(page, force = false) {
       "profile",
       "archive",
       "sources",
+      "challenge",
     ].includes(page)
   )
     page = "lobby";
   clearInterval(timer);
   state.page = page;
   const generation = ++routeGeneration;
-  history.replaceState(null, "", `#${page}`);
+  history.replaceState(
+    null,
+    "",
+    `#${page === "challenge" ? "challenge/" + state.challengeId : page}`,
+  );
   shell();
-  view.innerHTML = views[page]();
+  view.innerHTML =
+    page === "challenge"
+      ? '<div class="loading">Abrindo o desafio…</div>'
+      : views[page]();
   window.scrollTo({ top: 0 });
   if (page === "ranking") await loadRanking();
+  if (page === "competitions") await loadMyChallenges();
+  if (page === "challenge") {
+    try {
+      const result = await api("challenge", undefined, {
+        id: state.challengeId,
+      });
+      if (generation === routeGeneration)
+        view.innerHTML = challengePage(result);
+    } catch (error) {
+      if (generation === routeGeneration)
+        view.innerHTML = `<div class="empty"><h1>Desafio indisponível.</h1><p>${esc(error.message)}</p><button class="btn" data-page="competitions">Ver competições</button></div>`;
+    }
+  }
   if (page === "profile" && state.user) {
     try {
       await refreshProfile();
@@ -120,6 +155,7 @@ function auth(type = "login") {
     route("profile");
     return;
   }
+  if (state.page === "challenge") state.pendingChallenge = state.challengeId;
   const register = type === "register";
   openModal(`<div class="modal-content"><div class="modal-top"><h2 id="modal-title">${register ? "Crie seu operador." : "De volta ao round."}</h2><button class="close-button" data-close aria-label="Fechar">×</button></div><p>${register ? "Seu nickname no placar. Sua evolução salva entre dispositivos." : "Entre para continuar sua preparação."}</p><div class="auth-tabs"><button data-auth="login" class="${register ? "" : "active"}">Entrar</button><button data-auth="register" class="${register ? "active" : ""}">Criar conta</button></div>
   ${!state.configured ? '<div class="notice">O cadastro será liberado quando o banco for conectado na hospedagem. Você já pode jogar como convidado.</div>' : ""}
@@ -302,7 +338,7 @@ function renderMatch() {
     c = game.current,
     q = c.question;
   if (!q) return;
-  const versus = c.timeLimit > 0,
+  const versus = c.timeLimit > 0 && c.mode !== "challenge",
     isTeam = c.mode === "competitive",
     official = q.kind === "official";
   const pdfUrl = official ? `${q.pdf}#page=${q.page}&view=FitH` : "";
@@ -310,7 +346,7 @@ function renderMatch() {
   <div class="scoreboard"><div><span class="player-name">${isTeam ? "Seu time" : esc(player().nickname)}</span><strong id="my-score">${number(isTeam ? c.roundsWon : c.score)}</strong></div><div><span class="round-counter">ROUND ${c.index + 1} / ${c.total}</span><div class="round-dots">${Array.from({ length: Math.min(15, c.total) }, (_, i) => `<i class="${i < c.index ? "done" : ""}"></i>`).join("")}</div></div><div><span class="player-name enemy">${versus ? (isTeam ? "Time adversário · bots" : "Adversário · bot") : "Precisão"}</span><strong id="opponent-score">${versus ? number(isTeam ? c.roundsLost : c.botScore) : c.index ? Math.round((c.correct / c.index) * 100) + "%" : "—"}</strong></div></div>
   <div class="match-layout" ${official ? 'style="grid-template-columns:minmax(0,1fr)"' : ""}><section class="question-panel ${official ? "pdf-question" : ""}">${c.timeLimit ? `<div class="timer-bar" id="question-timer"><div class="bar"><i id="timer-fill" style="width:100%"></i></div><strong id="time-left">${c.timeLimit}s</strong></div>` : ""}<div class="question-meta"><span>${esc(catalog.areas[q.area] || q.area)}</span><span class="tag ${official ? "official" : ""}">${official ? "Caderno oficial" : "Autoral · demonstração"}</span></div><h2>${esc(q.prompt)}</h2><p class="source-note">${esc(q.source)}${official ? ` · página ${q.page}` : ""}</p>
   ${official ? `<div class="row wrap space-between" style="margin-bottom:14px"><span class="small-text muted">Leia a questão ${q.number} na página ${q.page} do caderno e marque a alternativa abaixo.</span><a class="source-link" href="${esc(pdfUrl)}" target="_blank" rel="noopener noreferrer">Abrir PDF em outra aba ↗</a></div><div id="pdf-viewer" class="pdf-viewer" aria-busy="true" aria-label="Página do caderno oficial"><div class="loading">Abrindo a página original…</div></div>` : ""}
-  <div class="answers" role="group" aria-label="Alternativas">${q.options.map((option, i) => `<button class="answer" data-answer="${i}"><span class="answer-letter">${"ABCDE"[i]}</span>${official ? "" : `<span>${esc(option)}</span>`}</button>`).join("")}</div><div id="feedback" aria-live="polite"></div><p class="key-help">Atalhos: ${q.options.length === 5 ? "1–5 ou A–E" : "1–4 ou A–D"} para responder · Enter para continuar</p><div class="match-tools"><button data-sound>${icon("sound", 16)} ${state.sound ? "Som ligado" : "Som desligado"}</button><button data-skip>Pular questão</button></div></section>${!official ? `<aside class="tactical-panel"><h3>Mapa de operação</h3>${tacticalMap(c)}<p>Avance um round por vez. Cada resposta mostra o raciocínio e alimenta seu histórico de estudo.</p><div class="notice">${versus ? "Adversários e aliados são bots." : "Treino sem relógio."}</div><p>As questões autorais ainda precisam de revisão médica.</p></aside>` : ""}</div></div>`;
+  <div class="answers" role="group" aria-label="Alternativas">${q.options.map((option, i) => `<button class="answer" data-answer="${i}"><span class="answer-letter">${"ABCDE"[i]}</span>${official ? "" : `<span>${esc(option)}</span>`}</button>`).join("")}</div><div id="feedback" aria-live="polite"></div><p class="key-help">Atalhos: ${q.options.length === 5 ? "1–5 ou A–E" : "1–4 ou A–D"} para responder · Enter para continuar</p><div class="match-tools"><button data-sound>${icon("sound", 16)} ${state.sound ? "Som ligado" : "Som desligado"}</button><button data-skip>Pular questão</button></div></section>${!official ? `<aside class="tactical-panel"><h3>Mapa de operação</h3>${tacticalMap(c)}<p>Avance um round por vez. Cada resposta mostra o raciocínio e alimenta seu histórico de estudo.</p><div class="notice">${versus ? "Adversários e aliados são bots." : c.mode === "challenge" ? "Desafio entre colegas. Cada um joga no seu horário." : "Treino sem relógio."}</div><p>As questões autorais ainda precisam de revisão médica.</p></aside>` : ""}</div></div>`;
   if (official) {
     const host = $("#pdf-viewer");
     host.insertAdjacentHTML(
@@ -321,7 +357,8 @@ function renderMatch() {
     renderPdf(q);
   }
   if (c.timeLimit) {
-    const deadline = performance.now() + c.timeLimit * 1000;
+    const deadline =
+      performance.now() + (c.timeRemaining ?? c.timeLimit) * 1000;
     timer = setInterval(() => {
       const left = Math.max(0, (deadline - performance.now()) / 1000);
       if (!$("#time-left")) {
@@ -356,11 +393,12 @@ async function answer(choice) {
     const c = feedback.state,
       isTeam = game.current.mode === "competitive";
     $("#my-score").textContent = number(isTeam ? c.roundsWon : c.score);
-    $("#opponent-score").textContent = game.current.timeLimit
-      ? number(isTeam ? c.roundsLost : c.botScore)
-      : c.index
-        ? Math.round((c.correct / c.index) * 100) + "%"
-        : "—";
+    $("#opponent-score").textContent =
+      game.current.timeLimit && game.current.mode !== "challenge"
+        ? number(isTeam ? c.roundsLost : c.botScore)
+        : c.index
+          ? Math.round((c.correct / c.index) * 100) + "%"
+          : "—";
     $("#feedback").innerHTML =
       `<div class="feedback ${feedback.correct ? "" : "wrong"}"><div class="row space-between"><h3>${choice < 0 ? "Questão não respondida" : feedback.correct ? "Alvo confirmado." : "Ajuste a mira."}</h3><strong>+${feedback.points} pts${feedback.headshot ? " · HEADSHOT" : ""}</strong></div><p>${esc(feedback.explanation)}</p><button class="btn" data-next>${feedback.result ? "Ver resultado" : "Próximo round"} ${icon("arrow", 18)}</button></div>`;
     view.querySelector("[data-next]").focus({ preventScroll: true });
@@ -399,7 +437,7 @@ function renderResult(game) {
   const r = game.result;
   state.page = "result";
   shell();
-  view.innerHTML = `<div class="result-page"><section class="result-hero">${emblem()}<h1>${r.ranked ? (r.win ? "Vitória confirmada." : "Novo round, nova chance.") : "Treino concluído."}</h1><p>${r.correct} acertos em ${r.answered} questões respondidas.${r.ranked ? " Competição contra bots." : ""} ${state.user ? "Seu resultado foi salvo na conta." : "Seu progresso está salvo neste dispositivo."}</p>${views.statsStrip(
+  view.innerHTML = `<div class="result-page"><section class="result-hero">${emblem()}<h1>${r.ranked ? (r.win ? "Vitória confirmada." : "Novo round, nova chance.") : game.current.mode === "challenge" ? "Desafio registrado." : "Treino concluído."}</h1><p>${r.correct} acertos em ${r.answered} questões respondidas.${r.ranked ? " Competição contra bots." : ""} ${state.user ? "Seu resultado foi salvo na conta." : "Seu progresso está salvo neste dispositivo."}</p>${views.statsStrip(
     [
       [number(r.score), "Pontos"],
       [`${Math.round((r.correct / r.answered) * 100)}%`, "Precisão"],
@@ -409,7 +447,7 @@ function renderResult(game) {
         "Variação de rating",
       ],
     ],
-  )}<div class="row"><button class="btn" data-rematch>Jogar novamente ${icon("arrow", 18)}</button><button class="btn outline" data-page="lobby">Voltar ao lobby</button></div>${!state.user ? '<p class="small-text">Quer entrar no ranking global? <button class="text-button" data-auth="register">Crie sua conta</button>.</p>' : ""}</section></div>`;
+  )}<div class="row">${game.current.mode === "challenge" ? `<button class="btn" data-open-challenge="${game.current.challengeId}">Ver placar do desafio ${icon("trophy", 18)}</button>` : `<button class="btn" data-rematch>Jogar novamente ${icon("arrow", 18)}</button>`}<button class="btn outline" data-page="lobby">Voltar ao lobby</button></div>${!state.user ? '<p class="small-text">Quer entrar no ranking global? <button class="text-button" data-auth="register">Crie sua conta</button>.</p>' : ""}</section></div>`;
   history.replaceState(null, "", "#result");
   window.scrollTo({ top: 0 });
 }
@@ -422,6 +460,44 @@ document.addEventListener("click", async (event) => {
       event.preventDefault();
       closeModal();
       await route(b.dataset.page);
+    } else if (b.hasAttribute("data-new-challenge")) {
+      if (!state.user) {
+        state.pendingCreateChallenge = true;
+        auth("login");
+        toast("Entre na sua conta para criar o desafio.");
+      } else openModal(challengeForm());
+    } else if (b.hasAttribute("data-open-challenge")) {
+      closeModal();
+      await route("challenge/" + b.dataset.openChallenge);
+    } else if (b.hasAttribute("data-join-challenge"))
+      await start({ mode: "challenge", challenge: b.dataset.joinChallenge });
+    else if (b.hasAttribute("data-reload-challenge"))
+      await route("challenge/" + state.challengeId);
+    else if (
+      b.hasAttribute("data-copy-challenge") ||
+      b.hasAttribute("data-share-challenge")
+    ) {
+      const field = $("#challenge-link");
+      if (b.hasAttribute("data-share-challenge") && navigator.share) {
+        try {
+          await navigator.share({
+            title: "Desafio MD Strike",
+            text: "Aceita meu desafio? Vamos responder às mesmas questões e comparar o placar.",
+            url: field.value,
+          });
+        } catch (error) {
+          if (error.name !== "AbortError") throw error;
+        }
+      } else {
+        try {
+          await navigator.clipboard.writeText(field.value);
+          toast("Link copiado! Envie para seu colega.");
+        } catch {
+          field.focus();
+          field.select();
+          toast("Link selecionado. Copie e envie para seu colega.");
+        }
+      }
     } else if (b.hasAttribute("data-close")) closeModal();
     else if (b.hasAttribute("data-auth")) auth(b.dataset.auth);
     else if (b.hasAttribute("data-privacy")) {
@@ -506,7 +582,12 @@ document.addEventListener("change", (event) => {
 });
 document.addEventListener("submit", async (event) => {
   const form = event.target;
-  if (!["auth-form", "profile-form", "password-form"].includes(form.id)) return;
+  if (
+    !["auth-form", "profile-form", "password-form", "challenge-form"].includes(
+      form.id,
+    )
+  )
+    return;
   event.preventDefault();
   const button = form.querySelector('[type="submit"]'),
     error = form.querySelector(".form-error");
@@ -514,6 +595,12 @@ document.addEventListener("submit", async (event) => {
   error.textContent = "";
   const data = Object.fromEntries(new FormData(form));
   try {
+    if (form.id === "challenge-form") {
+      const result = await api("create-challenge", data);
+      closeModal();
+      await route("challenge/" + result.id);
+      toast("Desafio criado. Copie o link e convide seu colega.");
+    }
     if (form.id === "auth-form") {
       data.consent = !!data.consent;
       const result = await api(
@@ -523,7 +610,15 @@ document.addEventListener("submit", async (event) => {
       state.user = result.user;
       await refreshProfile();
       closeModal();
-      await route("profile");
+      if (state.pendingChallenge) {
+        const id = state.pendingChallenge;
+        state.pendingChallenge = null;
+        await route("challenge/" + id);
+      } else if (state.pendingCreateChallenge) {
+        state.pendingCreateChallenge = false;
+        await route("competitions");
+        openModal(challengeForm());
+      } else await route("profile");
       toast("Operador conectado. Bem-vindo ao round.");
     }
     if (form.id === "profile-form") {

@@ -11,8 +11,20 @@ Jogo de estudo com interface tática inspirada em jogos competitivos. PHP puro +
 - Treino, duelo com bot, competitivo com times simulados, copa em três fases e revisão de erros.
 - Cadastro, login por e-mail/nickname, senha com hash, alteração de senha, status, especialidade, histórico, XP e pontos.
 - Ranking global, por especialidade de interesse e por mapa, entre contas reais.
+- Desafios por link entre colegas: mesmas questões e alternativas, uma tentativa por conta, prazo de sete dias e placar por acertos, pontos e tempo. Cada pessoa joga no seu horário; não depende de WebSocket.
 
-As competições são contra bots. Não há matchmaking entre pessoas nesta versão. O rating pertence ao jogo e não é nota TRI nem classificação oficial. Mapas sem questões específicas oferecem treino da área-base, explicitamente identificado. Não há recuperação de senha por e-mail nesta versão.
+Duelo, competitivo e copa são contra bots. O desafio por link compara tentativas reais de colegas, realizadas de forma independente. Não há sala simultânea por WebSocket nesta versão. O rating pertence ao jogo e não é nota TRI nem classificação oficial. Mapas sem questões específicas oferecem treino da área-base, explicitamente identificado. Não há recuperação de senha por e-mail nesta versão.
+
+## Convidar um colega
+
+1. Entre na sua conta em `https://mdstrike.com`.
+2. Abra **Competições → Criar desafio** (ou **Desafiar colega**, no lobby).
+3. Escolha a área e clique em **Gerar link de desafio**.
+4. Use **Copiar link** ou **Compartilhar** e envie ao colega.
+5. Cada participante abre o link, entra na própria conta e escolhe **Aceitar desafio**. O convite é preservado após o login.
+6. Consulte o mesmo link para comparar os resultados. Seus links ficam em **Competições → Meus desafios**.
+
+O link vale sete dias. O jogo seleciona até sete questões autorais da área. Cada conta tem uma tentativa; sair encerra essa tentativa, enquanto fechar e reabrir o link permite retomar uma partida não encerrada. Reabrir não reinicia o relógio da questão. O placar prioriza acertos, pontos e menor tempo acumulado nas questões; o período de leitura dos comentários não conta. O desafio rende pontos e XP de conclusão, sem alterar o rating. Nicknames e resultados finais ficam visíveis a quem tiver o link.
 
 ## Onde colocar a senha do banco
 

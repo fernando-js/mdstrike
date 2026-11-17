@@ -5,7 +5,7 @@ import {
   saveGuest,
   shuffle,
   refreshProfile,
-} from "./core.js?v=2.0.1";
+} from "./core.js?v=2.1.0";
 
 export class Match {
   constructor(options) {
@@ -16,10 +16,15 @@ export class Match {
   }
   async start() {
     if (this.online) {
-      this.current = await api("start-match", this.options);
+      this.current = await api(
+        this.options.mode === "challenge" ? "join-challenge" : "start-match",
+        this.options,
+      );
       return this.current;
     }
-    const { default: bank } = await import("./practice-bank.js?v=2.0.1");
+    if (this.options.mode === "challenge")
+      throw new Error("Entre na sua conta para participar do desafio.");
+    const { default: bank } = await import("./practice-bank.js?v=2.1.0");
     const { mode, map = "all", exam = "" } = this.options;
     let pool = bank.filter(
       (q) =>

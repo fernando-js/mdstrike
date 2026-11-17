@@ -21,7 +21,7 @@ function configuration(): array {
         'db_name' => getenv('DB_NAME') ?: 'u586486438_mdstrike_db',
         'db_user' => getenv('DB_USER') ?: 'u586486438_mdstrike_user',
         'db_password' => getenv('DB_PASSWORD') ?: '',
-        'app_origin' => getenv('APP_ORIGIN') ?: 'https://mdstrike.com',
+        'app_origin' => getenv('APP_ORIGIN') ?: (development() ? 'http://127.0.0.1:8088' : 'https://mdstrike.com'),
     ], $file);
 }
 
@@ -57,6 +57,8 @@ function migrate(PDO $db): void {
         "CREATE TABLE IF NOT EXISTS md_matches (id VARCHAR(64) PRIMARY KEY, user_id BIGINT NOT NULL, mode VARCHAR(20) NOT NULL, map_id VARCHAR(90) NOT NULL, exam_id VARCHAR(90) NOT NULL DEFAULT '', questions_json TEXT NOT NULL, question_index INTEGER NOT NULL DEFAULT 0, score INTEGER NOT NULL DEFAULT 0, correct INTEGER NOT NULL DEFAULT 0, bot_score INTEGER NOT NULL DEFAULT 0, started_at BIGINT NOT NULL, issued_at BIGINT NOT NULL, finished_at BIGINT, result_json TEXT$matchIndexes)$tail",
         "CREATE TABLE IF NOT EXISTS md_answers (id $id, match_id VARCHAR(64) NOT NULL, user_id BIGINT NOT NULL, question_id VARCHAR(100) NOT NULL, area VARCHAR(8) NOT NULL, map_id VARCHAR(90) NOT NULL, choice INTEGER NOT NULL, correct INTEGER NOT NULL, points INTEGER NOT NULL, elapsed INTEGER NOT NULL, created_at BIGINT NOT NULL, UNIQUE(match_id, question_id)$answerIndexes)$tail",
         "CREATE TABLE IF NOT EXISTS md_auth_limits (bucket VARCHAR(190) PRIMARY KEY, attempts INTEGER NOT NULL, window_start BIGINT NOT NULL)$tail",
+        "CREATE TABLE IF NOT EXISTS md_challenges (id VARCHAR(32) PRIMARY KEY, creator_id BIGINT NOT NULL, map_id VARCHAR(90) NOT NULL, questions_json TEXT NOT NULL, created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL)$tail",
+        "CREATE TABLE IF NOT EXISTS md_challenge_runs (id $id, challenge_id VARCHAR(32) NOT NULL, user_id BIGINT NOT NULL, match_id VARCHAR(64) NOT NULL UNIQUE, UNIQUE(challenge_id, user_id))$tail",
     ];
     foreach ($queries as $query) $db->exec($query);
     if ($sqlite) {

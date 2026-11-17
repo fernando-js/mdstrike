@@ -4,9 +4,9 @@ export async function renderPdf(question, zoom = 1) {
   const host = document.querySelector("#pdf-viewer");
   if (!host) return;
   try {
-    library ??= await import("../pdfjs/pdf.min.mjs?v=2.0.1");
+    library ??= await import("../pdfjs/pdf.min.mjs?v=2.1.0");
     library.GlobalWorkerOptions.workerSrc = new URL(
-      "../pdfjs/pdf.worker.min.mjs?v=2.0.1",
+      "../pdfjs/pdf.worker.min.mjs?v=2.1.0",
       import.meta.url,
     ).href;
     let pdf = documents.get(question.pdf);

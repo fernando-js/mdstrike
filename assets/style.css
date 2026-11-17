@@ -25,6 +25,55 @@
   --body: Barlow, system-ui, sans-serif;
   color-scheme: dark;
 }
+.challenge-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 20px;
+  border-color: #f5a52477;
+  background: #f5a52409;
+}
+.challenge-intro h2 {
+  margin-bottom: 12px;
+}
+.challenge-intro p {
+  max-width: 65ch;
+  font-size: 14px;
+}
+.challenge-panel .stat-strip {
+  margin-top: 24px;
+}
+.challenge-actions {
+  margin: 20px 0;
+}
+.challenge-share {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: end;
+  gap: 12px;
+  margin: 25px 0 16px;
+}
+.challenge-share input {
+  font:
+    12px ui-monospace,
+    monospace;
+}
+.challenge-share .btn {
+  min-height: 45px;
+}
+@media (max-width: 720px) {
+  .challenge-intro {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .challenge-share {
+    grid-template-columns: 1fr 1fr;
+  }
+  .challenge-share .field {
+    grid-column: 1/-1;
+  }
+}
 * {
   box-sizing: border-box;
 }

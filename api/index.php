@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require dirname(__DIR__) . '/app/bootstrap.php';
+require dirname(__DIR__) . '/app/challenges.php';
 start_session();
 
 function player_payload(array $u): array {
@@ -33,7 +34,9 @@ function match_state(array $m, array $payload): array {
         'botScore' => (int)$m['bot_score'], 'correct' => (int)$m['correct'],
         'roundsWon' => $payload['roundsWon'] ?? 0, 'roundsLost' => $payload['roundsLost'] ?? 0,
         'stage' => min(2, (int)floor($cursor / 5)),
-        'timeLimit' => in_array($m['mode'], ['duel','competitive','cup'], true) ? 60 : 0,
+        'timeLimit' => in_array($m['mode'], ['duel','competitive','cup','challenge'], true) ? 60 : 0,
+        'timeRemaining' => max(0,60-(time()-(int)$m['issued_at'])),
+        'challengeId' => $payload['challengeId'] ?? null,
         'question' => $q ? question_public($q, $item['order']) : null,
     ];
 }
@@ -65,6 +68,12 @@ try {
         send_json(['csrf'=>$_SESSION['csrf'],'configured'=>$configured,'user'=>$u ? public_user($u,true) : null]);
     }
     if ($method === 'GET' && $action === 'profile') send_json(player_payload(require_user()));
+    if ($method === 'GET' && $action === 'challenge') send_json(challenge_public(challenge_record((string)($_GET['id']??'')),current_user()));
+    if ($method === 'GET' && $action === 'my-challenges') {
+        $u=require_user();
+        $rows=query('SELECT c.*, u.nickname AS creator_nickname FROM md_challenges c JOIN md_users u ON u.id = c.creator_id WHERE c.creator_id = ? OR c.id IN (SELECT challenge_id FROM md_challenge_runs WHERE user_id = ?) ORDER BY c.created_at DESC LIMIT 20',[$u['id'],$u['id']])->fetchAll();
+        send_json(['challenges'=>array_map(fn($c)=>challenge_public($c,$u),$rows)]);
+    }
     if ($method === 'GET' && $action === 'leaderboard') {
         $map = substr((string)($_GET['map'] ?? ''),0,90);
         $specialty = substr((string)($_GET['specialty'] ?? ''),0,90);
@@ -112,6 +121,8 @@ try {
         send_json(['csrf'=>$_SESSION['csrf']]);
     }
     $user = require_user();
+    if ($action === 'create-challenge') send_json(create_challenge($data,$user),201);
+    if ($action === 'join-challenge') send_json(join_challenge((string)($data['challenge']??''),$user));
     if ($action === 'update-profile') {
         $nick = trim((string)($data['nickname'] ?? $user['nickname']));
         $specialty = (string)($data['specialty'] ?? '');
@@ -173,12 +184,12 @@ try {
         $choice=$data['choice'] ?? -1;
         if (!is_int($choice) || $choice < -1 || $choice >= count($q['options'])) { $db->rollBack(); fail('Alternativa inválida.'); }
         $elapsed=max(0,time()-(int)$m['issued_at']);
-        $timed=in_array($m['mode'],['duel','competitive','cup'],true);
+        $timed=in_array($m['mode'],['duel','competitive','cup','challenge'],true);
         if ($timed && $elapsed>65) $choice=-1;
         $correct=$choice>=0 && $item['order'][$choice]===$q['answer'];
         $headshot=$correct && $timed && $elapsed<18;
         $points=$correct ? 100 + ($timed?max(0,50-(int)round($elapsed*50/60)):0) : 0;
-        $botPoints=$timed && random_int(1,100)<=60 ? random_int(105,145):0;
+        $botPoints=$timed && $m['mode']!=='challenge' && random_int(1,100)<=60 ? random_int(105,145):0;
         $m['score']=(int)$m['score']+$points; $m['bot_score']=(int)$m['bot_score']+$botPoints;
         $m['correct']=(int)$m['correct']+($correct?1:0); $m['question_index']=(int)$m['question_index']+1;
         if ($m['mode']==='competitive') {
