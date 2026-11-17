@@ -1,4 +1,4 @@
-import catalog from "./catalog.js";
+import catalog from "./catalog.js?v=2.0.1";
 export { catalog };
 export const $ = (selector) => document.querySelector(selector);
 export const esc = (value) =>

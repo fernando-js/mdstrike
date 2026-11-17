@@ -1319,13 +1319,34 @@ dialog::backdrop {
 .result-hero .row {
   justify-content: center;
 }
-.pdf-question iframe {
+.pdf-viewer {
   display: block;
   width: 100%;
-  height: 650px;
+  max-height: 700px;
+  min-height: 180px;
+  overflow: auto;
   background: white;
   border: 1px solid var(--line);
   margin-bottom: 15px;
+}
+.pdf-viewer canvas {
+  display: block;
+  max-width: none;
+}
+.pdf-viewer .loading {
+  color: #35444a;
+}
+.pdf-toolbar {
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.pdf-toolbar button {
+  width: 30px;
+  height: 30px;
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  color: var(--text);
 }
 .pdf-question .answers {
   display: grid;
@@ -1901,8 +1922,8 @@ dialog::backdrop {
   .result-hero .stat-strip {
     margin-top: 23px;
   }
-  .pdf-question iframe {
-    height: 490px;
+  .pdf-viewer {
+    max-height: 520px;
   }
   .bracket {
     gap: 7px;

@@ -6,6 +6,13 @@ fs.mkdirSync(output, { recursive: true });
 const site = path.join(output, "public_html");
 fs.rmSync(site, { recursive: true, force: true });
 fs.mkdirSync(site, { recursive: true });
+const blocked = new Set([
+  ".runtime",
+  ".git",
+  "node_modules",
+  "backups",
+  "config.local.php",
+]);
 for (const entry of [
   "index.html",
   ".htaccess",
@@ -14,7 +21,13 @@ for (const entry of [
   "api",
   "app",
 ])
-  fs.cpSync(entry, path.join(site, entry), { recursive: true });
+  fs.cpSync(entry, path.join(site, entry), {
+    recursive: true,
+    filter: (source) =>
+      !blocked.has(path.basename(source)) &&
+      !path.basename(source).startsWith(".env") &&
+      !/\.(?:sqlite|db)(?:-.*)?$/i.test(source),
+  });
 // The PHP config example contains no password, but is unnecessary in public_html.
 fs.rmSync(path.join(site, "app/config.example.php"));
 const privateDir = path.join(output, ".mdstrike");

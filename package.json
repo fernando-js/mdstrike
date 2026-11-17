@@ -1,6 +1,6 @@
 {
   "name": "mdstrike",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,10 +8,14 @@
     "test": "node --test tests/*.test.mjs",
     "test:e2e": "playwright test",
     "check": "node scripts/check.mjs",
-    "package": "node scripts/package.mjs"
+    "package": "node scripts/package.mjs",
+    "vendor:pdf": "node scripts/vendor-pdf.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.0",
     "prettier": "^3.10.1"
+  },
+  "dependencies": {
+    "pdfjs-dist": "^6.5.438"
   }
 }

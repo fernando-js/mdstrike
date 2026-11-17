@@ -2,7 +2,8 @@
 declare(strict_types=1);
 
 function private_directory(): string {
-    return getenv('MDSTRIKE_PRIVATE_DIR') ?: dirname(__DIR__, 2) . '/.mdstrike';
+    $directory = getenv('MDSTRIKE_PRIVATE_DIR') ?: dirname(__DIR__, 2) . '/.mdstrike';
+    return str_starts_with($directory, '/') ? $directory : dirname(__DIR__) . '/' . $directory;
 }
 
 function configuration(): array {

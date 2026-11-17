@@ -1,5 +1,6 @@
 DirectoryIndex index.html
 Options -Indexes
+AddType application/javascript .mjs
 
 <IfModule mod_headers.c>
   Header always set X-Content-Type-Options "nosniff"
@@ -9,12 +10,16 @@ Options -Indexes
   Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests"
 </IfModule>
 
-<FilesMatch "^(package(-lock)?\.json|README\.md|playwright\.config\.js|indexold\.html|index-legacy\.html)$">
+<FilesMatch "^(\.env(?:\..*)?|package(-lock)?\.json|README\.md|playwright\.config\.js|indexold\.html|index-legacy\.html)$">
+  Require all denied
+</FilesMatch>
+<FilesMatch "\.(sqlite(?:-.*)?|db)$">
   Require all denied
 </FilesMatch>
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
+  RewriteRule (^|/)(?:\.runtime|\.env)(?:/|$) - [F,L]
   RewriteCond %{HTTP_HOST} ^www\.mdstrike\.com$ [NC]
   RewriteRule ^ https://mdstrike.com%{REQUEST_URI} [R=301,L]
   RewriteCond %{HTTPS} !=on

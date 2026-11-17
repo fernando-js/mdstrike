@@ -6,7 +6,7 @@ Jogo de estudo com interface tática inspirada em jogos competitivos. PHP puro +
 
 - Lobby responsivo, favicon SVG/PNG/ICO e identidade própria.
 - Catálogo das 55 especialidades; busca, filtros e distinção entre conteúdo específico e treino da área-base.
-- 23 cadernos oficiais: ENAMED 2025 (caderno 1, gabarito definitivo v2) e 22 cadernos de pré-requisito do ENARE 2024/2025. São 1.860 referências de itens, incluindo anulados. O jogo exclui os anulados/excluídos e exibe a página correspondente do PDF original.
+- 23 cadernos oficiais: ENAMED 2025 (caderno 1, gabarito definitivo v2) e 22 cadernos de pré-requisito do ENARE 2024/2025. São 1.860 referências de itens, incluindo anulados. O jogo exclui os anulados/excluídos e exibe a página correspondente do PDF original em um leitor PDF.js próprio, com ampliação e rolagem.
 - 54 questões autorais de demonstração, sem revisão médica, identificadas separadamente.
 - Treino, duelo com bot, competitivo com times simulados, copa em três fases e revisão de erros.
 - Cadastro, login por e-mail/nickname, senha com hash, alteração de senha, status, especialidade, histórico, XP e pontos.
@@ -87,6 +87,8 @@ O ENARE de acesso direto 2024 não foi integrado porque houve retificação post
 O progresso legado em `mds_profile` é preservado no modo convidado. O HTML anterior está em `index-legacy.html`; os arquivos legados não vão no pacote público.
 
 Fontes Barlow/Barlow Condensed hospedadas localmente sob SIL OFL (`assets/fonts/OFL.txt`). Arte hospitalar gerada para o MD Strike; marcas e recursos visuais de Counter-Strike não foram copiados.
+
+O leitor PDF.js e suas fontes são hospedados em `assets/pdfjs/`, sob as licenças distribuídas nessa pasta. Após atualizar a dependência `pdfjs-dist`, execute `npm run vendor:pdf` para copiar a versão correspondente. Não é necessário Node.js no servidor PHP.
 
 ## Limites de validação
 

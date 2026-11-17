@@ -5,7 +5,7 @@ import {
   saveGuest,
   shuffle,
   refreshProfile,
-} from "./core.js";
+} from "./core.js?v=2.0.1";
 
 export class Match {
   constructor(options) {
@@ -19,7 +19,7 @@ export class Match {
       this.current = await api("start-match", this.options);
       return this.current;
     }
-    const { default: bank } = await import("./practice-bank.js");
+    const { default: bank } = await import("./practice-bank.js?v=2.0.1");
     const { mode, map = "all", exam = "" } = this.options;
     let pool = bank.filter(
       (q) =>

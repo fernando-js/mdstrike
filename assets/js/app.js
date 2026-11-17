@@ -17,9 +17,10 @@ import {
   api,
   refreshProfile,
   beep,
-} from "./core.js";
-import * as views from "./views.js";
-import { Match } from "./game.js";
+} from "./core.js?v=2.0.1";
+import * as views from "./views.js?v=2.0.1";
+import { Match } from "./game.js?v=2.0.1";
+import { renderPdf } from "./pdf-viewer.js?v=2.0.1";
 
 const modal = $("#modal"),
   view = $("#view");
@@ -308,8 +309,17 @@ function renderMatch() {
   view.innerHTML = `<div class="match-page"><div class="match-header"><div><h1>${esc(modeName(c.mode))}</h1><small>${esc(specialtyName(c.map))} · ${state.user ? "Conta conectada" : "Treino local de convidado"}</small></div><button class="btn outline small" data-page="lobby">Sair da partida</button></div>${c.mode === "cup" ? `<div class="bracket">${["Quartas de final", "Semifinal", "Final"].map((name, i) => `<div class="bracket-stage ${c.stage === i ? "active" : ""}"><small>FASE ${i + 1}</small><strong>${name}</strong></div>`).join("")}</div>` : ""}
   <div class="scoreboard"><div><span class="player-name">${isTeam ? "Seu time" : esc(player().nickname)}</span><strong id="my-score">${number(isTeam ? c.roundsWon : c.score)}</strong></div><div><span class="round-counter">ROUND ${c.index + 1} / ${c.total}</span><div class="round-dots">${Array.from({ length: Math.min(15, c.total) }, (_, i) => `<i class="${i < c.index ? "done" : ""}"></i>`).join("")}</div></div><div><span class="player-name enemy">${versus ? (isTeam ? "Time adversário · bots" : "Adversário · bot") : "Precisão"}</span><strong id="opponent-score">${versus ? number(isTeam ? c.roundsLost : c.botScore) : c.index ? Math.round((c.correct / c.index) * 100) + "%" : "—"}</strong></div></div>
   <div class="match-layout" ${official ? 'style="grid-template-columns:minmax(0,1fr)"' : ""}><section class="question-panel ${official ? "pdf-question" : ""}">${c.timeLimit ? `<div class="timer-bar" id="question-timer"><div class="bar"><i id="timer-fill" style="width:100%"></i></div><strong id="time-left">${c.timeLimit}s</strong></div>` : ""}<div class="question-meta"><span>${esc(catalog.areas[q.area] || q.area)}</span><span class="tag ${official ? "official" : ""}">${official ? "Caderno oficial" : "Autoral · demonstração"}</span></div><h2>${esc(q.prompt)}</h2><p class="source-note">${esc(q.source)}${official ? ` · página ${q.page}` : ""}</p>
-  ${official ? `<div class="row wrap space-between" style="margin-bottom:14px"><span class="small-text muted">Leia a questão ${q.number} no caderno e marque a alternativa abaixo.</span><a class="source-link" href="${esc(pdfUrl)}" target="_blank" rel="noopener noreferrer">Abrir PDF em outra aba ↗</a></div><iframe title="Caderno original — questão ${q.number}" src="${esc(pdfUrl)}"></iframe>` : ""}
+  ${official ? `<div class="row wrap space-between" style="margin-bottom:14px"><span class="small-text muted">Leia a questão ${q.number} na página ${q.page} do caderno e marque a alternativa abaixo.</span><a class="source-link" href="${esc(pdfUrl)}" target="_blank" rel="noopener noreferrer">Abrir PDF em outra aba ↗</a></div><div id="pdf-viewer" class="pdf-viewer" aria-busy="true" aria-label="Página do caderno oficial"><div class="loading">Abrindo a página original…</div></div>` : ""}
   <div class="answers" role="group" aria-label="Alternativas">${q.options.map((option, i) => `<button class="answer" data-answer="${i}"><span class="answer-letter">${"ABCDE"[i]}</span>${official ? "" : `<span>${esc(option)}</span>`}</button>`).join("")}</div><div id="feedback" aria-live="polite"></div><p class="key-help">Atalhos: ${q.options.length === 5 ? "1–5 ou A–E" : "1–4 ou A–D"} para responder · Enter para continuar</p><div class="match-tools"><button data-sound>${icon("sound", 16)} ${state.sound ? "Som ligado" : "Som desligado"}</button><button data-skip>Pular questão</button></div></section>${!official ? `<aside class="tactical-panel"><h3>Mapa de operação</h3>${tacticalMap(c)}<p>Avance um round por vez. Cada resposta mostra o raciocínio e alimenta seu histórico de estudo.</p><div class="notice">${versus ? "Adversários e aliados são bots." : "Treino sem relógio."}</div><p>As questões autorais ainda precisam de revisão médica.</p></aside>` : ""}</div></div>`;
+  if (official) {
+    const host = $("#pdf-viewer");
+    host.insertAdjacentHTML(
+      "beforebegin",
+      '<div class="row space-between pdf-toolbar"><span>Página original · use a rolagem para ler</span><div class="row"><button data-pdf-zoom="-0.25" aria-label="Diminuir página">−</button><span id="pdf-zoom">100%</span><button data-pdf-zoom="0.25" aria-label="Ampliar página">+</button></div></div>',
+    );
+    host.dataset.zoom = "1";
+    renderPdf(q);
+  }
   if (c.timeLimit) {
     const deadline = performance.now() + c.timeLimit * 1000;
     timer = setInterval(() => {
@@ -434,7 +444,19 @@ document.addEventListener("click", async (event) => {
       await answer(Number(b.dataset.answer));
     else if (b.hasAttribute("data-skip")) await answer(-1);
     else if (b.hasAttribute("data-next")) await next();
-    else if (b.hasAttribute("data-retry-question")) {
+    else if (b.hasAttribute("data-pdf-zoom")) {
+      const host = $("#pdf-viewer");
+      const zoom = Math.max(
+        0.75,
+        Math.min(
+          2.5,
+          Number(host.dataset.zoom || 1) + Number(b.dataset.pdfZoom),
+        ),
+      );
+      host.dataset.zoom = String(zoom);
+      $("#pdf-zoom").textContent = `${Math.round(zoom * 100)}%`;
+      await renderPdf(state.game.current.question, zoom);
+    } else if (b.hasAttribute("data-retry-question")) {
       if (state.game && !state.game.feedback) renderMatch();
     } else if (b.hasAttribute("data-rematch")) {
       const options = state.game.options;

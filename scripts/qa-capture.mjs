@@ -39,6 +39,16 @@ await page.screenshot({
   path: "/private/tmp/mdstrike-game-feedback.png",
   fullPage: true,
 });
+const booklet = await browser.newPage({
+  viewport: { width: 1536, height: 1040 },
+});
+await booklet.goto("http://127.0.0.1:8088/#archive");
+await booklet.locator('[data-exam="enamed-2025"]').click();
+await booklet.locator('#pdf-viewer[data-ready="true"]').waitFor();
+await booklet.screenshot({
+  path: "/private/tmp/mdstrike-official-local.png",
+  fullPage: true,
+});
 const mobile = await browser.newPage({
   viewport: { width: 390, height: 844 },
   isMobile: true,

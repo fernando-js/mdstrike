@@ -1,6 +1,15 @@
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
+import { execFileSync } from "node:child_process";
 const bank = JSON.parse(fs.readFileSync("app/questions.json"));
+test.beforeAll(() => {
+  // Only reset local QA counters so repeated test runs do not hit registration limits.
+  if (fs.existsSync(".runtime/mdstrike.sqlite"))
+    execFileSync("php", [
+      "-r",
+      '$db = new PDO("sqlite:.runtime/mdstrike.sqlite"); $db->exec("DELETE FROM md_auth_limits");',
+    ]);
+});
 const lookup = (q) => {
   const raw = bank.find((x) => x.id === q.id);
   return raw.kind === "official"
@@ -168,10 +177,12 @@ test("private files stay inaccessible and official question uses a valid PDF", a
     expect((await request.get(path)).status()).toBe(404);
   await page.goto("/#archive");
   await page.locator('[data-exam="enamed-2025"]').click();
-  await expect(page.locator("iframe")).toHaveAttribute(
-    "src",
-    /enamed-2025-caderno-1\.pdf#page=3/,
+  await expect(page.locator("#pdf-viewer")).toHaveAttribute(
+    "data-ready",
+    "true",
   );
+  await expect(page.locator("#pdf-viewer")).toHaveAttribute("data-page", "3");
+  await expect(page.locator("#pdf-viewer canvas")).toBeVisible();
   await expect(page.locator(".answer")).toHaveCount(4);
   expect(
     (
