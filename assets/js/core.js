@@ -1,4 +1,4 @@
-import catalog from "./catalog.js?v=2.1.1";
+import catalog from "./catalog.js?v=2.2.0";
 export { catalog };
 export const $ = (selector) => document.querySelector(selector);
 export const esc = (value) =>
@@ -54,6 +54,7 @@ export const state = {
   game: null,
   challengeId: null,
   pendingChallenge: null,
+  pendingAdmin: false,
 };
 export const player = () => state.user || guest;
 export const saveGuest = () => storage.set("mdstrike_guest_v2", guest);
@@ -89,6 +90,8 @@ export function rankName(rating) {
 export const rank = () =>
   player().played ? rankName(player().rating) : "Recruta";
 const paths = {
+  shield:
+    '<path d="m12 2 8 3v6c0 5-4 9-8 11-4-2-8-6-8-11V5l8-3Z"/><path d="m8 12 3 3 5-6"/>',
   crosshair:
     '<circle cx="12" cy="12" r="7"/><path d="M12 1v7m0 8v7M1 12h7m8 0h7"/>',
   map: '<path d="m3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2V5Zm6-2v16m6-14v16"/>',

@@ -25,6 +25,89 @@
   --body: Barlow, system-ui, sans-serif;
   color-scheme: dark;
 }
+.admin-tabs {
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.admin-filters {
+  align-items: flex-end;
+}
+.admin-filters .field {
+  max-width: 100%;
+}
+.admin-filters input[type="date"] {
+  max-width: 170px;
+}
+.admin-overview {
+  margin-top: 24px;
+}
+.admin-overview .display {
+  font-size: 36px;
+}
+.admin-pagination {
+  margin: 20px 0;
+  flex-wrap: wrap;
+}
+.admin-subtext {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.admin-id {
+  font-family: ui-monospace, monospace;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.audit-details {
+  max-width: 340px;
+  white-space: normal;
+  font-size: 12px;
+}
+.audit-details summary {
+  color: var(--accent);
+  cursor: pointer;
+}
+.audit-details pre {
+  background: #0e1517;
+  border: 1px solid var(--line);
+  padding: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 250px;
+  overflow: auto;
+}
+.audit-details p {
+  overflow-wrap: anywhere;
+  margin-top: 10px;
+  color: var(--muted);
+}
+.admin-user-detail .stat-strip {
+  margin-top: 22px;
+}
+.admin-user-detail .tag {
+  white-space: normal;
+}
+@media (max-width: 720px) {
+  .admin-filters .field {
+    flex: 1;
+    min-width: 125px;
+  }
+  .admin-filters .search-field {
+    min-width: 100%;
+  }
+  .admin-filters input[type="date"] {
+    max-width: none;
+  }
+  .admin-tabs {
+    gap: 20px;
+  }
+  .admin-pagination .row {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
 .challenge-intro {
   display: flex;
   align-items: center;

@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require dirname(__DIR__) . '/app/bootstrap.php';
 require dirname(__DIR__) . '/app/challenges.php';
+require dirname(__DIR__) . '/app/admin.php';
 start_session();
 
 function player_payload(array $u): array {
@@ -65,7 +66,12 @@ try {
         $configured = development() || (bool)configuration()['db_password'];
         $u = $configured ? current_user() : null;
         if ($u) query('UPDATE md_users SET last_seen = ? WHERE id = ?', [time(),$u['id']]);
-        send_json(['csrf'=>$_SESSION['csrf'],'configured'=>$configured,'user'=>$u ? public_user($u,true) : null]);
+        send_json(['csrf'=>$_SESSION['csrf'],'configured'=>$configured,'adminConfigured'=>$configured ? (bool)query('SELECT COUNT(*) FROM md_admins')->fetchColumn() : false,'user'=>$u ? public_user($u,true) : null]);
+    }
+    if (str_starts_with($action,'admin-')) {
+        $operator=require_admin();
+        if($method!=='GET')fail('O painel permite consultas por GET.',405);
+        send_json(admin_dispatch($action,$_GET,$operator));
     }
     if ($method === 'GET' && $action === 'profile') send_json(player_payload(require_user()));
     if ($method === 'GET' && $action === 'challenge') send_json(challenge_public(challenge_record((string)($_GET['id']??'')),current_user()));
@@ -101,6 +107,7 @@ try {
         try { query('INSERT INTO md_users (nickname,email,password_hash,specialty,created_at,last_seen) VALUES (?,?,?,?,?,?)',[$nick,$email,password_hash($password,PASSWORD_DEFAULT),$specialty,time(),time()]); }
         catch (PDOException $e) { if (in_array((string)$e->getCode(),['23000','23505'],true)) fail('Nickname ou e-mail já cadastrado.',409); throw $e; }
         $u = query('SELECT * FROM md_users WHERE email = ?',[$email])->fetch(); begin_auth($u);
+        audit_event('account.registered',(int)$u['id'],(int)$u['id']);
         send_json(['user'=>public_user($u,true),'csrf'=>$_SESSION['csrf']],201);
     }
     if ($action === 'login') {
@@ -109,14 +116,15 @@ try {
         $u = query('SELECT * FROM md_users WHERE email = ? OR LOWER(nickname) = ?',[$identity,$identity])->fetch();
         // Always perform a password hash check, including unknown accounts.
         $valid = password_verify((string)($data['password'] ?? ''),$u['password_hash'] ?? '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.');
-        if (!$u || !$valid) fail('E-mail, nickname ou senha incorretos.',401);
+        if (!$u || !$valid) { audit_event('auth.login_failed',null,$u?(int)$u['id']:null);fail('E-mail, nickname ou senha incorretos.',401); }
         if (password_needs_rehash($u['password_hash'],PASSWORD_DEFAULT)) {
             $u['password_hash']=password_hash($data['password'],PASSWORD_DEFAULT);
             query('UPDATE md_users SET password_hash = ? WHERE id = ?',[$u['password_hash'],$u['id']]);
         }
-        begin_auth($u); send_json(['user'=>public_user($u,true),'csrf'=>$_SESSION['csrf']]);
+        begin_auth($u); audit_event('auth.login',(int)$u['id'],(int)$u['id']);send_json(['user'=>public_user($u,true),'csrf'=>$_SESSION['csrf']]);
     }
     if ($action === 'logout') {
+        $loggingOut=current_user();if($loggingOut)audit_event('auth.logout',(int)$loggingOut['id'],(int)$loggingOut['id']);
         $_SESSION=[]; session_regenerate_id(true); $_SESSION['csrf']=bin2hex(random_bytes(32));
         send_json(['csrf'=>$_SESSION['csrf']]);
     }
@@ -132,6 +140,7 @@ try {
         if ($specialty && !in_array($specialty,array_column(catalog()['specialties'],'id'),true)) fail('Especialidade inválida.');
         try { query('UPDATE md_users SET nickname = ?, specialty = ?, institution = ?, status = ? WHERE id = ?',[$nick,$specialty,mb_substr(trim((string)($data['institution'] ?? '')),0,100),$status,$user['id']]); }
         catch (PDOException $e) { if ((string)$e->getCode()==='23000') fail('Esse nickname já está em uso.',409); throw $e; }
+        audit_event('profile.updated',(int)$user['id'],(int)$user['id'],['fields'=>['nickname','specialty','institution','status']]);
         send_json(player_payload(require_user()));
     }
     if ($action === 'change-password') {
@@ -141,6 +150,7 @@ try {
         if (strlen($password)<10 || strlen($password)>72) fail('Use uma senha de 10 a 72 caracteres.');
         query('UPDATE md_users SET password_hash = ?, password_changed_at = ? WHERE id = ?',[password_hash($password,PASSWORD_DEFAULT),time(),$user['id']]);
         $updated = query('SELECT * FROM md_users WHERE id = ?',[$user['id']])->fetch();
+        audit_event('auth.password_changed',(int)$user['id'],(int)$user['id']);
         begin_auth($updated); send_json(['ok'=>true,'csrf'=>$_SESSION['csrf']]);
     }
     if ($action === 'start-match') {
@@ -169,7 +179,9 @@ try {
         // Ordinary modes share one active run; invitations remain independent across tabs.
         query("UPDATE md_matches SET finished_at = ?, result_json = ? WHERE user_id = ? AND finished_at IS NULL AND mode <> 'challenge'",[time(),json_encode(['aborted'=>true]),$user['id']]);
         query('INSERT INTO md_matches (id,user_id,mode,map_id,exam_id,questions_json,started_at,issued_at) VALUES (?,?,?,?,?,?,?,?)',[$id,$user['id'],$mode,$map,$exam,json_encode($payload),time(),time()]);
-        $m=query('SELECT * FROM md_matches WHERE id = ?',[$id])->fetch(); send_json(match_state($m,$payload));
+        $m=query('SELECT * FROM md_matches WHERE id = ?',[$id])->fetch();
+        audit_event('match.started',(int)$user['id'],(int)$user['id'],['match_id'=>$id,'mode'=>$mode,'map'=>$map,'exam'=>$exam]);
+        send_json(match_state($m,$payload));
     }
     if ($action === 'answer') {
         $db=database(); $db->beginTransaction();
@@ -215,6 +227,8 @@ try {
         query('UPDATE md_matches SET questions_json = ? WHERE id = ?',[json_encode($payload),$m['id']]);
         $result=$finished?finish_match($m,$payload):null;
         $db->commit();
+        audit_event('answer.submitted',(int)$user['id'],(int)$user['id'],['match_id'=>$m['id'],'question_id'=>$q['id'],'choice'=>$choice,'correct'=>$correct,'points'=>$points,'elapsed'=>$elapsed]);
+        if($result)audit_event('match.finished',(int)$user['id'],(int)$user['id'],['match_id'=>$m['id'],'mode'=>$m['mode'],'score'=>$result['score'],'correct'=>$result['correct'],'xp'=>$result['xp'],'rating_delta'=>$result['ratingDelta']]);
         send_json(['correct'=>$correct,'answer'=>array_search($q['answer'],$item['order'],true),'explanation'=>$q['explanation'],'points'=>$points,'headshot'=>$headshot,'botPoints'=>$botPoints,'state'=>array_diff_key(match_state($m,$payload),['question'=>true]),'result'=>$result]);
     }
     if ($action === 'next-question') {
@@ -230,12 +244,14 @@ try {
         $db->commit(); send_json(match_state($m,$payload));
     }
     if ($action === 'abort-match') {
-        query('UPDATE md_matches SET finished_at = ?, result_json = ? WHERE id = ? AND user_id = ? AND finished_at IS NULL',[time(),json_encode(['aborted'=>true]),(string)($data['match'] ?? ''),$user['id']]);
+        $aborted=query('UPDATE md_matches SET finished_at = ?, result_json = ? WHERE id = ? AND user_id = ? AND finished_at IS NULL',[time(),json_encode(['aborted'=>true]),(string)($data['match'] ?? ''),$user['id']]);
+        if($aborted->rowCount())audit_event('match.aborted',(int)$user['id'],(int)$user['id'],['match_id'=>(string)$data['match']]);
         send_json(['ok'=>true]);
     }
     fail('Rota não encontrada.',404);
 } catch (Throwable $error) {
     if (isset($db) && $db->inTransaction()) $db->rollBack();
     error_log('MD Strike API: '.get_class($error).' '.($error instanceof PDOException ? 'database error' : $error->getMessage()));
+    if($error->getMessage()!=='database_not_configured')audit_event('api.error',isset($_SESSION['user_id'])?(int)$_SESSION['user_id']:null,null,['action'=>substr((string)($action??''),0,80),'type'=>get_class($error),'code'=>(string)$error->getCode()]);
     send_json(['error'=>'Não foi possível concluir. Verifique a conexão e tente novamente.','code'=>($error->getMessage()==='database_not_configured'?'setup_required':'server_error')],503);
 }

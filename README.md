@@ -71,6 +71,14 @@ O backend responde em `api/index.php?action=...`. Pontos/XP/rating são calculad
 
 O `.htaccess` protege `app/` e diretórios de desenvolvimento e define cabeçalhos de segurança. O servidor deve respeitar as regras Apache/LiteSpeed; não publique em outro servidor sem regras equivalentes. Isso não remove automaticamente um bloqueio do SmartScreen: a contestação deve ser enviada à Microsoft.
 
+## Painel administrativo
+
+Abra `https://mdstrike.com/#admin` com a conta autorizada. A navegação inclui **Administração** somente para administradores. O painel consulta usuários (incluindo e-mail, rating e XP), histórico de partidas e respostas, desafios e logs, com busca, período e paginação. Senhas, hashes de senha e configurações privadas nunca são retornados.
+
+As tabelas aditivas `md_admins`, `md_migrations` e `md_audit_logs` são criadas automaticamente. A migração `owner_admin_20261117` concede acesso à conta do proprietário já existente no momento da implantação e guarda o ID dessa conta. Ela roda uma vez: cadastrar posteriormente o mesmo e-mail, enviar `isAdmin` no navegador ou alterar o perfil não concede acesso. A permissão é conferida no servidor em toda consulta; remover a associação em `md_admins` revoga o acesso imediatamente.
+
+Os logs registram criação de conta, login/falhas, logout, alteração de perfil/senha, partidas, respostas, desafios, consultas administrativas e erros da API. Registram horário, IDs dos envolvidos, metadados limitados, IP recebido, navegador e ID da requisição; nunca o corpo bruto da requisição nem senhas. Começam nesta atualização; partidas e respostas anteriores já armazenadas continuam consultáveis. O painel é de consulta, sem exclusão ou edição de contas. O acesso às consultas também é registrado. Não há expurgo automático dos logs nesta versão.
+
 ## Desenvolvimento local
 
 ```sh

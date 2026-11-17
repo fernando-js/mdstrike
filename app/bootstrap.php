@@ -52,6 +52,7 @@ function migrate(PDO $db): void {
     $tail = $sqlite ? '' : ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
     $matchIndexes = $sqlite ? '' : ', INDEX md_matches_user (user_id, finished_at)';
     $answerIndexes = $sqlite ? '' : ', INDEX md_answers_user (user_id, question_id, id)';
+    $auditIndexes = $sqlite ? '' : ', INDEX md_audit_time (created_at, id), INDEX md_audit_subject (subject_id, id), INDEX md_audit_actor (actor_id, id)';
     $queries = [
         "CREATE TABLE IF NOT EXISTS md_users (id $id, nickname VARCHAR(24) NOT NULL UNIQUE, email VARCHAR(190) NOT NULL UNIQUE, password_hash VARCHAR(255) NOT NULL, specialty VARCHAR(90) NOT NULL DEFAULT '', institution VARCHAR(100) NOT NULL DEFAULT '', status VARCHAR(16) NOT NULL DEFAULT 'available', xp INTEGER NOT NULL DEFAULT 0, points INTEGER NOT NULL DEFAULT 0, rating INTEGER NOT NULL DEFAULT 1000, played INTEGER NOT NULL DEFAULT 0, wins INTEGER NOT NULL DEFAULT 0, answered INTEGER NOT NULL DEFAULT 0, correct INTEGER NOT NULL DEFAULT 0, created_at BIGINT NOT NULL, last_seen BIGINT NOT NULL, password_changed_at BIGINT NOT NULL DEFAULT 0)$tail",
         "CREATE TABLE IF NOT EXISTS md_matches (id VARCHAR(64) PRIMARY KEY, user_id BIGINT NOT NULL, mode VARCHAR(20) NOT NULL, map_id VARCHAR(90) NOT NULL, exam_id VARCHAR(90) NOT NULL DEFAULT '', questions_json TEXT NOT NULL, question_index INTEGER NOT NULL DEFAULT 0, score INTEGER NOT NULL DEFAULT 0, correct INTEGER NOT NULL DEFAULT 0, bot_score INTEGER NOT NULL DEFAULT 0, started_at BIGINT NOT NULL, issued_at BIGINT NOT NULL, finished_at BIGINT, result_json TEXT$matchIndexes)$tail",
@@ -59,6 +60,9 @@ function migrate(PDO $db): void {
         "CREATE TABLE IF NOT EXISTS md_auth_limits (bucket VARCHAR(190) PRIMARY KEY, attempts INTEGER NOT NULL, window_start BIGINT NOT NULL)$tail",
         "CREATE TABLE IF NOT EXISTS md_challenges (id VARCHAR(32) PRIMARY KEY, creator_id BIGINT NOT NULL, map_id VARCHAR(90) NOT NULL, questions_json TEXT NOT NULL, created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL)$tail",
         "CREATE TABLE IF NOT EXISTS md_challenge_runs (id $id, challenge_id VARCHAR(32) NOT NULL, user_id BIGINT NOT NULL, match_id VARCHAR(64) NOT NULL UNIQUE, UNIQUE(challenge_id, user_id))$tail",
+        "CREATE TABLE IF NOT EXISTS md_admins (user_id BIGINT PRIMARY KEY, granted_at BIGINT NOT NULL)$tail",
+        "CREATE TABLE IF NOT EXISTS md_migrations (name VARCHAR(100) PRIMARY KEY, applied_at BIGINT NOT NULL)$tail",
+        "CREATE TABLE IF NOT EXISTS md_audit_logs (id $id, event VARCHAR(80) NOT NULL, actor_id BIGINT, subject_id BIGINT, metadata_json TEXT NOT NULL, client_ip VARCHAR(45) NOT NULL DEFAULT '', user_agent VARCHAR(255) NOT NULL DEFAULT '', request_id VARCHAR(32) NOT NULL, created_at BIGINT NOT NULL$auditIndexes)$tail",
     ];
     foreach ($queries as $query) $db->exec($query);
     if ($sqlite) {
@@ -66,7 +70,11 @@ function migrate(PDO $db): void {
         if (in_array('cursor',$columns,true)) $db->exec('ALTER TABLE md_matches RENAME COLUMN cursor TO question_index');
         $db->exec('CREATE INDEX IF NOT EXISTS md_matches_user ON md_matches(user_id, finished_at)');
         $db->exec('CREATE INDEX IF NOT EXISTS md_answers_user ON md_answers(user_id, question_id, id)');
+        $db->exec('CREATE INDEX IF NOT EXISTS md_audit_time ON md_audit_logs(created_at, id)');
+        $db->exec('CREATE INDEX IF NOT EXISTS md_audit_subject ON md_audit_logs(subject_id, id)');
+        $db->exec('CREATE INDEX IF NOT EXISTS md_audit_actor ON md_audit_logs(actor_id, id)');
     }
+    bootstrap_owner_admin($db);
 }
 
 function query(string $sql, array $params = []): PDOStatement {
@@ -123,7 +131,7 @@ function require_user(): array { return current_user() ?: fail('Entre na sua con
 function public_user(array $u, bool $owner = false): array {
     $result = array_intersect_key($u, array_flip(['id','nickname','specialty','institution','status','xp','points','rating','played','wins','answered','correct','created_at','last_seen']));
     foreach (['id','xp','points','rating','played','wins','answered','correct','created_at','last_seen'] as $key) $result[$key] = (int)$result[$key];
-    if ($owner) $result['email'] = $u['email'];
+    if ($owner) { $result['email'] = $u['email']; $result['isAdmin'] = is_admin($u); }
     $result['rank'] = rank_name((int)$u['rating']);
     return $result;
 }
@@ -155,4 +163,54 @@ function question_public(array $q, array $order): array {
     $public = array_intersect_key($q, array_flip(['id','area','prompt','source','kind','specialties','exam','number','pdf','page','reviewed']));
     $public['options'] = array_map(fn($i) => $q['options'][$i], $order);
     return $public;
+}
+
+function is_admin(array $user): bool {
+    return (bool)query('SELECT user_id FROM md_admins WHERE user_id = ?', [(int)$user['id']])->fetchColumn();
+}
+
+function require_admin(): array {
+    $user = require_user();
+    if (!is_admin($user)) {
+        audit_event('admin.denied', (int)$user['id'], null);
+        fail('Esta conta não tem permissão de administrador.', 403);
+    }
+    return $user;
+}
+
+function audit_event(string $event, ?int $actor = null, ?int $subject = null, array $metadata = []): void {
+    static $requestId;
+    $requestId ??= bin2hex(random_bytes(12));
+    try {
+        query('INSERT INTO md_audit_logs (event,actor_id,subject_id,metadata_json,client_ip,user_agent,request_id,created_at) VALUES (?,?,?,?,?,?,?,?)', [
+            $event,$actor,$subject,json_encode($metadata,JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE),
+            substr((string)($_SERVER['REMOTE_ADDR']??''),0,45),mb_substr((string)($_SERVER['HTTP_USER_AGENT']??''),0,255),$requestId,time(),
+        ]);
+    } catch (Throwable $error) { error_log('MD Strike: audit event could not be stored.'); }
+}
+
+function bootstrap_owner_admin(PDO $db): void {
+    $migration = 'owner_admin_20261117';
+    $read = $db->prepare('SELECT name FROM md_migrations WHERE name = ?');
+    $read->execute([$migration]); if ($read->fetchColumn()) return;
+    // Deployment-only selection of an EXISTING account. Never infer a role at registration.
+    $ownerHash = '4789c7a9553d957a6865273071526b4f0636ba79d2852ffe713cef2400650349';
+    if (development() && getenv('MDSTRIKE_TEST_ADMIN_HASH')) $ownerHash = getenv('MDSTRIKE_TEST_ADMIN_HASH');
+    $db->beginTransaction();
+    try {
+        $owner=null;
+        foreach ($db->query('SELECT id,email FROM md_users')->fetchAll() as $candidate) {
+            if (hash_equals($ownerHash, hash('sha256',strtolower(trim($candidate['email']))))) { $owner=(int)$candidate['id']; break; }
+        }
+        if ($owner !== null) {
+            $statement=$db->prepare('INSERT INTO md_admins (user_id,granted_at) VALUES (?,?)');$statement->execute([$owner,time()]);
+            $statement=$db->prepare('INSERT INTO md_audit_logs (event,actor_id,subject_id,metadata_json,client_ip,user_agent,request_id,created_at) VALUES (?,NULL,?,?,\'\',\'\',?,?)');
+            $statement->execute(['admin.granted',$owner,json_encode(['source'=>'deployment_migration']),bin2hex(random_bytes(12)),time()]);
+        }
+        $statement=$db->prepare('INSERT INTO md_migrations (name,applied_at) VALUES (?,?)');$statement->execute([$migration,time()]);
+        $db->commit();
+    } catch (Throwable $error) {
+        if ($db->inTransaction()) $db->rollBack();
+        $read->execute([$migration]); if (!$read->fetchColumn()) throw $error;
+    }
 }

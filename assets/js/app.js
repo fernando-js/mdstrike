@@ -17,15 +17,16 @@ import {
   api,
   refreshProfile,
   beep,
-} from "./core.js?v=2.1.1";
-import * as views from "./views.js?v=2.1.1";
-import { Match } from "./game.js?v=2.1.1";
-import { renderPdf } from "./pdf-viewer.js?v=2.1.1";
+} from "./core.js?v=2.2.0";
+import * as views from "./views.js?v=2.2.0";
+import { Match } from "./game.js?v=2.2.0";
+import { renderPdf } from "./pdf-viewer.js?v=2.2.0";
 import {
   challengeForm,
   challengePage,
   loadMyChallenges,
-} from "./challenges.js?v=2.1.1";
+} from "./challenges.js?v=2.2.0";
+import { openAdmin, stopAdmin } from "./admin.js?v=2.2.0";
 
 const modal = $("#modal"),
   view = $("#view");
@@ -55,13 +56,17 @@ function shell() {
     ["competitions", "Competições"],
     ["ranking", "Ranking"],
     ["archive", "Arquivo"],
+    ...(state.user?.isAdmin ? [["admin", "Admin"]] : []),
   ]
     .map(
       ([id, label]) =>
         `<button class="nav-tab ${active === id ? "active" : ""}" data-page="${id}" ${active === id ? 'aria-current="page"' : ""}>${label}</button>`,
     )
     .join("");
-  $("#side-nav").innerHTML = nav
+  $("#side-nav").innerHTML = [
+    ...nav,
+    ...(state.user?.isAdmin ? [["admin", "shield", "Administração"]] : []),
+  ]
     .map(
       ([id, i, label]) =>
         `<button class="side-link ${active === id ? "active" : ""}" data-page="${id}" ${active === id ? 'aria-current="page"' : ""}>${icon(i, 22)}<span>${label}</span></button>`,
@@ -90,6 +95,10 @@ async function route(page, force = false) {
     state.challengeId = invite[1];
     page = "challenge";
   }
+  const adminRoute =
+    /^admin(?:\/(overview|users|matches|challenges|logs))?$/.exec(page);
+  if (adminRoute) page = "admin";
+  stopAdmin();
   if (
     ![
       "lobby",
@@ -100,6 +109,7 @@ async function route(page, force = false) {
       "archive",
       "sources",
       "challenge",
+      "admin",
     ].includes(page)
   )
     page = "lobby";
@@ -115,9 +125,12 @@ async function route(page, force = false) {
   view.innerHTML =
     page === "challenge"
       ? '<div class="loading">Abrindo o desafio…</div>'
-      : views[page]();
+      : page === "admin"
+        ? ""
+        : views[page]();
   window.scrollTo({ top: 0 });
   if (page === "ranking") await loadRanking();
+  if (page === "admin") await openAdmin(adminRoute?.[1] || "overview");
   if (page === "competitions") await loadMyChallenges();
   if (page === "challenge") {
     try {
@@ -158,6 +171,7 @@ function auth(type = "login") {
     return;
   }
   if (state.page === "challenge") state.pendingChallenge = state.challengeId;
+  if (state.page === "admin") state.pendingAdmin = true;
   const register = type === "register";
   openModal(`<div class="modal-content"><div class="modal-top"><h2 id="modal-title">${register ? "Crie seu operador." : "De volta ao round."}</h2><button class="close-button" data-close aria-label="Fechar">×</button></div><p>${register ? "Seu nickname no placar. Sua evolução salva entre dispositivos." : "Entre para continuar sua preparação."}</p><div class="auth-tabs"><button data-auth="login" class="${register ? "" : "active"}">Entrar</button><button data-auth="register" class="${register ? "active" : ""}">Criar conta</button></div>
   ${!state.configured ? '<div class="notice">O cadastro será liberado quando o banco for conectado na hospedagem. Você já pode jogar como convidado.</div>' : ""}
@@ -617,7 +631,10 @@ document.addEventListener("submit", async (event) => {
       state.user = result.user;
       await refreshProfile();
       closeModal();
-      if (state.pendingChallenge) {
+      if (state.pendingAdmin) {
+        state.pendingAdmin = false;
+        await route("admin");
+      } else if (state.pendingChallenge) {
         const id = state.pendingChallenge;
         state.pendingChallenge = null;
         await route("challenge/" + id);

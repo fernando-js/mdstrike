@@ -45,6 +45,7 @@ function create_challenge(array $data, array $user): array {
     foreach (array_slice($pool,0,7) as $q) { $order=range(0,count($q['options'])-1);shuffle($order);$items[]=['id'=>$q['id'],'order'=>$order]; }
     $id=bin2hex(random_bytes(16));
     query('INSERT INTO md_challenges (id, creator_id, map_id, questions_json, created_at, expires_at) VALUES (?,?,?,?,?,?)',[$id,$user['id'],$map,json_encode($items),time(),time()+7*86400]);
+    audit_event('challenge.created',(int)$user['id'],(int)$user['id'],['challenge_id'=>$id,'map'=>$map,'questions'=>count($items)]);
     return challenge_public(challenge_record($id),$user);
 }
 
@@ -65,7 +66,7 @@ function join_challenge(string $id, array $user): array {
                 $payload['awaitingNext']=false;$existing['issued_at']=time();
                 query('UPDATE md_matches SET issued_at = ?, questions_json = ? WHERE id = ?',[time(),json_encode($payload),$existing['id']]);
             }
-            $db->commit();return match_state($existing,$payload);
+            $db->commit();audit_event('challenge.resumed',(int)$user['id'],(int)$user['id'],['challenge_id'=>$id,'match_id'=>$existing['id']]);return match_state($existing,$payload);
         }
         $match=bin2hex(random_bytes(24));
         $payload=['items'=>json_decode($challenge['questions_json'],true),'challengeId'=>$id,'roundsWon'=>0,'roundsLost'=>0,'stageMe'=>0,'stageBot'=>0];
@@ -73,6 +74,6 @@ function join_challenge(string $id, array $user): array {
         query('INSERT INTO md_matches (id,user_id,mode,map_id,questions_json,started_at,issued_at) VALUES (?,?,?,?,?,?,?)',[$match,$user['id'],'challenge',$challenge['map_id'],json_encode($payload),time(),time()]);
         query('INSERT INTO md_challenge_runs (challenge_id,user_id,match_id) VALUES (?,?,?)',[$id,$user['id'],$match]);
         $row=query('SELECT * FROM md_matches WHERE id = ?',[$match])->fetch();
-        $db->commit();return match_state($row,$payload);
+        $db->commit();audit_event('challenge.joined',(int)$user['id'],(int)$user['id'],['challenge_id'=>$id,'match_id'=>$match]);return match_state($row,$payload);
     } catch (Throwable $error) { if ($db->inTransaction()) $db->rollBack();throw $error; }
 }
