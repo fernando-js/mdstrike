@@ -3,9 +3,12 @@ import {
   state,
   guest,
   saveGuest,
+  catalog,
+  revalidaGuest,
+  saveRevalidaGuest,
   shuffle,
   refreshProfile,
-} from "./core.js?v=2.3.0";
+} from "./core.js?v=2.4.0";
 
 export class Match {
   constructor(options) {
@@ -24,17 +27,23 @@ export class Match {
     }
     if (this.options.mode === "challenge")
       throw new Error("Entre na sua conta para participar do desafio.");
-    const { default: bank } = await import("./practice-bank.js?v=2.3.0");
+    const { default: bank } = await import("./practice-bank.js?v=2.8.0");
     const { mode, map = "all", exam = "" } = this.options;
+    const revalida = catalog.revalidaMaps.find((m) => m.id === map);
+    const progress = revalida ? revalidaGuest : guest;
     let pool = bank.filter(
       (q) =>
         q.answer !== null &&
-        (exam ? q.exam === exam : mode === "review" || q.kind === "original"),
+        (q.operation === "revalida") === Boolean(revalida) &&
+        (exam
+          ? q.exam === exam
+          : revalida || mode === "review" || q.kind === "original"),
     );
-    if (map !== "all")
+    if (revalida?.area) pool = pool.filter((q) => q.area === revalida.area);
+    else if (!revalida && map !== "all")
       pool = pool.filter((q) => q.area === map || q.specialties.includes(map));
     if (mode === "review")
-      pool = pool.filter((q) => guest.wrong.includes(q.id));
+      pool = pool.filter((q) => progress.wrong.includes(q.id));
     if (!pool.length)
       throw new Error(
         mode === "review"
@@ -138,13 +147,16 @@ export class Match {
         this.stageBot = 0;
       }
     }
-    guest.answered++;
-    guest.correct += +correct;
-    guest.stats[q.area] ??= { answered: 0, correct: 0 };
-    guest.stats[q.area].answered++;
-    guest.stats[q.area].correct += +correct;
-    guest.wrong = guest.wrong.filter((id) => id !== q.id);
-    if (!correct) guest.wrong.push(q.id);
+    const progress = c.map.startsWith("revalida-") ? revalidaGuest : guest;
+    if (progress === guest) {
+      guest.answered++;
+      guest.correct += +correct;
+    }
+    progress.stats[q.area] ??= { answered: 0, correct: 0 };
+    progress.stats[q.area].answered++;
+    progress.stats[q.area].correct += +correct;
+    progress.wrong = progress.wrong.filter((id) => id !== q.id);
+    if (!correct) progress.wrong.push(q.id);
     const finished =
       c.index >= c.total ||
       this.eliminated ||
@@ -174,12 +186,14 @@ export class Match {
         roundsLost: c.roundsLost,
         eliminated: !!this.eliminated,
       };
-      guest.xp += xp;
-      guest.points += c.score;
-      guest.rating = Math.max(0, guest.rating + delta);
-      guest.played++;
-      guest.wins += +(ranked && win);
-      guest.history.unshift({
+      if (progress === guest) {
+        guest.xp += xp;
+        guest.points += c.score;
+        guest.rating = Math.max(0, guest.rating + delta);
+        guest.played++;
+        guest.wins += +(ranked && win);
+      }
+      progress.history.unshift({
         mode: c.mode,
         map_id: c.map,
         score: c.score,
@@ -187,9 +201,10 @@ export class Match {
         finished_at: Math.floor(Date.now() / 1000),
         result_json: JSON.stringify(this.result),
       });
-      guest.history = guest.history.slice(0, 20);
+      progress.history = progress.history.slice(0, 20);
     }
-    saveGuest();
+    if (progress === guest) saveGuest();
+    else saveRevalidaGuest();
     this.feedback = {
       correct,
       answer: item.order.indexOf(q.answer),

@@ -5,7 +5,7 @@ const bank = JSON.parse(fs.readFileSync("app/questions.json"));
 const catalog = JSON.parse(fs.readFileSync("app/catalog.json"));
 
 test("official booklets preserve answer-key exclusions and source page references", () => {
-  assert.equal(catalog.exams.length, 23);
+  assert.equal(catalog.exams.length, 28);
   for (const exam of catalog.exams) {
     const items = bank.filter((q) => q.exam === exam.id);
     assert.equal(items.length, exam.total);
@@ -44,6 +44,17 @@ test("all specialty map counts match their actual content", () => {
     assert.ok(map.foundationQuestions > 0);
     assert.ok(catalog.areas[map.area]);
   }
+});
+
+test("each Enamed 2025 area has official questions with a definitive answer", () => {
+  const enamed = bank.filter(
+    (q) => q.exam === "enamed-2025" && q.answer !== null,
+  );
+  assert.ok(enamed.every((q) => q.kind === "official" && q.area !== "GERAL"));
+  assert.deepEqual(
+    new Set(enamed.map((q) => q.area)),
+    new Set(Object.keys(catalog.areas).filter((id) => id !== "GERAL")),
+  );
 });
 
 test("demonstration questions are never labelled official or medically reviewed", () => {

@@ -207,7 +207,7 @@ test("administration protects records, records activity and renders desktop/mobi
     "Conhecimento é a sua melhor arma.",
   );
   await expect(page).toHaveURL(/#lobby$/);
-  expect(await page.locator('button[data-page="admin"]').count()).toBe(0);
+  await expect(page.locator('a[href="#admin"]')).toHaveCount(0);
   await owner.close();
   await player.close();
 });

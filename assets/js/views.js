@@ -10,15 +10,16 @@ import {
   guest,
   specialtyName,
   modeName,
-} from "./core.js?v=2.3.0";
+} from "./core.js?v=2.4.0";
 import {
   privacyDocument,
   rankingDocument,
   rankingSummary,
-} from "./policies.js?v=2.3.0";
-import { educationFields } from "./education.js?v=2.3.0";
+} from "./policies.js?v=3.4.0";
+import { educationFields } from "./education.js?v=2.4.0";
+import { avatarStage } from "./avatar.js?v=2.6.0";
 export const heading = (title, description, action = "") =>
-  `<div class="breadcrumb"><span>Jogar</span> / ${esc({ lobby: "Lobby", maps: "Mapas", competitions: "Competições", ranking: "Ranking", profile: "Meu perfil", archive: "Arquivo", sources: "Fontes", challenge: "Desafio", admin: "Administração", privacy: "Privacidade", "ranking-rules": "Regras do ranking" }[state.page] || "Lobby")}</div><div class="page-heading"><div><h1>${title}</h1><p>${description}</p></div>${action}</div>`;
+  `<div class="breadcrumb"><span>Jogar</span> / ${esc({ lobby: "Lobby", study: "Estudo", consulta: "Consulta rápida", maps: "Mapas", competitions: "Competições", ranking: "Ranking", profile: "Meu perfil", archive: "Arquivo", sources: "Fontes", challenge: "Desafio", admin: "Administração", privacy: "Privacidade", "ranking-rules": "Regras do ranking" }[state.page] || "Lobby")}</div><div class="page-heading"><div><h1>${title}</h1><p>${description}</p></div>${action}</div>`;
 export const areaOptions = (selected = "", includeGeneral = false) =>
   Object.entries(catalog.areas)
     .filter(([k]) => includeGeneral || k !== "GERAL")
@@ -39,7 +40,7 @@ export function lobby() {
   return (
     heading(
       "Conhecimento é a sua melhor arma.",
-      "Escolha seu mapa. Prepare-se para o próximo round.",
+      "Estude Medicina com questões comentadas, simulados, casos PBL e ferramentas de consulta.",
       state.user
         ? `<button class="btn" data-new-challenge>Desafiar colega ${icon("trophy", 18)}</button>`
         : '<button class="btn" data-auth="register">Criar conta</button>',
@@ -58,6 +59,13 @@ export function lobby() {
           `<button class="mode-button ${state.mode === id ? "active" : ""}" data-mode="${id}" aria-pressed="${state.mode === id}">${icon(i)}${label}</button>`,
       )
       .join("")}</div>
+<div class="lobby-resources">
+  <a class="panel lobby-resource" href="#study">${icon("book", 24)}<span><strong>Estudo</strong><small>Resumos, casos PBL e revisões</small></span>${icon("arrow", 18)}</a>
+  <a class="panel lobby-resource" href="#consulta">${icon("heart", 24)}<span><strong>Consulta rápida</strong><small>Protocolos, fontes brasileiras e calculadoras</small></span>${icon("arrow", 18)}</a>
+  <a class="panel lobby-resource" href="#study/enamed">${icon("clipboard", 24)}<span><strong>Trilha Enamed</strong><small>Caderno oficial, treino por área e revisão</small></span>${icon("arrow", 18)}</a>
+  <a class="panel lobby-resource" href="#maps/codificacao">${icon("map", 24)}<span><strong>Codificação em saúde</strong><small>Treine CID-10, SIGTAP e TUSS</small></span>${icon("arrow", 18)}</a>
+</div>
+<section class="panel lobby-revalida"><div><h2>Operação Revalida</h2><p>Provas anteriores do Inep, simulados e mapas por área.</p></div><button class="btn outline" data-page="revalida">Entrar na operação ${icon("arrow", 16)}</button></section>
 <div class="section-heading"><h2>Escolha seu mapa</h2><button class="text-button" data-page="maps">Ver todas as especialidades ${icon("arrow", 16)}</button></div><div class="map-grid">${["cardiologia", "anestesiologia", "neurologia"].map((id) => mapCard(catalog.specialties.find((s) => s.id === id))).join("")}</div>`
   );
 }
@@ -67,6 +75,12 @@ export function maps() {
       "O próximo round tem endereço.",
       "55 especialidades. Escolha seu território de estudo.",
     ) +
+    `<section class="resource-review-strip"><div><h2>Codificação em saúde</h2><p>Pratique diagnósticos e registros de procedimentos com CID-10, SIGTAP e TUSS.</p></div><a class="btn outline" href="#maps/codificacao">Abrir mapa ${icon("arrow", 16)}</a></section>` +
+    `<section class="resource-grid coding-modes thematic-maps" aria-label="Mapas temáticos">
+      <article class="panel coding-mode"><h2>História da Medicina</h2><p>Vacinas, descobertas e marcos da saúde no Brasil e no mundo.</p><a class="btn outline" href="#maps/historia-medicina">Jogar História da Medicina ${icon("arrow", 16)}</a></article>
+      <article class="panel coding-mode"><h2>Epônimos em Medicina</h2><p>Identifique sinais e manobras da prática clínica.</p><a class="btn outline" href="#maps/eponimos">Jogar Epônimos ${icon("arrow", 16)}</a></article>
+      <article class="panel coding-mode"><h2>Medicamentos e bulas</h2><p>Reconheça classes, interações e cuidados lendo bulas.</p><a class="btn outline" href="#maps/medicamentos">Jogar Medicamentos ${icon("arrow", 16)}</a></article>
+    </section>` +
     `<div class="filters"><label class="field search-field"><span>Buscar especialidade</span><input id="map-search" type="search" placeholder="Cardiologia, anestesiologia, neurologia…" autocomplete="off"></label><label class="field filter-select"><span>Área de formação</span><select id="map-area"><option value="">Todas as áreas</option>${areaOptions()}</select></label><label class="field filter-select"><span>Conteúdo</span><select id="map-content"><option value="all">Todos os mapas</option><option value="official">Com caderno oficial</option><option value="specific">Com questões específicas</option></select></label><span class="filter-count" id="map-count">55 mapas</span></div><div class="map-grid" id="maps-grid">${catalog.specialties.map(mapCard).join("")}</div><p class="notice">Os mapas sem banco específico oferecem treino da área-base, identificado na seleção. Os cadernos de pré-requisito seguem a especialidade indicada pela banca.</p>`
   );
 }
@@ -124,16 +138,27 @@ export function competitions() {
   );
 }
 export function archive() {
+  const exams = catalog.exams.filter((exam) => exam.operation !== "revalida");
   return (
     heading(
       "Seu arsenal de estudo.",
       "Cadernos originais. Fontes verificáveis. Correção transparente.",
     ) +
-    `<div class="stat-strip"><div class="stat"><strong>23</strong><span>Cadernos oficiais integrados</span></div><div class="stat"><strong>1.860</strong><span>Itens referenciados nos cadernos</span></div><div class="stat"><strong>55</strong><span>Especialidades no catálogo</span></div><div class="stat"><strong>54</strong><span>Questões autorais de treino</span></div></div><div class="filters"><label class="field search-field"><span>Buscar caderno</span><input id="exam-search" type="search" placeholder="ENAMED, cardiologia, cirurgia…"></label><label class="field filter-select"><span>Prova</span><select id="exam-filter"><option value="">Todas as provas</option><option value="ENAMED">ENAMED</option><option value="ENARE R+">ENARE com pré-requisito</option></select></label></div><div class="notice">O ENAMED é realizado desde 2025. No ENARE, a nota do ENAMED é usada para acesso direto; pré-requisito tem cadernos próprios. A seleção do jogo não equivale à inscrição nos exames. <a href="https://www.gov.br/pt-br/servicos/fazer-o-exame-nacional-de-avaliacao-da-formacao-medica" target="_blank" rel="noopener noreferrer">Entenda na fonte oficial ↗</a></div><div class="panel" id="exam-list">${catalog.exams.map(examRow).join("")}</div><p class="notice">Esta versão integra ENAMED 2025 e ENARE R+ 2024/25. Para edições mais recentes, consulte os portais oficiais abaixo. As 54 questões autorais são demonstrações e precisam de revisão médica.</p><div class="section-heading" style="margin-top:28px"><h2>Direto da fonte</h2></div><div class="panel">${catalog.sources.map((s) => `<div class="source-row"><h3>${esc(s.title)}</h3><a class="source-link" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">Consultar ${icon("arrow", 16)}</a></div>`).join("")}</div>`
+    `<div class="stat-strip"><div class="stat"><strong>${number(exams.length)}</strong><span>Cadernos oficiais integrados</span></div><div class="stat"><strong>${number(exams.reduce((sum, exam) => sum + exam.total, 0))}</strong><span>Itens referenciados nos cadernos</span></div><div class="stat"><strong>55</strong><span>Especialidades no catálogo</span></div><div class="stat"><strong>54</strong><span>Questões autorais de treino</span></div></div><div class="filters"><label class="field search-field"><span>Buscar caderno</span><input id="exam-search" type="search" placeholder="ENAMED, cardiologia, cirurgia…"></label><label class="field filter-select"><span>Prova</span><select id="exam-filter"><option value="">Todas as provas</option><option value="ENAMED">ENAMED</option><option value="ENARE R+">ENARE com pré-requisito</option></select></label></div><div class="notice">O ENAMED é realizado desde 2025. No ENARE, a nota do ENAMED é usada para acesso direto; pré-requisito tem cadernos próprios. A seleção do jogo não equivale à inscrição nos exames. <a href="https://www.gov.br/pt-br/servicos/fazer-o-exame-nacional-de-avaliacao-da-formacao-medica" target="_blank" rel="noopener noreferrer">Entenda na fonte oficial ↗</a></div><div class="panel" id="exam-list">${exams.map(examRow).join("")}</div><p class="notice">Esta versão integra ENAMED 2025 e ENARE R+ 2024/25. Para edições mais recentes, consulte os portais oficiais abaixo. As 54 questões autorais são demonstrações e precisam de revisão médica.</p><div class="section-heading" style="margin-top:28px"><h2>Direto da fonte</h2></div><div class="panel">${catalog.sources.map((s) => `<div class="source-row"><h3>${esc(s.title)}</h3><a class="source-link" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">Consultar ${icon("arrow", 16)}</a></div>`).join("")}</div>`
+  );
+}
+export function booklet(exam) {
+  return (
+    heading(
+      exam.title,
+      `${exam.valid} questões válidas · gabarito ${exam.keyStatus.toLowerCase()}`,
+    ) +
+    `<p class="section-return"><a class="text-button" data-back-route href="#${exam.operation === "revalida" ? "revalida" : "archive"}">‹ Voltar ${exam.operation === "revalida" ? "ao Revalida" : "ao arquivo de provas"}</a></p>` +
+    `<section class="panel"><p>${exam.operation === "revalida" ? "Simulado cronometrado para jogar com conta ou como convidado." : "Resolva o caderno na ordem da prova e confira o gabarito após cada questão."}</p><div class="row wrap"><button class="btn" data-exam="${esc(exam.id)}">Jogar caderno ${icon("arrow", 16)}</button><a class="text-button" href="${esc(exam.originalUrl)}">Caderno original</a><a class="text-button" href="${esc(exam.key)}">Gabarito definitivo</a></div></section>`
   );
 }
 export function examRow(e) {
-  return `<article class="source-row"><div><div class="row wrap"><h3>${esc(e.title)}</h3><span class="tag official">${esc(e.keyStatus)}</span></div><p>${e.total} itens no caderno · ${e.valid} válidos para jogar · ${e.cancelled.length} anulados/excluídos</p></div><div class="row"><a class="text-button" href="${esc(e.pdf)}" target="_blank" rel="noopener noreferrer">PDF ↗</a><button class="btn outline" data-exam="${e.id}">Jogar caderno ${icon("arrow", 16)}</button></div></article>`;
+  return `<article class="source-row"><div><div class="row wrap"><h3><a href="#caderno/${esc(e.id)}">${esc(e.title)}</a></h3><span class="tag official">${esc(e.keyStatus)}</span></div><p>${e.total} itens no caderno · ${e.valid} válidos para jogar · ${e.cancelled.length} anulados/excluídos</p></div><div class="row"><a class="text-button" href="${esc(e.pdf)}" target="_blank" rel="noopener noreferrer">PDF ↗</a><button class="btn outline" data-exam="${e.id}">Jogar caderno ${icon("arrow", 16)}</button></div></article>`;
 }
 export function ranking() {
   return (
@@ -173,7 +198,7 @@ export function profile() {
       "Acompanhe cada round da sua preparação.",
     ) +
     `
-<div class="profile-header"><div class="avatar">${esc(p.nickname.slice(0, 2).toUpperCase())}</div><div><h2>${esc(p.nickname)}</h2><p>${esc(rank())} · ${state.user ? "Conta conectada" : "Convidado · progresso neste dispositivo"}${p.specialty ? " · " + esc(specialtyName(p.specialty)) : ""}</p></div></div>
+<div class="profile-header"><div id="profile-avatar">${avatarStage(p.avatar, "Avatar de " + p.nickname)}</div><div><h2>${esc(p.nickname)}</h2><p>${esc(rank())} · ${state.user ? "Conta conectada" : "Convidado · progresso neste dispositivo"}${p.specialty ? " · " + esc(specialtyName(p.specialty)) : ""}</p><div class="row wrap"><button class="btn outline small" data-customize-avatar>Personalizar avatar</button><a class="btn outline small" href="#study/enamed">Trilha Enamed</a></div></div></div>
 ${!state.user ? `<div class="notice">Seu progresso de convidado fica neste navegador. Crie uma conta para ter histórico no servidor e participar do ranking global. O progresso local não é enviado ao ranking.<div class="row" style="margin-top:14px"><button class="btn small" data-auth="register">Criar conta</button><button class="text-button" data-auth="login">Já tenho conta</button></div></div>` : ""}
 ${statsStrip([
   [number(p.xp), "XP acumulado"],

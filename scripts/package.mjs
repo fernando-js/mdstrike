@@ -15,6 +15,9 @@ const blocked = new Set([
 ]);
 for (const entry of [
   "index.html",
+  "exam.php",
+  "robots.txt",
+  "indexnow.txt",
   ".htaccess",
   "favicon.ico",
   "assets",

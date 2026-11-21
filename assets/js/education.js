@@ -1,4 +1,4 @@
-import { esc } from "./core.js?v=2.3.0";
+import { esc } from "./core.js?v=2.4.0";
 let catalogPromise;
 let catalog;
 export function educationFields(player) {
@@ -64,7 +64,7 @@ export async function mountEducation(player) {
   city.addEventListener("change", () => schools());
   refresh();
   try {
-    catalogPromise ??= fetch("assets/data/institutions.json?v=2.3.0")
+    catalogPromise ??= fetch("assets/data/institutions.json?v=2.4.0")
       .then(async (response) => {
         if (!response.ok) throw new Error("Lista indisponível");
         return response.json();

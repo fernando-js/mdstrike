@@ -4,9 +4,18 @@ for (const file of [
   "app/bootstrap.php",
   "app/security.php",
   "app/education.php",
+  "app/avatar.php",
   "app/challenges.php",
   "app/admin.php",
+  "app/revalida.php",
+  "app/enamed-results.php",
+  "app/enamed-results-view.php",
+  "app/enamed-results-page.php",
+  "app/cid10.php",
+  "app/medical-pages.php",
+  "app/medical-page.php",
   "api/index.php",
+  "exam.php",
   "scripts/router.php",
 ])
   execFileSync("php", ["-l", file], { stdio: "inherit" });

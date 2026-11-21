@@ -17,17 +17,41 @@ import {
   api,
   refreshProfile,
   beep,
-} from "./core.js?v=2.3.0";
-import * as views from "./views.js?v=2.3.0";
-import { Match } from "./game.js?v=2.3.0";
-import { renderPdf } from "./pdf-viewer.js?v=2.3.0";
+} from "./core.js?v=2.4.0";
+import * as views from "./views.js?v=3.4.0";
+import {
+  clearSavedViews,
+  focusPage,
+  previousRoute,
+  rememberView,
+  restoreActiveUrl,
+  restoreView,
+  setRouteHistory,
+} from "./app-navigation.js?v=3.1.0";
+import { mountMedicalResources, renderEnamedProgress } from "./medical-resources.js?v=3.4.0";
+import {
+  avatarChoices,
+  avatarEditor,
+  avatarStage,
+  loadAvatarCatalog,
+  updateAvatarEditor,
+} from "./avatar.js?v=2.6.0";
+import { Match } from "./game.js?v=2.8.0";
+import { renderPdf } from "./pdf-viewer.js?v=2.4.0";
 import {
   challengeForm,
   challengePage,
   loadMyChallenges,
-} from "./challenges.js?v=2.3.0";
-import { openAdmin, stopAdmin } from "./admin.js?v=2.3.0";
-import { mountEducation, educationFromForm } from "./education.js?v=2.3.0";
+} from "./challenges.js?v=2.4.0";
+import { openAdmin, stopAdmin } from "./admin.js?v=2.9.0";
+import { mountEducation, educationFromForm } from "./education.js?v=2.4.0";
+import {
+  RevalidaSimulation,
+  formatClock,
+  revalidaPage,
+  revalidaResult,
+  revalidaStartForm,
+} from "./revalida.js?v=2.9.0";
 
 const modal = $("#modal"),
   view = $("#view");
@@ -39,39 +63,55 @@ let routeGeneration = 0,
   rankingRequest = 0;
 const nav = [
   ["lobby", "crosshair", "Visão geral"],
+  ["study", "book", "Estudo"],
+  ["consulta", "heart", "Consulta rápida"],
   ["maps", "map", "Mapas e especialidades"],
+  ["archive", "clipboard", "Arquivo de provas"],
+  ["revalida", "clipboard", "Revalida"],
   ["competitions", "trophy", "Competições"],
   ["ranking", "ranking", "Ranking"],
   ["profile", "user", "Meu perfil"],
+];
+const topNav = [
+  ["lobby", "Jogar"],
+  ["study", "Estudo"],
+  ["consulta", "Consulta rápida"],
+  ["maps", "Mapas"],
+  ["competitions", "Competições"],
+  ["ranking", "Ranking"],
+  ["archive", "Arquivo"],
+  ["revalida", "Revalida"],
 ];
 
 function shell() {
   const active =
     state.page === "challenge"
       ? "competitions"
-      : state.page === "match" || state.page === "result"
+      : state.page === "booklet"
+        ? "archive"
+        : state.page === "match" || state.page === "result"
         ? "lobby"
         : state.page;
-  $("#top-nav").innerHTML = [
-    ["lobby", "Jogar"],
-    ["maps", "Mapas"],
-    ["competitions", "Competições"],
-    ["ranking", "Ranking"],
-    ["archive", "Arquivo"],
+  const links = [
+    ...topNav,
     ...(state.user?.isAdmin ? [["admin", "Admin"]] : []),
-  ]
-    .map(
-      ([id, label]) =>
-        `<button class="nav-tab ${active === id ? "active" : ""}" data-page="${id}" ${active === id ? 'aria-current="page"' : ""}>${label}</button>`,
-    )
-    .join("");
+  ];
+  const current = (id) => active === id ? 'aria-current="page"' : "";
+  $("#top-nav").innerHTML = links.map(([id, label], index) =>
+    `<a href="#${id}" class="nav-tab ${index < 3 ? "nav-primary" : ""} ${active === id ? "active" : ""}" ${current(id)}>${label}</a>`,
+  ).join("") + `<details class="mobile-menu" id="mobile-menu">
+    <summary>Menu</summary>
+    <div>${[...links.slice(3), ["profile", "Meu perfil"]].map(([id, label]) =>
+      `<a href="#${id}" ${current(id)}>${label}</a>`,
+    ).join("")}</div>
+  </details>`;
   $("#side-nav").innerHTML = [
     ...nav,
     ...(state.user?.isAdmin ? [["admin", "shield", "Administração"]] : []),
   ]
     .map(
       ([id, i, label]) =>
-        `<button class="side-link ${active === id ? "active" : ""}" data-page="${id}" ${active === id ? 'aria-current="page"' : ""}>${icon(i, 22)}<span>${label}</span></button>`,
+        `<a href="#${id}" class="side-link ${active === id ? "active" : ""}" ${current(id)}>${icon(i, 22)}<span>${label}</span></a>`,
     )
     .join("");
   const p = player();
@@ -84,14 +124,24 @@ function shell() {
     `<div class="row">${icon(state.user ? "user" : "monitor", 24)}<strong>${state.user ? esc(p.nickname) : "Progresso neste<br>dispositivo"}</strong></div><div class="bar"><i style="width:${(p.xp % 500) / 5}%"></i></div><small>${number(p.xp)} XP · nível ${Math.floor(p.xp / 500) + 1}</small>`;
 }
 
-async function route(page, force = false) {
+async function route(page, force = false, navigation = "push") {
   if (state.game && state.page === "match" && page !== "match" && !force) {
+    if (navigation === "traverse") restoreActiveUrl();
     pendingNavigation = page;
     openModal(
-      state.game.current.mode === "challenge"
-        ? `<div class="modal-content"><div class="modal-top"><h2 id="modal-title">Continuar depois?</h2><button class="close-button" data-close aria-label="Fechar">×</button></div><p>Sua tentativa fica salva no link. O relógio da questão atual continua contando, mesmo em outra aba.</p><div class="row wrap"><button class="btn" data-save-challenge>Salvar e sair</button><button class="btn secondary" data-close>Continuar jogando</button><button class="text-button" data-abandon>Encerrar minha tentativa</button></div></div>`
-        : `<div class="modal-content"><div class="modal-top"><h2 id="modal-title">Sair da partida?</h2><button class="close-button" data-close aria-label="Fechar">×</button></div><p>A partida será encerrada sem bônus de conclusão ou pontos no ranking.</p><div class="row wrap"><button class="btn" data-abandon>Encerrar partida</button><button class="btn secondary" data-close>Continuar jogando</button></div></div>`,
+      state.game instanceof RevalidaSimulation
+        ? '<div class="modal-content"><div class="modal-top"><h2 id="modal-title">Sair do simulado?</h2><button class="close-button" data-close aria-label="Fechar">×</button></div><p>As alternativas marcadas ficam salvas. O tempo continua contando.</p><div class="row wrap"><button class="btn" data-save-revalida>Salvar e sair</button><button class="btn secondary" data-close>Continuar simulado</button><button class="text-button" data-abandon>Encerrar tentativa</button></div></div>'
+        : state.game.current.mode === "challenge"
+          ? `<div class="modal-content"><div class="modal-top"><h2 id="modal-title">Continuar depois?</h2><button class="close-button" data-close aria-label="Fechar">×</button></div><p>Sua tentativa fica salva no link. O relógio da questão atual continua contando, mesmo em outra aba.</p><div class="row wrap"><button class="btn" data-save-challenge>Salvar e sair</button><button class="btn secondary" data-close>Continuar jogando</button><button class="text-button" data-abandon>Encerrar minha tentativa</button></div></div>`
+          : `<div class="modal-content"><div class="modal-top"><h2 id="modal-title">Sair da partida?</h2><button class="close-button" data-close aria-label="Fechar">×</button></div><p>A partida será encerrada sem bônus de conclusão ou pontos no ranking.</p><div class="row wrap"><button class="btn" data-abandon>Encerrar partida</button><button class="btn secondary" data-close>Continuar jogando</button></div></div>`,
     );
+    return;
+  }
+  if (state.page === "match" && page === "match") return;
+  rememberView(view);
+  if (page === "result" && state.game?.result) {
+    setRouteHistory("result", navigation);
+    renderResult(state.game);
     return;
   }
   const invite = /^challenge\/([a-f0-9]{32})$/.exec(page);
@@ -102,69 +152,177 @@ async function route(page, force = false) {
   const adminRoute =
     /^admin(?:\/(overview|users|matches|challenges|logs))?$/.exec(page);
   if (adminRoute) page = state.user?.isAdmin ? "admin" : "lobby";
+  const bookletId = /^caderno\/([a-z0-9-]+)$/.exec(page)?.[1];
+  const booklet = catalog.exams.find((exam) => exam.id === bookletId);
+  if (booklet) page = "booklet";
+  const thematicRoute = /^(maps\/(?:codificacao(?:\/(cid10|sigtap|tuss|misto|consulta))?|(historia-medicina|eponimos|medicamentos)))$/.exec(page);
+  if (thematicRoute) page = "maps";
+  const resourcesRoute = /^(study(?:\/(?:pbl|revisao|enamed|resumo\/[a-z0-9-]+|cursos(?:\/ecg(?:\/[a-z-]+)?)?))?|consulta(?:\/(?:bulas|calculadoras|fontes|tema\/[a-z0-9-]+))?)$/.exec(page);
+  if (resourcesRoute) page = resourcesRoute[1].split("/")[0];
   stopAdmin();
   if (
     ![
       "lobby",
       "maps",
+      "study",
+      "consulta",
       "competitions",
       "ranking",
       "profile",
       "archive",
+      "revalida",
+      "booklet",
       "sources",
       "privacy",
       "ranking-rules",
       "challenge",
       "admin",
-    ].includes(page)
+    ].includes(page) ||
+    (page === "booklet" && !booklet)
   )
     page = "lobby";
   clearInterval(timer);
   state.page = page;
   const generation = ++routeGeneration;
-  history.replaceState(
-    null,
-    "",
-    `#${page === "challenge" ? "challenge/" + state.challengeId : page}`,
-  );
+  const path = thematicRoute?.[1] ?? resourcesRoute?.[1] ??
+    (page === "admin" ? "admin/" + (adminRoute?.[1] || "overview")
+      : page === "challenge" ? "challenge/" + state.challengeId
+      : booklet ? "caderno/" + booklet.id : page);
+  setRouteHistory(path, navigation);
   shell();
+  if (thematicRoute) {
+    view.innerHTML = '<p class="loading" role="status">Abrindo o mapa…</p>';
+    try {
+      const { mountCodingGame } = await import("./coding-game.js?v=3.4.0");
+      if (routeGeneration !== generation) return;
+      mountCodingGame(view, thematicRoute[2] ?? thematicRoute[3]);
+    } catch {
+      if (routeGeneration !== generation) return;
+      view.innerHTML = '<section class="empty"><h1>Mapa indisponível</h1><button class="btn outline" data-page="' + path + '">Tentar novamente</button></section>';
+    }
+    restoreView(view, navigation);
+    focusPage(view);
+    return;
+  }
+  if (resourcesRoute) {
+    if (path.startsWith("study/cursos")) {
+      view.innerHTML = '<p class="loading" role="status">Abrindo o curso…</p>';
+      try {
+        const { mountEcgCourse } = await import("./ecg-course.js?v=3.0.0");
+        if (routeGeneration !== generation) return;
+        mountEcgCourse(view, path);
+      } catch {
+        if (routeGeneration !== generation) return;
+        view.innerHTML = '<section class="empty"><h1>Curso indisponível</h1><button class="btn outline" data-page="study/cursos">Tentar novamente</button></section>';
+      }
+      restoreView(view, navigation);
+      focusPage(view);
+      return;
+    }
+    mountMedicalResources(view, resourcesRoute[1]);
+    restoreView(view, navigation);
+    focusPage(view);
+    if (resourcesRoute[1] === "study/enamed" && state.user && !state.profile) {
+      const progress = view.querySelector("[data-enamed-progress]");
+      try {
+        const profile = await refreshProfile();
+        if (routeGeneration === generation) renderEnamedProgress(progress, profile.stats);
+      } catch (error) {
+        if (routeGeneration === generation) {
+          progress.innerHTML = "<p>O histórico está indisponível no momento.</p>";
+        }
+      }
+    }
+    return;
+  }
   view.innerHTML =
     page === "challenge"
       ? '<div class="loading">Abrindo o desafio…</div>'
       : page === "admin"
         ? ""
-        : page === "ranking-rules"
-          ? views.rankingRules()
-          : views[page]();
-  window.scrollTo({ top: 0 });
+        : page === "revalida"
+          ? revalidaPage(state.profile)
+          : page === "booklet"
+            ? views.booklet(booklet)
+            : page === "ranking-rules"
+              ? views.rankingRules()
+              : views[page]();
+  restoreView(view, navigation);
+  if (!["admin", "challenge"].includes(page)) focusPage(view);
   if (page === "ranking") await loadRanking();
-  if (page === "admin") await openAdmin(adminRoute?.[1] || "overview");
+  if (page === "admin") {
+    const ready = openAdmin(adminRoute?.[1] || "overview");
+    restoreView(view, navigation);
+    focusPage(view);
+    await ready;
+  }
   if (page === "competitions") await loadMyChallenges();
+  if (page === "revalida") {
+    const [profile, comparison] = await Promise.allSettled([
+      refreshProfile(),
+      api("revalida-comparison"),
+    ]);
+    if (routeGeneration === generation) {
+      const scroll = window.scrollY;
+      const focused = view.contains(document.activeElement) ? document.activeElement : null;
+      view.innerHTML = revalidaPage(
+        profile.status === "fulfilled" ? profile.value : state.profile,
+        comparison.status === "fulfilled" ? comparison.value.editions : null,
+      );
+      if (comparison.status === "rejected")
+        $("#revalida-cohort-status").textContent =
+          "Resultados indisponíveis no momento.";
+      window.scrollTo({ top: scroll });
+      if (focused?.id) document.getElementById(focused.id)?.focus({ preventScroll: true });
+      else if (focused?.tagName === "H1") focusPage(view);
+    }
+  }
   if (page === "challenge") {
     try {
       const result = await api("challenge", undefined, {
         id: state.challengeId,
       });
-      if (generation === routeGeneration)
+      if (generation === routeGeneration) {
         view.innerHTML = challengePage(result);
+        restoreView(view, navigation);
+        focusPage(view);
+      }
     } catch (error) {
-      if (generation === routeGeneration)
+      if (generation === routeGeneration) {
         view.innerHTML = `<div class="empty"><h1>Desafio indisponível.</h1><p>${esc(error.message)}</p><button class="btn" data-page="competitions">Ver competições</button></div>`;
+        focusPage(view);
+      }
     }
   }
   if (page === "profile" && state.user) {
     try {
       await refreshProfile();
       if (routeGeneration === generation && state.page === "profile") {
+        const hadTitleFocus = document.activeElement === view.querySelector("h1");
         shell();
         view.innerHTML = views.profile();
+        if (hadTitleFocus) focusPage(view);
       }
     } catch (error) {
       toast(error.message);
     }
   }
-  if (page === "profile" && routeGeneration === generation)
+  if (page === "profile" && routeGeneration === generation) {
+    loadAvatarCatalog()
+      .then(() => {
+        if (routeGeneration === generation) renderProfileAvatar();
+      })
+      .catch(() => {});
     await mountEducation(player());
+  }
+}
+
+function renderProfileAvatar() {
+  const host = $("#profile-avatar");
+  if (host) {
+    const { avatar, nickname } = player();
+    host.innerHTML = avatarStage(avatar, "Avatar de " + nickname);
+  }
 }
 
 function openModal(html) {
@@ -193,7 +351,7 @@ function mapDetails(id) {
   if (!s) return;
   const exams = catalog.exams.filter((e) => e.specialty === s.id);
   openModal(
-    `<img class="modal-hero" src="assets/images/${s.image}.jpg" alt="Ambiente hospitalar ilustrativo"><div class="modal-content"><div class="modal-top"><h2 id="modal-title">${esc(s.name)}</h2><button class="close-button" data-close aria-label="Fechar">×</button></div><p>${esc(s.description)}</p><div class="stat-strip"><div class="stat"><strong>${number(s.questions)}</strong><span>Questões específicas</span></div><div class="stat"><strong>${exams.length}</strong><span>Cadernos oficiais</span></div><div class="stat"><strong>${esc(s.area)}</strong><span>Área-base</span></div></div>${exams.length ? `<h3>Caderno oficial da especialidade</h3>${exams.map((e) => `<div class="source-row"><div><strong>${esc(e.title)}</strong><p>${e.valid} itens válidos · gabarito definitivo</p></div><button class="btn small" data-exam="${e.id}">Jogar ${icon("arrow", 15)}</button></div>`).join("")}` : '<p class="notice">Ainda não há caderno oficial desta especialidade integrado. O treino de base abaixo usa questões da área de formação, sem apresentá-las como prova específica da residência.</p>'}${s.originals ? `<div class="row wrap" style="margin-top:19px"><button class="btn small" data-start="practice" data-map-id="${s.id}">Treinar específicas</button><span class="muted small-text">${s.originals} autorais · sem revisão médica</span></div>` : ""}<div class="row wrap" style="margin-top:16px"><button class="btn outline small" data-start="practice" data-map-id="${s.area}">Treinar base de ${esc(catalog.areas[s.area])}</button></div><p class="small-text muted" style="margin-top:19px">Mapa temático de estudo. Consulte o edital para requisitos de ingresso na residência.</p></div>`,
+    `<img class="modal-hero" src="assets/images/${s.image}.jpg" alt="Ambiente hospitalar ilustrativo"><div class="modal-content"><div class="modal-top"><h2 id="modal-title">${esc(s.name)}</h2><button class="close-button" data-close aria-label="Fechar">×</button></div><p>${esc(s.description)}</p><div class="stat-strip"><div class="stat"><strong>${number(s.questions)}</strong><span>Questões específicas</span></div><div class="stat"><strong>${exams.length}</strong><span>Cadernos oficiais</span></div><div class="stat"><strong>${esc(s.area)}</strong><span>Área-base</span></div></div>${exams.length ? `<h3>Caderno oficial da especialidade</h3>${exams.map((e) => `<div class="source-row"><div><strong>${esc(e.title)}</strong><p>${e.valid} itens válidos · gabarito definitivo</p></div><button class="btn small" data-exam="${e.id}">Jogar ${icon("arrow", 15)}</button></div>`).join("")}` : '<p class="notice">Ainda não há caderno oficial desta especialidade integrado. O treino de base abaixo usa questões da área de formação, sem apresentá-las como prova específica da residência.</p>'}${s.originals ? `<div class="row wrap" style="margin-top:19px"><button class="btn small" data-start="practice" data-map-id="${s.id}">Treinar específicas</button><span class="muted small-text">${s.originals} autorais · sem revisão médica</span></div>` : ""}<div class="row wrap" style="margin-top:16px"><button class="btn outline small" data-start="practice" data-map-id="${s.area}">Treinar base de ${esc(catalog.areas[s.area])}</button>${s.id === "cardiologia" ? '<a class="btn outline small" href="#study/cursos/ecg">Curso rápido de ECG</a>' : ""}</div><p class="small-text muted" style="margin-top:19px">Mapa temático de estudo. Consulte o edital para requisitos de ingresso na residência.</p></div>`,
   );
 }
 
@@ -264,7 +422,10 @@ function filterExams() {
   const search = normalize($("#exam-search").value),
     exam = $("#exam-filter").value;
   const results = catalog.exams.filter(
-    (e) => normalize(e.title).includes(search) && (!exam || e.exam === exam),
+    (e) =>
+      e.operation !== "revalida" &&
+      normalize(e.title).includes(search) &&
+      (!exam || e.exam === exam),
   );
   $("#exam-list").innerHTML = results.length
     ? results.map(views.examRow).join("")
@@ -324,13 +485,18 @@ async function start(options) {
   closeModal();
   if (state.game && state.page === "match") return;
   const button = document.activeElement;
+  const fromResult = state.page === "result";
   if (button?.tagName === "BUTTON") button.disabled = true;
   try {
-    const match = new Match(options);
+    const match =
+      options.mode === "revalida-exam"
+        ? new RevalidaSimulation(options)
+        : new Match(options);
     await match.start();
+    rememberView(view);
     state.game = match;
     state.page = "match";
-    history.replaceState(null, "", "#match");
+    setRouteHistory("match", fromResult ? "replace" : "push");
     ++routeGeneration;
     shell();
     renderMatch();
@@ -363,22 +529,79 @@ function tacticalMap(current) {
     )}<text x="18" y="145" fill="#9eafb4" font-size="8" font-family="monospace">SETOR ${progress} / FORMAÇÃO MÉDICA</text></svg>`;
 }
 
+const simulationQuestionLabel = (game, index) =>
+  `Questão ${game.current.questions[index].number}${game.current.choices[index] === undefined ? "" : " · marcada"}`;
+
+function simulationControls(game) {
+  const questions = game.current.questions;
+  return `<section class="panel sim-controls" aria-label="Controles do simulado">
+    <div class="row space-between wrap"><span><strong id="sim-answered">${number(Object.keys(game.current.choices).length)}</strong> de ${questions.length} marcadas</span><span>Tempo restante <strong id="sim-clock">${formatClock(game.remaining())}</strong></span></div>
+    <div class="row wrap sim-nav">
+      <button class="btn outline small" data-sim-step="-1" ${game.index === 0 ? "disabled" : ""}>Anterior</button>
+      <div class="field"><select id="sim-question-jump" aria-label="Ir para questão">${questions.map((_, index) => `<option value="${index}" ${index === game.index ? "selected" : ""}>${simulationQuestionLabel(game, index)}</option>`).join("")}</select></div>
+      <button class="btn outline small" data-sim-step="1" ${game.index === questions.length - 1 ? "disabled" : ""}>Próxima</button>
+      <button class="btn small" data-confirm-sim>Entregar simulado</button>
+    </div>
+  </section>`;
+}
+
+function jumpSimulation(index) {
+  const game = state.game;
+  if (
+    !(game instanceof RevalidaSimulation) ||
+    answerBusy ||
+    index < 0 ||
+    index >= game.current.questions.length
+  )
+    return;
+  game.index = index;
+  renderMatch();
+}
+
+async function submitSimulation() {
+  const game = state.game;
+  if (
+    !(game instanceof RevalidaSimulation) ||
+    answerBusy ||
+    state.page !== "match"
+  )
+    return;
+  answerBusy = true;
+  closeModal();
+  try {
+    await game.finish();
+    renderResult(game);
+  } catch (error) {
+    toast(error.message);
+  } finally {
+    answerBusy = false;
+  }
+}
+
 function renderMatch() {
   clearInterval(timer);
   answerBusy = false;
-  const game = state.game,
-    c = game.current,
-    q = c.question;
+  const game = state.game;
+  const simulation = game instanceof RevalidaSimulation;
+  const c = simulation
+    ? {
+        ...game.current,
+        index: game.index,
+        total: game.current.questions.length,
+        question: game.question,
+      }
+    : game.current;
+  const q = c.question;
   if (!q) return;
   const versus = c.timeLimit > 0 && c.mode !== "challenge",
     isTeam = c.mode === "competitive",
     official = q.kind === "official";
   const pdfUrl = official ? `${q.pdf}#page=${q.page}&view=FitH` : "";
-  view.innerHTML = `<div class="match-page"><div class="match-header"><div><h1>${esc(modeName(c.mode))}</h1><small>${esc(specialtyName(c.map))} · ${state.user ? "Conta conectada" : "Treino local de convidado"}</small></div><button class="btn outline small" data-page="lobby">Sair da partida</button></div>${c.mode === "cup" ? `<div class="bracket">${["Quartas de final", "Semifinal", "Final"].map((name, i) => `<div class="bracket-stage ${c.stage === i ? "active" : ""}"><small>FASE ${i + 1}</small><strong>${name}</strong></div>`).join("")}</div>` : ""}
-  <div class="scoreboard"><div><span class="player-name">${isTeam ? "Seu time" : esc(player().nickname)}</span><strong id="my-score">${number(isTeam ? c.roundsWon : c.score)}</strong></div><div><span class="round-counter">ROUND ${c.index + 1} / ${c.total}</span><div class="round-dots">${Array.from({ length: Math.min(15, c.total) }, (_, i) => `<i class="${i < c.index ? "done" : ""}"></i>`).join("")}</div></div><div><span class="player-name enemy">${versus ? (isTeam ? "Time adversário · bots" : "Adversário · bot") : "Precisão"}</span><strong id="opponent-score">${versus ? number(isTeam ? c.roundsLost : c.botScore) : c.index ? Math.round((c.correct / c.index) * 100) + "%" : "—"}</strong></div></div>
+  view.innerHTML = `<div class="match-page"><div class="match-header"><div><h1>${esc(modeName(c.mode))}</h1><small>${esc(specialtyName(c.map))} · ${state.user ? "Conta conectada" : "Treino local de convidado"}</small></div><button class="btn outline small" data-page="${c.map.startsWith("revalida-") ? "revalida" : "lobby"}">${simulation ? "Sair do simulado" : "Sair da partida"}</button></div>${c.mode === "cup" ? `<div class="bracket">${["Quartas de final", "Semifinal", "Final"].map((name, i) => `<div class="bracket-stage ${c.stage === i ? "active" : ""}"><small>FASE ${i + 1}</small><strong>${name}</strong></div>`).join("")}</div>` : ""}
+  ${simulation ? simulationControls(game) : `<div class="scoreboard"><div><span class="player-name">${isTeam ? "Seu time" : esc(player().nickname)}</span><strong id="my-score">${number(isTeam ? c.roundsWon : c.score)}</strong></div><div><span class="round-counter">ROUND ${c.index + 1} / ${c.total}</span><div class="round-dots">${Array.from({ length: Math.min(15, c.total) }, (_, i) => `<i class="${i < c.index ? "done" : ""}"></i>`).join("")}</div></div><div><span class="player-name enemy">${versus ? (isTeam ? "Time adversário · bots" : "Adversário · bot") : "Precisão"}</span><strong id="opponent-score">${versus ? number(isTeam ? c.roundsLost : c.botScore) : c.index ? Math.round((c.correct / c.index) * 100) + "%" : "—"}</strong></div></div>`}
   <div class="match-layout" ${official ? 'style="grid-template-columns:minmax(0,1fr)"' : ""}><section class="question-panel ${official ? "pdf-question" : ""}">${c.timeLimit ? `<div class="timer-bar" id="question-timer"><div class="bar"><i id="timer-fill" style="width:100%"></i></div><strong id="time-left">${c.timeLimit}s</strong></div>` : ""}<div class="question-meta"><span>${esc(catalog.areas[q.area] || q.area)}</span><span class="tag ${official ? "official" : ""}">${official ? "Caderno oficial" : "Autoral · demonstração"}</span></div><h2>${esc(q.prompt)}</h2><p class="source-note">${esc(q.source)}${official ? ` · página ${q.page}` : ""}</p>
   ${official ? `<div class="row wrap space-between" style="margin-bottom:14px"><span class="small-text muted">Leia a questão ${q.number} na página ${q.page} do caderno e marque a alternativa abaixo.</span><a class="source-link" href="${esc(pdfUrl)}" target="_blank" rel="noopener noreferrer">Abrir PDF em outra aba ↗</a></div><div id="pdf-viewer" class="pdf-viewer" aria-busy="true" aria-label="Página do caderno oficial"><div class="loading">Abrindo a página original…</div></div>` : ""}
-  <div class="answers" role="group" aria-label="Alternativas">${q.options.map((option, i) => `<button class="answer" data-answer="${i}"><span class="answer-letter">${"ABCDE"[i]}</span>${official ? "" : `<span>${esc(option)}</span>`}</button>`).join("")}</div><div id="feedback" aria-live="polite"></div><p class="key-help">Atalhos: ${q.options.length === 5 ? "1–5 ou A–E" : "1–4 ou A–D"} para responder · Enter para continuar</p><div class="match-tools"><button data-sound>${icon("sound", 16)} ${state.sound ? "Som ligado" : "Som desligado"}</button><button data-skip>Pular questão</button></div></section>${!official ? `<aside class="tactical-panel"><h3>Mapa de operação</h3>${tacticalMap(c)}<p>Avance um round por vez. Cada resposta mostra o raciocínio e alimenta seu histórico de estudo.</p><div class="notice">${versus ? "Adversários e aliados são bots." : c.mode === "challenge" ? "Desafio entre colegas. Cada um joga no seu horário." : "Treino sem relógio."}</div><p>As questões autorais ainda precisam de revisão médica.</p></aside>` : ""}</div></div>`;
+  <div class="answers" role="group" aria-label="Alternativas">${q.options.map((option, i) => `<button class="answer" data-answer="${i}" ${simulation ? `aria-pressed="${game.current.choices[game.index] === i}"` : ""}><span class="answer-letter">${"ABCDE"[i]}</span>${official ? "" : `<span>${esc(option)}</span>`}</button>`).join("")}</div><div id="feedback" aria-live="polite"></div><p class="key-help">Atalhos: ${q.options.length === 5 ? "1–5 ou A–E" : "1–4 ou A–D"} para ${simulation ? "marcar uma alternativa" : "responder · Enter para continuar"}</p><div class="match-tools">${simulation ? "<button data-skip>Limpar resposta</button>" : `<button data-sound>${icon("sound", 16)} ${state.sound ? "Som ligado" : "Som desligado"}</button><button data-skip>Pular questão</button>`}</div></section>${!official ? `<aside class="tactical-panel"><h3>Mapa de operação</h3>${tacticalMap(c)}<p>Avance um round por vez. Cada resposta mostra o raciocínio e alimenta seu histórico de estudo.</p><div class="notice">${versus ? "Adversários e aliados são bots." : c.mode === "challenge" ? "Desafio entre colegas. Cada um joga no seu horário." : "Treino sem relógio."}</div><p>As questões autorais ainda precisam de revisão médica.</p></aside>` : ""}</div></div>`;
   if (official) {
     const host = $("#pdf-viewer");
     host.insertAdjacentHTML(
@@ -388,7 +611,16 @@ function renderMatch() {
     host.dataset.zoom = "1";
     renderPdf(q);
   }
-  if (c.timeLimit) {
+  if (simulation) {
+    timer = setInterval(() => {
+      const left = game.remaining();
+      $("#sim-clock").textContent = formatClock(left);
+      if (!left && !answerBusy) {
+        clearInterval(timer);
+        submitSimulation();
+      }
+    }, 500);
+  } else if (c.timeLimit) {
     const deadline =
       performance.now() + (c.timeRemaining ?? c.timeLimit) * 1000;
     timer = setInterval(() => {
@@ -411,6 +643,31 @@ function renderMatch() {
 async function answer(choice) {
   const game = state.game;
   if (!game || game.feedback || answerBusy) return;
+  if (game instanceof RevalidaSimulation) {
+    answerBusy = true;
+    try {
+      await game.mark(choice);
+      if (state.game !== game || state.page !== "match") return;
+      for (const button of view.querySelectorAll("[data-answer]")) {
+        button.setAttribute(
+          "aria-pressed",
+          String(
+            game.current.choices[game.index] === Number(button.dataset.answer),
+          ),
+        );
+      }
+      $("#sim-answered").textContent = number(
+        Object.keys(game.current.choices).length,
+      );
+      const option = $("#sim-question-jump").selectedOptions[0];
+      option.textContent = simulationQuestionLabel(game, game.index);
+    } catch (error) {
+      toast(error.message);
+    } finally {
+      answerBusy = false;
+    }
+    return;
+  }
   answerBusy = true;
   clearInterval(timer);
   const buttons = [...view.querySelectorAll("[data-answer]")];
@@ -469,6 +726,18 @@ function renderResult(game) {
   const r = game.result;
   state.page = "result";
   shell();
+  if (game instanceof RevalidaSimulation) {
+    view.innerHTML = revalidaResult(game);
+    setRouteHistory("result", "replace");
+    window.scrollTo({ top: 0 });
+    return;
+  }
+  if (game.current.map.startsWith("revalida-")) {
+    view.innerHTML = `<div class="result-page"><section class="result-hero"><h1>Treino Revalida concluído</h1><p>${esc(specialtyName(game.current.map))} · ${r.correct} acertos em ${r.total} questões</p><div class="row wrap"><button class="btn" data-rematch>Treinar novamente</button><button class="btn outline" data-page="revalida">Voltar à Operação Revalida</button></div></section></div>`;
+    setRouteHistory("result", "replace");
+    window.scrollTo({ top: 0 });
+    return;
+  }
   view.innerHTML = `<div class="result-page"><section class="result-hero">${emblem()}<h1>${r.ranked ? (r.win ? "Vitória confirmada." : "Novo round, nova chance.") : game.current.mode === "challenge" ? "Desafio registrado." : "Treino concluído."}</h1><p>${r.correct} acertos em ${r.answered} questões respondidas.${r.ranked ? " Competição contra bots." : ""} ${state.user ? "Seu resultado foi salvo na conta." : "Seu progresso está salvo neste dispositivo."}</p>${views.statsStrip(
     [
       [number(r.score), "Pontos"],
@@ -479,19 +748,51 @@ function renderResult(game) {
         "Variação de rating",
       ],
     ],
-  )}<div class="row">${game.current.mode === "challenge" ? `<button class="btn" data-open-challenge="${game.current.challengeId}">Ver placar do desafio ${icon("trophy", 18)}</button>` : `<button class="btn" data-rematch>Jogar novamente ${icon("arrow", 18)}</button>`}<button class="btn outline" data-page="lobby">Voltar ao lobby</button></div>${!state.user ? '<p class="small-text">Quer entrar no ranking global? <button class="text-button" data-auth="register">Crie sua conta</button>.</p>' : ""}</section></div>`;
-  history.replaceState(null, "", "#result");
+  )}<div class="row wrap">${game.current.mode === "challenge" ? `<button class="btn" data-open-challenge="${game.current.challengeId}">Ver placar do desafio ${icon("trophy", 18)}</button>` : `<button class="btn" data-rematch>Jogar novamente ${icon("arrow", 18)}</button>`}${game.options.exam?.startsWith("enamed-") ? '<button class="btn outline" data-page="study/enamed">Voltar à Trilha Enamed</button>' : ""}<button class="btn outline" data-page="lobby">Voltar ao lobby</button></div>${!state.user ? '<p class="small-text">Quer entrar no ranking global? <button class="text-button" data-auth="register">Crie sua conta</button>.</p>' : ""}</section></div>`;
+  setRouteHistory("result", "replace");
   window.scrollTo({ top: 0 });
 }
 
+function leaveMatch(page) {
+  if (page === previousRoute()) history.back();
+  else return route(page, true, "replace");
+}
+
 document.addEventListener("click", async (event) => {
-  const b = event.target.closest("button,a[data-page]");
+  const mobileMenu = $("#mobile-menu");
+  if (mobileMenu?.open && !mobileMenu.contains(event.target))
+    mobileMenu.open = false;
+  const b = event.target.closest("button, a[href^='#']");
   if (!b || b.disabled) return;
   try {
-    if (b.hasAttribute("data-page")) {
+    if (b.matches("a")) {
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey || b.target || b.hasAttribute("download"))
+        return;
+      const page = b.hash.slice(1);
+      if (!page) return;
+      event.preventDefault();
+      if (page === "main") {
+        $("#main").focus();
+        return;
+      }
+      if (mobileMenu) mobileMenu.open = false;
+      if (location.hash === b.hash) return;
+      closeModal();
+      if (b.hasAttribute("data-back-route") && page === previousRoute())
+        history.back();
+      else await route(page);
+    } else if (b.hasAttribute("data-jump-to")) {
+      const target = document.getElementById(b.dataset.jumpTo);
+      target?.focus({ preventScroll: true });
+      target?.scrollIntoView({ block: "start" });
+    } else if (b.hasAttribute("data-page")) {
       event.preventDefault();
       closeModal();
       await route(b.dataset.page);
+    } else if (b.hasAttribute("data-customize-avatar")) {
+      await loadAvatarCatalog();
+      if (state.page === "profile")
+        openModal(avatarEditor(player().avatar, Boolean(state.user)));
     } else if (b.hasAttribute("data-new-challenge")) {
       if (!state.user) {
         state.pendingCreateChallenge = true;
@@ -545,9 +846,24 @@ document.addEventListener("click", async (event) => {
       state.mode = b.dataset.mode;
       await route("lobby");
     } else if (b.hasAttribute("data-start"))
-      await start({ mode: b.dataset.start, map: b.dataset.mapId || "all" });
-    else if (b.hasAttribute("data-exam"))
-      await start({ mode: "exam", map: "all", exam: b.dataset.exam });
+      await start({
+        mode: b.dataset.start,
+        map: b.dataset.mapId || "all",
+        ...(b.dataset.examId ? { exam: b.dataset.examId } : {}),
+      });
+    else if (b.hasAttribute("data-exam")) {
+      const exam = catalog.exams.find((entry) => entry.id === b.dataset.exam);
+      if (exam?.operation === "revalida") openModal(revalidaStartForm(exam));
+      else if (exam) await start({ mode: "exam", map: "all", exam: exam.id });
+    } else if (b.hasAttribute("data-sim-step")) {
+      jumpSimulation(state.game.index + Number(b.dataset.simStep));
+    } else if (b.hasAttribute("data-confirm-sim")) {
+      const game = state.game;
+      if (!answerBusy)
+        openModal(
+          `<div class="modal-content"><div class="modal-top"><h2 id="modal-title">Entregar simulado?</h2><button class="close-button" data-close aria-label="Fechar">×</button></div><p>${Object.keys(game.current.choices).length} de ${game.current.questions.length} questões marcadas. Ao entregar, você pode conferir o gabarito.</p><div class="row wrap"><button class="btn" data-submit-sim>Entregar e corrigir</button><button class="btn outline" data-close>Continuar simulado</button></div></div>`,
+        );
+    } else if (b.hasAttribute("data-submit-sim")) await submitSimulation();
     else if (b.hasAttribute("data-answer"))
       await answer(Number(b.dataset.answer));
     else if (b.hasAttribute("data-skip")) await answer(-1);
@@ -563,24 +879,30 @@ document.addEventListener("click", async (event) => {
       );
       host.dataset.zoom = String(zoom);
       $("#pdf-zoom").textContent = `${Math.round(zoom * 100)}%`;
-      await renderPdf(state.game.current.question, zoom);
+      await renderPdf(state.game.question ?? state.game.current.question, zoom);
     } else if (b.hasAttribute("data-retry-question")) {
       if (state.game && !state.game.feedback) renderMatch();
     } else if (b.hasAttribute("data-rematch")) {
       const options = state.game.options;
       state.game = null;
       await start(options);
-    } else if (b.hasAttribute("data-save-challenge")) {
+    } else if (
+      b.hasAttribute("data-save-challenge") ||
+      b.hasAttribute("data-save-revalida")
+    ) {
       clearInterval(timer);
       state.game = null;
       closeModal();
-      await route(pendingNavigation || "competitions", true);
+      await leaveMatch(
+        pendingNavigation ||
+          (b.hasAttribute("data-save-revalida") ? "revalida" : "competitions"),
+      );
     } else if (b.hasAttribute("data-abandon")) {
       clearInterval(timer);
       await state.game.abort();
       state.game = null;
       closeModal();
-      await route(pendingNavigation || "lobby", true);
+      await leaveMatch(pendingNavigation || "lobby");
     } else if (b.hasAttribute("data-sound")) {
       state.sound = !state.sound;
       storage.set("mdstrike_sound", state.sound);
@@ -598,7 +920,8 @@ document.addEventListener("click", async (event) => {
         state.pendingCreateChallenge = false;
         pendingNavigation = null;
         closeModal();
-        await route("lobby", true);
+        await route("lobby", true, "replace");
+        clearSavedViews();
         toast("Você saiu da conta.");
       } finally {
         b.disabled = false;
@@ -625,16 +948,24 @@ document.addEventListener("input", (event) => {
   if (event.target.id === "exam-search") filterExams();
 });
 document.addEventListener("change", (event) => {
+  updateAvatarEditor(event);
   if (["map-area", "map-content"].includes(event.target.id)) filterMaps();
   if (event.target.id === "exam-filter") filterExams();
+  if (event.target.id === "sim-question-jump")
+    jumpSimulation(Number(event.target.value));
   if (event.target.id === "ranking-specialty") loadRanking();
 });
 document.addEventListener("submit", async (event) => {
   const form = event.target;
   if (
-    !["auth-form", "profile-form", "password-form", "challenge-form"].includes(
-      form.id,
-    )
+    ![
+      "auth-form",
+      "profile-form",
+      "password-form",
+      "challenge-form",
+      "revalida-start-form",
+      "avatar-form",
+    ].includes(form.id)
   )
     return;
   event.preventDefault();
@@ -644,6 +975,30 @@ document.addEventListener("submit", async (event) => {
   error.textContent = "";
   const data = Object.fromEntries(new FormData(form));
   try {
+    if (form.id === "avatar-form") {
+      const selection = avatarChoices(form);
+      if (state.user) {
+        const { avatar } = await api("save-avatar", selection);
+        state.user.avatar = avatar;
+      } else {
+        const previous = guest.avatar;
+        guest.avatar = selection;
+        if (!saveGuest()) {
+          guest.avatar = previous;
+          throw new Error("O navegador não conseguiu salvar o avatar.");
+        }
+      }
+      renderProfileAvatar();
+      closeModal();
+      toast("Avatar salvo.");
+    }
+    if (form.id === "revalida-start-form")
+      await start({
+        mode: "revalida-exam",
+        map: "revalida-geral",
+        exam: form.dataset.exam,
+        ...data,
+      });
     if (form.id === "challenge-form") {
       const result = await api("create-challenge", data);
       closeModal();
@@ -651,6 +1006,9 @@ document.addEventListener("submit", async (event) => {
       toast("Desafio criado. Copie o link e convide seu colega.");
     }
     if (form.id === "auth-form") {
+      const returnToResources = ["study", "consulta"].includes(state.page)
+        ? location.hash.slice(1)
+        : "";
       data.consent = !!data.consent;
       const result = await api(
         form.dataset.kind === "register" ? "register" : "login",
@@ -670,7 +1028,7 @@ document.addEventListener("submit", async (event) => {
         state.pendingCreateChallenge = false;
         await route("competitions");
         openModal(challengeForm());
-      } else await route("profile");
+      } else await route(returnToResources || "profile");
       toast("Operador conectado. Bem-vindo ao round.");
     }
     if (form.id === "profile-form") {
@@ -695,6 +1053,7 @@ document.addEventListener("submit", async (event) => {
         }
         saveGuest();
       }
+      renderProfileAvatar();
       shell();
       toast("Perfil atualizado.");
     }
@@ -710,6 +1069,12 @@ document.addEventListener("submit", async (event) => {
   }
 });
 document.addEventListener("keydown", (event) => {
+  const mobileMenu = $("#mobile-menu");
+  if (event.key === "Escape" && mobileMenu?.open && !modal.open) {
+    mobileMenu.open = false;
+    mobileMenu.querySelector("summary").focus();
+    return;
+  }
   if (
     state.page !== "match" ||
     modal.open ||
@@ -730,7 +1095,8 @@ document.addEventListener("keydown", (event) => {
   if (
     key.length === 1 &&
     index >= 0 &&
-    index < state.game?.current.question.options.length &&
+    index <
+      (state.game?.question ?? state.game?.current.question)?.options.length &&
     !state.game.feedback
   ) {
     event.preventDefault();
@@ -749,9 +1115,10 @@ modal.addEventListener("click", (event) => {
       closeModal();
   }
 });
-window.addEventListener("hashchange", () =>
-  route(location.hash.slice(1) || "lobby"),
-);
+window.addEventListener("hashchange", () => {
+  if (!state.game || state.page !== "match") closeModal();
+  route(location.hash.slice(1) || "lobby", false, "traverse");
+});
 window.addEventListener("beforeunload", (event) => {
   if (state.page === "match" && state.game) {
     event.preventDefault();
@@ -768,6 +1135,6 @@ async function boot() {
   } catch {
     state.configured = false;
   }
-  await route(location.hash.slice(1) || "lobby");
+  await route(location.hash.slice(1) || "lobby", false, "traverse");
 }
 boot();

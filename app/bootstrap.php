@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/security.php';
 require_once __DIR__ . '/education.php';
+require_once __DIR__ . '/avatar.php';
 
 function private_directory(): string {
     $directory = getenv('MDSTRIKE_PRIVATE_DIR') ?: dirname(__DIR__, 2) . '/.mdstrike';
@@ -64,6 +65,8 @@ function migrate(PDO $db): void {
         "CREATE TABLE IF NOT EXISTS md_challenge_runs (id $id, challenge_id VARCHAR(32) NOT NULL, user_id BIGINT NOT NULL, match_id VARCHAR(64) NOT NULL UNIQUE, UNIQUE(challenge_id, user_id))$tail",
         "CREATE TABLE IF NOT EXISTS md_admins (user_id BIGINT PRIMARY KEY, granted_at BIGINT NOT NULL)$tail",
         "CREATE TABLE IF NOT EXISTS md_education (user_id BIGINT PRIMARY KEY, education_status VARCHAR(16) NOT NULL, selection_mode VARCHAR(16) NOT NULL, institution_id VARCHAR(32) NOT NULL DEFAULT '', institution_name VARCHAR(255) NOT NULL, state VARCHAR(2) NOT NULL DEFAULT '', municipality_id VARCHAR(7) NOT NULL DEFAULT '', municipality_name VARCHAR(150) NOT NULL DEFAULT '', source_version VARCHAR(32) NOT NULL, updated_at BIGINT NOT NULL)$tail",
+        "CREATE TABLE IF NOT EXISTS md_avatars (user_id BIGINT PRIMARY KEY, outfit_json TEXT NOT NULL, updated_at BIGINT NOT NULL)$tail",
+        "CREATE TABLE IF NOT EXISTS md_revalida_first (user_id BIGINT NOT NULL, exam_id VARCHAR(90) NOT NULL, formation VARCHAR(10) NOT NULL, reached_cutoff INTEGER NOT NULL, PRIMARY KEY (user_id, exam_id))$tail",
         "CREATE TABLE IF NOT EXISTS md_migrations (name VARCHAR(100) PRIMARY KEY, applied_at BIGINT NOT NULL)$tail",
         "CREATE TABLE IF NOT EXISTS md_audit_logs (id $id, event VARCHAR(80) NOT NULL, actor_id BIGINT, subject_id BIGINT, metadata_json TEXT NOT NULL, client_ip VARCHAR(45) NOT NULL DEFAULT '', user_agent VARCHAR(255) NOT NULL DEFAULT '', request_id VARCHAR(32) NOT NULL, created_at BIGINT NOT NULL$auditIndexes)$tail",
     ];
@@ -155,7 +158,12 @@ function require_user(): array { return current_user() ?: fail('Sua sessão expi
 function public_user(array $u, bool $owner = false): array {
     $result = array_intersect_key($u, array_flip(['id','nickname','specialty','institution','status','xp','points','rating','played','wins','answered','correct','created_at','last_seen']));
     foreach (['id','xp','points','rating','played','wins','answered','correct','created_at','last_seen'] as $key) $result[$key] = (int)$result[$key];
-    if ($owner) { $result['email'] = $u['email']; $result['isAdmin'] = is_admin($u); $result['education'] = education_for_user((int)$u['id']); }
+    if ($owner) {
+        $result['email'] = $u['email'];
+        $result['isAdmin'] = is_admin($u);
+        $result['education'] = education_for_user((int)$u['id']);
+        $result['avatar'] = avatar_for_user((int)$u['id']);
+    }
     $result['rank'] = rank_name((int)$u['rating']);
     return $result;
 }
@@ -171,8 +179,14 @@ function rate_limit(string $name, int $max = 10, int $seconds = 900, ?string $su
     if ($retry) { header('Retry-After: ' . $retry); fail('Muitas tentativas. Aguarde alguns minutos.', 429); }
 }
 
-function catalog(): array { return json_decode(file_get_contents(__DIR__ . '/catalog.json'), true, 512, JSON_THROW_ON_ERROR); }
-function question_bank(): array { return json_decode(file_get_contents(__DIR__ . '/questions.json'), true, 512, JSON_THROW_ON_ERROR); }
+function catalog(): array {
+    static $data;
+    return $data ??= json_decode(file_get_contents(__DIR__ . '/catalog.json'), true, 512, JSON_THROW_ON_ERROR);
+}
+function question_bank(): array {
+    static $data;
+    return $data ??= json_decode(file_get_contents(__DIR__ . '/questions.json'), true, 512, JSON_THROW_ON_ERROR);
+}
 
 function question_public(array $q, array $order): array {
     $public = array_intersect_key($q, array_flip(['id','area','prompt','source','kind','specialties','exam','number','pdf','page','reviewed']));

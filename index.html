@@ -6,9 +6,22 @@
     <meta name="theme-color" content="#111719" />
     <meta
       name="description"
-      content="MD Strike: sua preparação para ENAMED e ENARE em rounds. Mapas por especialidade, provas oficiais e ranking entre jogadores."
+      content="Estude Medicina com resumos, casos PBL, curso de ECG, consulta CID-10 e simulados Enamed, Enare e Revalida com gabaritos oficiais."
     />
-    <title>MD Strike — Conhecimento em jogo</title>
+    <title>MD Strike | Estudo de Medicina e simulados médicos</title>
+    <link rel="canonical" href="https://mdstrike.com/" />
+    <meta
+      property="og:title"
+      content="MD Strike | Estudo de Medicina e simulados médicos"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="MD Strike" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta
+      property="og:description"
+      content="Resumos de Medicina, casos PBL, curso de ECG, consulta CID-10 e provas médicas com gabaritos oficiais."
+    />
+    <meta property="og:url" content="https://mdstrike.com/" />
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
     <link
       rel="icon"
@@ -17,8 +30,8 @@
       href="assets/favicon-32.png"
     />
     <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
-    <link rel="stylesheet" href="assets/style.css?v=2.3.0" />
-    <script type="module" src="assets/js/app.js?v=2.3.0"></script>
+    <link rel="stylesheet" href="assets/style.css?v=3.3.0" />
+    <script type="module" src="assets/js/app.js?v=3.4.0"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Pular para o conteúdo</a>
@@ -54,7 +67,22 @@
         <div class="sidebar-bottom" id="sidebar-profile"></div>
       </aside>
       <main id="main" tabindex="-1">
-        <div id="view"><div class="loading">Preparando o lobby…</div></div>
+        <div id="view">
+          <section class="public-intro">
+            <h1>Estudo de Medicina e simulados médicos</h1>
+            <p>
+              Aprenda com resumos, casos PBL e exames comentados. Simulados
+              Enamed, Enare e Revalida com gabaritos oficiais e mapas por área.
+            </p>
+            <div class="row wrap">
+              <a class="btn outline" href="/medicina/">Estudar Medicina</a>
+              <a class="btn outline" href="/cid-10/">Consultar CID-10</a>
+              <a class="btn outline" href="/enamed/">Simulados Enamed</a>
+              <a class="btn outline" href="/enare/">Provas Enare</a>
+              <a class="btn outline" href="/revalida/">Simulados Revalida</a>
+            </div>
+          </section>
+        </div>
         <footer class="site-footer">
           <span>MD / STRIKE</span>
           <p>
@@ -62,13 +90,23 @@
             Questões identificadas por fonte.
           </p>
           <div class="row wrap footer-links">
-            <button class="text-button" data-page="sources">Fontes ↗</button>
-            <button class="text-button" data-page="privacy">
-              Privacidade ↗
-            </button>
-            <button class="text-button" data-page="ranking-rules">
+            <a class="text-button" href="/medicina/">Medicina</a>
+            <a class="text-button" href="/exames-medicos/">Exames médicos</a>
+            <a class="text-button" href="/consulta-clinica/"
+              >Consulta clínica</a
+            >
+            <a class="text-button" href="/cid-10/">Consulta CID-10</a>
+            <a class="text-button" href="/enamed/">Enamed</a>
+            <a class="text-button" href="/enamed/resultados/"
+              >Resultados Enamed</a
+            >
+            <a class="text-button" href="/enare/">Enare</a>
+            <a class="text-button" href="/revalida/">Revalida</a>
+            <a class="text-button" href="#sources">Fontes ↗</a>
+            <a class="text-button" href="#privacy"> Privacidade ↗ </a>
+            <a class="text-button" href="#ranking-rules">
               Regras do ranking ↗
-            </button>
+            </a>
           </div>
         </footer>
       </main>
