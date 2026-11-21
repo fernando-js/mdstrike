@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import assert from "node:assert/strict";
 
 const areas = {
   CM: "Clínica Médica",
@@ -300,10 +301,50 @@ extra.forEach(([specialty, area, prompt, options, explanation], i) =>
 const official = fs.existsSync("app/official-questions.json")
   ? JSON.parse(fs.readFileSync("app/official-questions.json", "utf8"))
   : [];
-bank.push(...official);
+// MD Strike classifies Enamed 2025 caderno 1 by the predominant competency
+// of each question. The Inep answer key and question pages are kept verbatim.
+const enamedAreas = {
+  CM: [1, 8, 15, 22, 29, 36, 41, 46, 48, 51, 58, 65, 72, 79, 86, 91],
+  CIR: [3, 10, 17, 24, 31, 38, 43, 53, 60, 67, 74, 81, 88, 93, 98],
+  GO: [4, 11, 18, 25, 32, 39, 44, 49, 54, 61, 68, 75, 82, 89, 94, 99, 100],
+  PED: [2, 9, 16, 23, 30, 37, 42, 47, 52, 59, 66, 73, 80, 87, 92, 95, 97],
+  MFC: [5, 12, 19, 26, 27, 33, 45, 50, 55, 62, 76, 78, 83, 96],
+  SM: [7, 14, 21, 28, 35, 57, 64, 69, 71, 85],
+  SC: [6, 13, 20, 34, 40, 56, 63, 70, 77, 84, 90],
+};
+const enamedAreaByNumber = new Map(
+  Object.entries(enamedAreas).flatMap(([area, numbers]) =>
+    numbers.map((number) => [number, area]),
+  ),
+);
+assert.equal(enamedAreaByNumber.size, 100, "Every Enamed 2025 item needs one area");
+for (const question of official.filter(({ exam }) => exam === "enamed-2025")) {
+  assert.ok(enamedAreaByNumber.has(question.number));
+  question.area = enamedAreaByNumber.get(question.number);
+}
+const revalidaQuestions = JSON.parse(
+  fs.readFileSync("app/revalida-questions.json", "utf8"),
+);
+bank.push(...official, ...revalidaQuestions);
 const exams = fs.existsSync("app/official-exams.json")
   ? JSON.parse(fs.readFileSync("app/official-exams.json", "utf8"))
   : [];
+exams.push(...JSON.parse(fs.readFileSync("app/revalida-exams.json", "utf8")));
+const revalidaMaps = [
+  { id: "revalida-geral", name: "Revalida Geral", area: "" },
+  ...Object.entries(areas)
+    .filter(([id]) => id !== "GERAL")
+    .map(([area, name]) => ({
+      id: "revalida-" + area.toLowerCase(),
+      name,
+      area,
+    })),
+].map((map) => ({
+  ...map,
+  questions: revalidaQuestions.filter(
+    (q) => q.answer !== null && (!map.area || q.area === map.area),
+  ).length,
+}));
 specialties.forEach((s) => {
   s.questions = bank.filter(
     (q) => q.specialties.includes(s.id) && q.answer !== null,
@@ -320,6 +361,7 @@ const catalog = {
   areas,
   specialties,
   exams,
+  revalidaMaps,
   sources: [
     {
       title: "ENAMED · provas e gabaritos do Inep",
@@ -336,6 +378,10 @@ const catalog = {
     {
       title: "ENARE · informações oficiais HU Brasil",
       url: "https://www.gov.br/hubrasil/pt-br/ensino-e-pesquisa/exame-nacional-de-residencia-enare",
+    },
+    {
+      title: "Revalida · provas e gabaritos do Inep",
+      url: "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/revalida/provas-e-gabaritos",
     },
   ],
 };

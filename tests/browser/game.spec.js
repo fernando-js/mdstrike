@@ -27,7 +27,7 @@ test("lobby, map filters, guest round, review and mobile layout", async ({
   await expect(page.locator("h1")).toHaveText(
     "Conhecimento é a sua melhor arma.",
   );
-  await page.getByRole("button", { name: "Mapas", exact: true }).click();
+  await page.getByRole("link", { name: "Mapas", exact: true }).click();
   await page.locator("#map-search").fill("anestesiologia");
   await expect(page.locator(".map-card")).toHaveCount(1);
   await page.locator('[data-map="anestesiologia"]').click();

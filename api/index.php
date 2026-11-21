@@ -3,6 +3,7 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/app/bootstrap.php';
 require dirname(__DIR__) . '/app/challenges.php';
 require dirname(__DIR__) . '/app/admin.php';
+require dirname(__DIR__) . '/app/revalida.php';
 header_remove('X-Powered-By');
 if (!development()) { ini_set('display_errors', '0'); ini_set('log_errors', '1'); }
 
@@ -11,9 +12,8 @@ function player_payload(array $u): array {
     return [
         'user' => public_user($u, true),
         'position' => 1 + (int)query('SELECT COUNT(*) FROM md_users WHERE played > 0 AND (rating > ? OR (rating = ? AND points > ?) OR (rating = ? AND points = ? AND id < ?))', [$u['rating'],$u['rating'],$u['points'],$u['rating'],$u['points'],$id])->fetchColumn(),
-        'stats' => query('SELECT area, COUNT(*) AS answered, SUM(correct) AS correct FROM md_answers WHERE user_id = ? GROUP BY area', [$id])->fetchAll(),
-        'history' => query('SELECT id, mode, map_id, score, correct, bot_score, result_json, finished_at FROM md_matches WHERE user_id = ? AND finished_at IS NOT NULL ORDER BY finished_at DESC LIMIT 20', [$id])->fetchAll(),
-        'wrong' => array_column(query('SELECT question_id FROM md_answers WHERE id IN (SELECT MAX(id) FROM md_answers WHERE user_id = ? GROUP BY question_id) AND correct = 0', [$id])->fetchAll(), 'question_id'),
+        ...operation_progress($id, false),
+        'revalida' => operation_progress($id, true),
     ];
 }
 
@@ -56,7 +56,9 @@ function finish_match(array $m, array $payload): array {
     $xp = $correct * 20 + ($ranked && $win ? 80 : 10);
     $result = ['win'=>$win,'ranked'=>$ranked,'ratingDelta'=>$delta,'xp'=>$xp,'score'=>(int)$m['score'],'botScore'=>(int)$m['bot_score'],'correct'=>$correct,'answered'=>$n,'total'=>count($payload['items']),'roundsWon'=>$payload['roundsWon'] ?? 0,'roundsLost'=>$payload['roundsLost'] ?? 0,'eliminated'=>$payload['eliminated'] ?? false];
     query('UPDATE md_matches SET finished_at = ?, result_json = ? WHERE id = ?', [time(),json_encode($result),$m['id']]);
-    query('UPDATE md_users SET xp = xp + ?, points = points + ?, rating = CASE WHEN rating + ? < 0 THEN 0 ELSE rating + ? END, played = played + 1, wins = wins + ?, last_seen = ? WHERE id = ?', [$xp,$m['score'],$delta,$delta,($ranked && $win) ? 1 : 0,time(),$m['user_id']]);
+    if (!str_starts_with($m['map_id'], 'revalida-')) {
+        query('UPDATE md_users SET xp = xp + ?, points = points + ?, rating = CASE WHEN rating + ? < 0 THEN 0 ELSE rating + ? END, played = played + 1, wins = wins + ?, last_seen = ? WHERE id = ?', [$xp,$m['score'],$delta,$delta,($ranked && $win) ? 1 : 0,time(),$m['user_id']]);
+    }
     return $result;
 }
 
@@ -70,6 +72,9 @@ try {
     $action = $_GET['action'] ?? 'session';
     $method = $_SERVER['REQUEST_METHOD'];
     if ($method === 'GET' && $action === 'catalog') send_json(catalog());
+    if ($method === 'GET' && $action === 'revalida-comparison') {
+        send_json(['editions'=>(development() || configuration()['db_password']) ? revalida_comparison() : []]);
+    }
     if ($method === 'GET' && $action === 'session') {
         $configured = development() || (bool)configuration()['db_password'];
         $u = $configured ? current_user() : null;
@@ -92,7 +97,7 @@ try {
         $map = substr((string)($_GET['map'] ?? ''),0,90);
         $specialty = substr((string)($_GET['specialty'] ?? ''),0,90);
         $rows = $map !== ''
-            ? query('SELECT u.id, u.nickname, u.specialty, u.rating, SUM(m.score) AS points, COUNT(*) AS played FROM md_users u JOIN md_matches m ON m.user_id = u.id WHERE ' . completed_match_filter() . ' AND m.map_id = ? GROUP BY u.id,u.nickname,u.specialty,u.rating ORDER BY points DESC, u.id ASC LIMIT 100', [$map])->fetchAll()
+            ? query('SELECT u.id, u.nickname, u.specialty, u.rating, SUM(m.score) AS points, COUNT(*) AS played FROM md_users u JOIN md_matches m ON m.user_id = u.id WHERE ' . completed_match_filter() . " AND m.map_id NOT LIKE 'revalida-%' AND m.map_id = ? GROUP BY u.id,u.nickname,u.specialty,u.rating ORDER BY points DESC, u.id ASC LIMIT 100", [$map])->fetchAll()
             : ($specialty !== ''
                 ? query('SELECT id,nickname,specialty,rating,points,played FROM md_users WHERE played > 0 AND specialty = ? ORDER BY rating DESC,points DESC,id ASC LIMIT 100',[$specialty])->fetchAll()
                 : query('SELECT id,nickname,specialty,rating,points,played FROM md_users WHERE played > 0 ORDER BY rating DESC,points DESC,id ASC LIMIT 100')->fetchAll());
@@ -141,8 +146,15 @@ try {
     }
     $user = require_user();
     rate_limit('write-user', 180, 60, 'user:' . $user['id']);
+    if (in_array($action, ['revalida-mark', 'revalida-submit'], true)) revalida_simulation_write($action, $data, $user);
     if ($action === 'create-challenge') send_json(create_challenge($data,$user),201);
     if ($action === 'join-challenge') send_json(join_challenge((string)($data['challenge']??''),$user));
+    if ($action === 'save-avatar') {
+        $avatar = avatar_selection($data, true);
+        save_avatar((int)$user['id'], $avatar);
+        audit_event('avatar.updated', (int)$user['id'], (int)$user['id']);
+        send_json(['avatar'=>$avatar]);
+    }
     if ($action === 'update-profile') {
         $nick = trim((string)($data['nickname'] ?? $user['nickname']));
         $specialty = (string)($data['specialty'] ?? '');
@@ -181,36 +193,71 @@ try {
         $mode = (string)($data['mode'] ?? 'practice');
         $map = (string)($data['map'] ?? 'all');
         $exam = (string)($data['exam'] ?? '');
-        if (!in_array($mode,['practice','duel','competitive','cup','exam','review'],true)) fail('Modo inválido.');
-        if ($map !== 'all' && !in_array($map,array_merge(array_column(catalog()['specialties'],'id'),array_keys(catalog()['areas'])),true)) fail('Mapa inválido.');
-        $pool = question_bank();
-        if ($exam !== '') $pool = array_values(array_filter($pool,fn($q)=>($q['exam'] ?? '')===$exam && $q['answer']!==null));
-        elseif ($mode !== 'review') $pool = array_values(array_filter($pool,fn($q)=>$q['kind']==='original'));
-        else $pool = array_values(array_filter($pool,fn($q)=>$q['answer']!==null));
-        if ($map !== 'all') $pool = array_values(array_filter($pool,fn($q)=>$q['area']===$map || in_array($map,$q['specialties'] ?? [],true)));
-        if ($mode === 'review') { $wrong=player_payload($user)['wrong']; $pool=array_values(array_filter($pool,fn($q)=>in_array($q['id'],$wrong,true))); }
+        if (!in_array($mode,['practice','duel','competitive','cup','exam','review','revalida-exam'],true)) fail('Modo inválido.');
+        $revalida = revalida_map($map);
+        $simulation = $mode === 'revalida-exam';
+        if (!$revalida && $map !== 'all' && !in_array($map,array_merge(array_column(catalog()['specialties'],'id'),array_keys(catalog()['areas'])),true)) fail('Mapa inválido.');
+        if ($simulation && ($map !== 'revalida-geral' || !($edition = revalida_exam($exam)))) fail('Escolha uma edição do Revalida.');
+        if ($revalida && !$simulation && ($exam !== '' || !in_array($mode,['practice','review'],true))) fail('Modo indisponível na Operação Revalida.');
+        if (!$revalida && $exam !== '' && !exam_definition($exam)) fail('Caderno inválido.');
+        $formation = $data['formation'] ?? '';
+        if (!in_array($formation, ['', 'brasil', 'exterior'], true)) fail('Escolha uma opção de formação válida.');
+        $pool = array_values(array_filter(question_bank(), static function ($q) use ($revalida, $exam, $mode, $map) {
+            if ($q['answer'] === null || (($q['operation'] ?? '') === 'revalida') !== (bool)$revalida) return false;
+            if ($exam !== '' && ($q['exam'] ?? '') !== $exam) return false;
+            if ($revalida) return $revalida['area'] === '' || $q['area'] === $revalida['area'];
+            if ($exam === '' && $mode !== 'review' && $q['kind'] !== 'original') return false;
+            return $map === 'all' || $q['area'] === $map || in_array($map,$q['specialties'] ?? [],true);
+        }));
+        if ($mode === 'review') {
+            $wrong = array_flip(operation_progress((int)$user['id'], (bool)$revalida)['wrong']);
+            $pool = array_values(array_filter($pool, fn($q) => isset($wrong[$q['id']])));
+        }
         if (!$pool) fail($mode==='review'?'Você não tem erros pendentes nesta seleção.':'Este mapa ainda não tem questões disponíveis.');
         if ($mode==='exam' && $exam==='') fail('Escolha um caderno oficial para o simulado.');
-        if ($mode==='exam') usort($pool,fn($a,$b)=>$a['number']<=>$b['number']); else shuffle($pool);
-        $count = match($mode) { 'duel'=>7,'competitive'=>9,'cup'=>15,'exam'=>100,default=>10 };
+        if ($mode==='exam' || $simulation) usort($pool,fn($a,$b)=>$a['number']<=>$b['number']); else shuffle($pool);
+        $count = match($mode) { 'duel'=>7,'competitive'=>9,'cup'=>15,'exam','revalida-exam'=>count($pool),default=>10 };
         if (in_array($mode,['duel','competitive','cup'],true) && count($pool)<$count) fail('Este modo precisa de pelo menos '.$count.' questões diferentes. Escolha uma área maior.');
         $selected = array_slice($pool,0,$count);
         $items=[];
         foreach ($selected as $q) { $order=range(0,count($q['options'])-1); if ($q['kind']==='original') shuffle($order); $items[]=['id'=>$q['id'],'order'=>$order]; }
         $id=bin2hex(random_bytes(24));
         $payload=['items'=>$items,'roundsWon'=>0,'roundsLost'=>0,'stageMe'=>0,'stageBot'=>0];
-        // Ordinary modes share one active run; invitations remain independent across tabs.
-        query("UPDATE md_matches SET finished_at = ?, result_json = ? WHERE user_id = ? AND finished_at IS NULL AND mode <> 'challenge'",[time(),json_encode(['aborted'=>true]),$user['id']]);
+        $db = database();
+        $db->beginTransaction();
+        $mysql = $db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql';
+        if ($simulation) {
+            if ($mysql) query('SELECT id FROM md_users WHERE id = ? FOR UPDATE', [$user['id']])->fetch();
+            $active = query("SELECT * FROM md_matches WHERE user_id = ? AND exam_id = ? AND mode = 'revalida-exam' AND finished_at IS NULL ORDER BY started_at DESC LIMIT 1" . ($mysql ? ' FOR UPDATE' : ''), [$user['id'],$exam])->fetch();
+            if ($active) {
+                $db->commit();
+                send_json(revalida_attempt($active,$edition));
+            }
+            $payload += [
+                'duration'=>$edition['durationMinutes'] * 60,
+                'cutoff'=>$edition['cutoff'] ?? null,
+                'cancelledCredit'=>($edition['creditCancelled'] ?? false) ? count($edition['cancelled']) : 0,
+                'maximum'=>($edition['creditCancelled'] ?? false) ? $edition['total'] : $edition['valid'],
+                'formation'=>isset($edition['cutoff']) ? $formation : '',
+                'choices'=>[],
+            ];
+        } else {
+            // Each operation has one active round-based match; simulations and invitations can be resumed.
+            $scope = $revalida ? "LIKE 'revalida-%'" : "NOT LIKE 'revalida-%'";
+            query("UPDATE md_matches SET finished_at = ?, result_json = ? WHERE user_id = ? AND finished_at IS NULL AND mode NOT IN ('challenge','revalida-exam') AND map_id $scope", [time(),json_encode(['aborted'=>true]),$user['id']]);
+        }
         query('INSERT INTO md_matches (id,user_id,mode,map_id,exam_id,questions_json,started_at,issued_at) VALUES (?,?,?,?,?,?,?,?)',[$id,$user['id'],$mode,$map,$exam,json_encode($payload),time(),time()]);
         $m=query('SELECT * FROM md_matches WHERE id = ?',[$id])->fetch();
+        $db->commit();
         audit_event('match.started',(int)$user['id'],(int)$user['id'],['match_id'=>$id,'mode'=>$mode,'map'=>$map,'exam'=>$exam]);
+        if ($simulation) send_json(revalida_attempt($m,$edition));
         send_json(match_state($m,$payload));
     }
     if ($action === 'answer') {
         $db=database(); $db->beginTransaction();
         $lock=$db->getAttribute(PDO::ATTR_DRIVER_NAME)==='mysql'?' FOR UPDATE':'';
         $m=query('SELECT * FROM md_matches WHERE id = ? AND user_id = ?'.$lock,[(string)($data['match'] ?? ''),$user['id']])->fetch();
-        if (!$m || $m['finished_at']!==null) { $db->rollBack(); fail('Partida encerrada ou não encontrada.',409); }
+        if (!$m || $m['finished_at']!==null || $m['mode']==='revalida-exam') { $db->rollBack(); fail('Partida encerrada ou não encontrada.',409); }
         $payload=json_decode($m['questions_json'],true,512,JSON_THROW_ON_ERROR);
         if (!empty($payload['awaitingNext'])) { $db->rollBack(); fail('Pressione Continuar para iniciar a próxima questão.',409); }
         $item=$payload['items'][(int)$m['question_index']] ?? null;
@@ -243,7 +290,9 @@ try {
         }
         query('INSERT INTO md_answers (match_id,user_id,question_id,area,map_id,choice,correct,points,elapsed,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)',[$m['id'],$user['id'],$q['id'],$q['area'],$m['map_id'],$choice,$correct?1:0,$points,$elapsed,time()]);
         query('UPDATE md_matches SET question_index = ?, score = ?, correct = ?, bot_score = ?, questions_json = ? WHERE id = ?',[$m['question_index'],$m['score'],$m['correct'],$m['bot_score'],json_encode($payload),$m['id']]);
-        query('UPDATE md_users SET answered = answered + 1, correct = correct + ? WHERE id = ?',[$correct?1:0,$user['id']]);
+        if (!str_starts_with($m['map_id'], 'revalida-')) {
+            query('UPDATE md_users SET answered = answered + 1, correct = correct + ? WHERE id = ?',[$correct?1:0,$user['id']]);
+        }
         $finished=$m['question_index']>=count($payload['items']) || !empty($payload['eliminated']) || $payload['roundsWon']>=5 || $payload['roundsLost']>=5;
         // The next question clock starts only when the player presses Continue.
         $payload['awaitingNext']=!$finished;
@@ -258,7 +307,7 @@ try {
         $db=database(); $db->beginTransaction();
         $lock=$db->getAttribute(PDO::ATTR_DRIVER_NAME)==='mysql'?' FOR UPDATE':'';
         $m=query('SELECT * FROM md_matches WHERE id = ? AND user_id = ?'.$lock,[(string)($data['match'] ?? ''),$user['id']])->fetch();
-        if (!$m || $m['finished_at']!==null) { $db->rollBack(); fail('Partida encerrada.',409); }
+        if (!$m || $m['finished_at']!==null || $m['mode']==='revalida-exam') { $db->rollBack(); fail('Partida encerrada.',409); }
         $payload=json_decode($m['questions_json'],true);
         if (!empty($payload['awaitingNext'])) {
             $payload['awaitingNext']=false; $m['issued_at']=time();
@@ -267,7 +316,7 @@ try {
         $db->commit(); send_json(match_state($m,$payload));
     }
     if ($action === 'abort-match') {
-        $aborted=query('UPDATE md_matches SET finished_at = ?, result_json = ? WHERE id = ? AND user_id = ? AND finished_at IS NULL',[time(),json_encode(['aborted'=>true]),(string)($data['match'] ?? ''),$user['id']]);
+        $aborted=query("UPDATE md_matches SET finished_at = ?, result_json = ?, questions_json = CASE WHEN mode = 'revalida-exam' THEN JSON_REMOVE(questions_json, '$.formation') ELSE questions_json END WHERE id = ? AND user_id = ? AND finished_at IS NULL",[time(),json_encode(['aborted'=>true]),(string)($data['match'] ?? ''),$user['id']]);
         if($aborted->rowCount())audit_event('match.aborted',(int)$user['id'],(int)$user['id'],['match_id'=>(string)$data['match']]);
         send_json(['ok'=>true]);
     }

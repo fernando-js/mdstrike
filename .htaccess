@@ -27,4 +27,8 @@ AddType application/javascript .mjs
   RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1)(:[0-9]+)?$ [NC]
   RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
   RewriteRule ^(?:app|scripts|tests|\.runtime|node_modules|release)(?:/|$) - [F,L]
+  RewriteRule ^enamed/resultados(?:/|$) exam.php [L]
+  RewriteRule ^(?:enamed|enare|revalida)(?:/[^/]+)?/?$ exam.php [L]
+  RewriteRule ^(?:medicina|consulta-clinica|codificacao-em-saude|exames-medicos|cid-10)(?:/|$) exam.php [L]
+  RewriteRule ^sitemap\.xml$ exam.php [L]
 </IfModule>

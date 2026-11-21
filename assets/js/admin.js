@@ -8,8 +8,9 @@ import {
   state,
   specialtyName,
   modeName,
-} from "./core.js?v=2.3.0";
-import { heading, statsStrip } from "./views.js?v=2.3.0";
+} from "./core.js?v=2.4.0";
+import { heading, statsStrip } from "./views.js?v=2.9.0";
+import { focusPage, rememberView, setRouteHistory } from "./app-navigation.js?v=2.9.0";
 
 let generation = 0;
 let section = "overview";
@@ -213,7 +214,6 @@ function matchesTable(rows) {
 async function load() {
   if (state.page !== "admin" || !state.user?.isAdmin) return;
   const current = ++generation;
-  history.replaceState(null, "", `#admin/${section}`);
   $("#view").innerHTML =
     heading(
       "Central de comando.",
@@ -287,7 +287,7 @@ document.addEventListener("click", async (event) => {
   if (button.hasAttribute("data-admin-tab")) {
     section = button.dataset.adminTab;
     params = { page: 1, size: 25 };
-    await load();
+    await openSection();
   } else if (button.hasAttribute("data-admin-page")) {
     params.page = Number(button.dataset.adminPage);
     await load();
@@ -300,9 +300,19 @@ document.addEventListener("click", async (event) => {
   else if (button.hasAttribute("data-admin-user-logs")) {
     section = "logs";
     params = { page: 1, size: 25, user: Number(button.dataset.adminUserLogs) };
-    await load();
+    await openSection();
   }
 });
+
+async function openSection() {
+  const view = $("#view");
+  rememberView(view);
+  setRouteHistory(`admin/${section}`);
+  const ready = load();
+  window.scrollTo({ top: 0 });
+  focusPage(view);
+  await ready;
+}
 document.addEventListener("submit", async (event) => {
   if (event.target.id !== "admin-filter-form") return;
   event.preventDefault();

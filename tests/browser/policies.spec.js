@@ -18,7 +18,7 @@ test("privacy and ranking rules have public links and reading them preserves the
     path: "/private/tmp/mdstrike-privacy-desktop.png",
     fullPage: false,
   });
-  await page.locator('footer [data-page="ranking-rules"]').click();
+  await page.locator('footer [href="#ranking-rules"]').click();
   await expect(page.locator("h1")).toHaveText("Regras do ranking.");
   await expect(page.locator("article.prose")).toContainText(
     "conta criada primeiro",

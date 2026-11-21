@@ -1,4 +1,4 @@
-import catalog from "./catalog.js?v=2.3.0";
+import catalog from "./catalog.js?v=2.4.0";
 export { catalog };
 export const $ = (selector) => document.querySelector(selector);
 export const esc = (value) =>
@@ -58,8 +58,16 @@ export const state = {
 };
 export const player = () => state.user || guest;
 export const saveGuest = () => storage.set("mdstrike_guest_v2", guest);
+export const revalidaGuest = storage.get("mdstrike_revalida_guest", {
+  wrong: [],
+  history: [],
+  stats: {},
+});
+export const saveRevalidaGuest = () =>
+  storage.set("mdstrike_revalida_guest", revalidaGuest);
 export const specialtyName = (id) =>
   catalog.specialties.find((s) => s.id === id)?.name ||
+  catalog.revalidaMaps.find((s) => s.id === id)?.name ||
   catalog.areas[id] ||
   "Todas as áreas";
 export const modeName = (mode) =>
@@ -69,6 +77,7 @@ export const modeName = (mode) =>
     competitive: "Competitivo 5v5",
     cup: "Copa MD Strike",
     exam: "Caderno oficial",
+    "revalida-exam": "Simulado Revalida",
     review: "Revisar erros",
     challenge: "Desafio entre colegas",
   })[mode] || mode;

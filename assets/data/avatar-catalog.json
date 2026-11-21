@@ -1,0 +1,188 @@
+{
+  "portrait": {
+    "label": "Retrato",
+    "default": "iris",
+    "items": [
+      {
+        "id": "iris",
+        "name": "Íris",
+        "image": "iris",
+        "neck": [35.1, 64.6, 65.8]
+      },
+      {
+        "id": "caio",
+        "name": "Caio",
+        "image": "caio",
+        "neck": [32.2, 60.7, 65.8]
+      },
+      {
+        "id": "luna",
+        "name": "Luna",
+        "image": "luna",
+        "neck": [35.3, 65.1, 67.3]
+      },
+      {
+        "id": "ren",
+        "name": "Ren",
+        "image": "ren",
+        "neck": [35, 64.1, 66.3]
+      },
+      {
+        "id": "amina",
+        "name": "Amina",
+        "image": "amina",
+        "neck": [35.4, 64.3, 65.7]
+      },
+      {
+        "id": "raul",
+        "name": "Raul",
+        "image": "raul",
+        "neck": [34.2, 61.4, 66]
+      },
+      {
+        "id": "maya",
+        "name": "Maya",
+        "image": "maya",
+        "neck": [36.4, 64.4, 64.2]
+      },
+      {
+        "id": "omar",
+        "name": "Omar",
+        "image": "omar",
+        "neck": [34.7, 62.4, 66.4]
+      },
+      {
+        "id": "davi",
+        "name": "Davi",
+        "image": "davi",
+        "neck": [34, 61.7, 66.6]
+      },
+      {
+        "id": "sofia",
+        "name": "Sofia",
+        "image": "sofia",
+        "neck": [36.7, 65.7, 64.8]
+      },
+      {
+        "id": "bia",
+        "name": "Bia",
+        "image": "bia",
+        "neck": [35.6, 67.1, 67.4]
+      },
+      {
+        "id": "mei",
+        "name": "Mei",
+        "image": "mei",
+        "neck": [35.1, 66.1, 67.4]
+      }
+    ]
+  },
+  "coat": {
+    "label": "Jaleco",
+    "default": "none",
+    "items": [
+      {
+        "id": "none",
+        "name": "Só uniforme"
+      },
+      {
+        "id": "white",
+        "name": "Jaleco branco",
+        "image": "jaleco-branco-ajustado"
+      },
+      {
+        "id": "embroidered",
+        "name": "Jaleco ornamentado",
+        "image": "jaleco-ornamentado-ajustado"
+      }
+    ]
+  },
+  "cap": {
+    "label": "Gorro",
+    "default": "none",
+    "items": [
+      {
+        "id": "none",
+        "name": "Sem gorro"
+      },
+      {
+        "id": "teal",
+        "name": "Gorro petróleo",
+        "image": "gorro-petroleo",
+        "layer": [26, 1, 48, 27]
+      },
+      {
+        "id": "aurum",
+        "name": "Gorro Aurum",
+        "image": "gorro-aurum",
+        "layer": [26, 1, 48, 27]
+      }
+    ]
+  },
+  "mask": {
+    "label": "Máscara",
+    "default": "none",
+    "items": [
+      {
+        "id": "none",
+        "name": "Sem máscara"
+      },
+      {
+        "id": "blue",
+        "name": "Máscara azul",
+        "image": "mascara-azul",
+        "layer": [30, 38, 40, 23]
+      },
+      {
+        "id": "graphite",
+        "name": "Máscara grafite",
+        "image": "mascara-grafite",
+        "layer": [30, 38, 40, 23]
+      }
+    ]
+  },
+  "stethoscope": {
+    "label": "Estetoscópio",
+    "default": "none",
+    "items": [
+      {
+        "id": "none",
+        "name": "Sem estetoscópio"
+      },
+      {
+        "id": "classic",
+        "name": "Estetoscópio clássico",
+        "image": "estetoscopio-classico-ajustado",
+        "parts": [
+          "estetoscopio-classico-hastes",
+          "estetoscopio-classico-auscultador"
+        ]
+      },
+      {
+        "id": "gold",
+        "name": "Estetoscópio dourado",
+        "image": "estetoscopio-dourado-ajustado",
+        "parts": [
+          "estetoscopio-dourado-hastes",
+          "estetoscopio-dourado-auscultador"
+        ]
+      }
+    ]
+  },
+  "accessory": {
+    "label": "Acessório",
+    "default": "none",
+    "items": [
+      {
+        "id": "none",
+        "name": "Sem acessório"
+      },
+      {
+        "id": "silver-scalpel",
+        "name": "Bisturi de prata",
+        "image": "bisturi-prata",
+        "layer": [76, 74, 17, 19]
+      }
+    ]
+  }
+}
