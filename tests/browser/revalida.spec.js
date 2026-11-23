@@ -32,7 +32,7 @@ test("exam landing pages expose crawlable HTML, canonical links and a sitemap", 
   const examUrls = urls.filter((url) =>
     /^\/(?:enamed\/|enare\/|revalida\/|$)/.test(new URL(url).pathname),
   );
-  expect(examUrls).toHaveLength(33 + results.courses.length);
+  expect(examUrls).toHaveLength(34 + results.courses.length);
   expect(new Set(urls).size).toBe(urls.length);
   for (const url of urls.filter(
     (entry) => !entry.includes("/resultados/curso/"),

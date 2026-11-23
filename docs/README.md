@@ -2,14 +2,14 @@
 
 O MD Strike é uma plataforma de estudo de Medicina. O navegador exibe o jogo e as ferramentas de consulta. O PHP entrega páginas públicas e processa a conta, as partidas registradas e o ranking. O MySQL da Hostinger guarda o progresso vinculado à conta. O ambiente local usa SQLite.
 
-O manual cobre a versão web **3.4.0**, publicada em 21 de novembro de 2026. A versão web aparece no parâmetro `?v=` do script principal em `index.html`. O campo `version` de `package.json` identifica o pacote de ferramentas e tem numeração própria.
+O manual cobre a versão web **3.7.3**. A versão web aparece no parâmetro `?v=` do script principal em `index.html`. O campo `version` de `package.json` identifica o pacote de ferramentas e tem numeração própria.
 
 ## Onde começar
 
 | Para aprender ou manter | Guia |
 | --- | --- |
 | Entender como a tela, a API e o servidor se comunicam | [Arquitetura e rotas](#arquitetura-e-rotas) |
-| Saber o que cada uma das 12 tabelas guarda e como elas se relacionam | [Banco de dados](banco-de-dados.md) |
+| Saber o que cada uma das 16 tabelas guarda e como elas se relacionam | [Banco de dados](banco-de-dados.md) |
 | Encontrar um arquivo pelo nome da função que deseja mudar | [Mapa de arquivos](arquivos.md) |
 | Rodar o projeto, atualizar conteúdo, testar e publicar | [Operação e manutenção](operacao.md) |
 
@@ -50,7 +50,8 @@ flowchart LR
 
 | Área | Leitura por GET | Operações por POST |
 | --- | --- | --- |
-| Sessão e perfil | `session`, `profile` | `register`, `login`, `logout`, `update-profile`, `save-avatar`, `change-password` |
+| Sessão e perfil | `session`, `profile` | `register`, `login`, `logout`, `update-profile`, `save-avatar`, `change-password`, `request-password-reset`, `reset-password` |
+| Entrada com Google | `/api/google-callback.php` | `google-start`, `google-register` |
 | Catálogo e partidas | `catalog`, `leaderboard` | `start-match`, `answer`, `next-question`, `abort-match` |
 | Desafios por link | `challenge`, `my-challenges` | `create-challenge`, `join-challenge` |
 | Simulados Revalida | `revalida-comparison` | `revalida-mark`, `revalida-submit` |
@@ -67,6 +68,7 @@ A lista canônica de ações aceitas e seus métodos fica em `guard_request()`. 
 | Revalida | Operação com mapas por área, simulado com marcações retomáveis, correção na entrega, histórico e comparação por edição |
 | Resultados do Enamed | Página pública com 351 fichas de cursos da edição de 2025, filtros, comparação e CSV agregado |
 | Conta e competições | Cadastro, perfil, avatar, formação opcional, histórico, XP, ranking e desafios assíncronos por link |
+| Recuperação de senha | Solicitação por e-mail, fila de entrega por SMTP e link de uso único. A disponibilidade depende da configuração de envio |
 | Administração | Consulta de usuários, partidas, desafios e logs de auditoria por contas autorizadas |
 | Área de estudo | Resumos por disciplina, casos PBL, revisão espaçada, Trilha Enamed e curso de ECG com seis aulas |
 | Consulta rápida | Protocolos, fontes brasileiras, 12 calculadoras e seis fichas de bulas com links para os documentos consultados |

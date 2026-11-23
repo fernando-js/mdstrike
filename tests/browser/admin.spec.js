@@ -104,6 +104,13 @@ test("administration protects records, records activity and renders desktop/mobi
     expect(text).not.toContain(password);
     return JSON.parse(text);
   };
+  const metric = await request.post("/api/enamed-metrics.php", {
+    headers: { Origin: "http://127.0.0.1:8088" },
+    data: { event: "first_answer" },
+  });
+  expect(metric.status()).toBe(204);
+  const metrics = await get("admin-overview");
+  expect(Number(metrics.enamedMetrics.first_answer)).toBeGreaterThan(0);
   const filtered = await get("admin-users", { search: member.user.email });
   expect(filtered.total).toBe(1);
   expect(filtered.rows[0].email).toBe(member.user.email);
@@ -160,6 +167,8 @@ test("administration protects records, records activity and renders desktop/mobi
   await expect(page.locator("#admin-content")).toContainText(
     "Usuários cadastrados",
   );
+  await page.getByText("Ver métricas por dia", { exact: true }).click();
+  await expect(page.getByRole("columnheader", { name: "Primeiras respostas" })).toBeVisible();
   await expect(page).toHaveTitle(/MD Strike/i);
   await page.screenshot({
     path: "/private/tmp/mdstrike-admin-desktop.png",

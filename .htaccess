@@ -9,6 +9,9 @@ AddType application/javascript .mjs
   Header always set X-Frame-Options "SAMEORIGIN"
   Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
   Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests"
+  <Files "google-callback.php">
+    Header always set Referrer-Policy "no-referrer"
+  </Files>
 </IfModule>
 
 <FilesMatch "^(\.env(?:\..*)?|package(-lock)?\.json|README\.md|playwright\.config\.js|indexold\.html|index-legacy\.html)$">
@@ -27,6 +30,7 @@ AddType application/javascript .mjs
   RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1)(:[0-9]+)?$ [NC]
   RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
   RewriteRule ^(?:app|scripts|tests|\.runtime|node_modules|release)(?:/|$) - [F,L]
+  RewriteRule ^d(?:/|$) exam.php [L]
   RewriteRule ^enamed/resultados(?:/|$) exam.php [L]
   RewriteRule ^(?:enamed|enare|revalida)(?:/[^/]+)?/?$ exam.php [L]
   RewriteRule ^(?:medicina|consulta-clinica|codificacao-em-saude|exames-medicos|cid-10)(?:/|$) exam.php [L]

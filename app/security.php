@@ -8,7 +8,7 @@ function guard_request(): void {
     foreach ($_GET as $value) if (!is_string($value) || strlen($value) > 256 || !mb_check_encoding($value, 'UTF-8')) fail('Parâmetro inválido.');
     $action = $_GET['action'] ?? 'session';
     $reads = ['session','catalog','profile','challenge','my-challenges','leaderboard','revalida-comparison','admin-overview','admin-users','admin-user','admin-matches','admin-challenges','admin-logs'];
-    $writes = ['register','login','logout','update-profile','save-avatar','change-password','start-match','answer','next-question','abort-match','create-challenge','join-challenge','revalida-mark','revalida-submit'];
+    $writes = ['register','login','logout','update-profile','save-avatar','change-password','request-password-reset','reset-password','google-start','google-register','start-match','answer','next-question','abort-match','create-challenge','join-challenge','revalida-mark','revalida-submit'];
     if (!in_array($action, array_merge($reads, $writes), true)) fail('Rota não encontrada.', 404);
     $expected = in_array($action, $reads, true) ? 'GET' : 'POST';
     if (($_SERVER['REQUEST_METHOD'] ?? '') !== $expected) {

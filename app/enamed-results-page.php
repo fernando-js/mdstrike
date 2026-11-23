@@ -53,7 +53,7 @@ header('Content-Type: text/html; charset=UTF-8');
   <meta property="og:description" content="<?= h($description) ?>">
   <meta property="og:url" content="<?= h(SITE . $canonical) ?>">
   <link rel="icon" href="/favicon.ico">
-  <link rel="stylesheet" href="/assets/style.css?v=2.6.0">
+  <link rel="stylesheet" href="/assets/style.css?v=3.7.1">
   <link rel="stylesheet" href="/assets/enamed-results.css?v=2.7.0">
   <script type="module" src="/assets/js/enamed-results.js?v=2.7.0"></script>
 </head>

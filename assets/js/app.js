@@ -18,7 +18,8 @@ import {
   refreshProfile,
   beep,
 } from "./core.js?v=2.4.0";
-import * as views from "./views.js?v=3.4.0";
+import * as views from "./views.js?v=3.6.1";
+import { googleButton, passwordField, setPasswordVisibility } from "./auth-fields.js?v=3.6.0";
 import {
   clearSavedViews,
   focusPage,
@@ -28,7 +29,7 @@ import {
   restoreView,
   setRouteHistory,
 } from "./app-navigation.js?v=3.1.0";
-import { mountMedicalResources, renderEnamedProgress } from "./medical-resources.js?v=3.4.0";
+import { mountMedicalResources, renderEnamedProgress } from "./medical-resources.js?v=3.4.1";
 import {
   avatarChoices,
   avatarEditor,
@@ -42,8 +43,9 @@ import {
   challengeForm,
   challengePage,
   loadMyChallenges,
-} from "./challenges.js?v=2.4.0";
-import { openAdmin, stopAdmin } from "./admin.js?v=2.9.0";
+  shareChallenge,
+} from "./challenges.js?v=3.7.2";
+import { openAdmin, stopAdmin } from "./admin.js?v=2.9.1";
 import { mountEducation, educationFromForm } from "./education.js?v=2.4.0";
 import {
   RevalidaSimulation,
@@ -155,6 +157,8 @@ async function route(page, force = false, navigation = "push") {
   const bookletId = /^caderno\/([a-z0-9-]+)$/.exec(page)?.[1];
   const booklet = catalog.exams.find((exam) => exam.id === bookletId);
   if (booklet) page = "booklet";
+  const resetRoute = /^reset-password(?:\/([a-f0-9]{64}))?$/.exec(page);
+  if (resetRoute) page = "reset-password";
   const thematicRoute = /^(maps\/(?:codificacao(?:\/(cid10|sigtap|tuss|misto|consulta))?|(historia-medicina|eponimos|medicamentos)))$/.exec(page);
   if (thematicRoute) page = "maps";
   const resourcesRoute = /^(study(?:\/(?:pbl|revisao|enamed|resumo\/[a-z0-9-]+|cursos(?:\/ecg(?:\/[a-z-]+)?)?))?|consulta(?:\/(?:bulas|calculadoras|fontes|tema\/[a-z0-9-]+))?)$/.exec(page);
@@ -177,6 +181,7 @@ async function route(page, force = false, navigation = "push") {
       "ranking-rules",
       "challenge",
       "admin",
+      "reset-password",
     ].includes(page) ||
     (page === "booklet" && !booklet)
   )
@@ -184,12 +189,25 @@ async function route(page, force = false, navigation = "push") {
   clearInterval(timer);
   state.page = page;
   const generation = ++routeGeneration;
-  const path = thematicRoute?.[1] ?? resourcesRoute?.[1] ??
-    (page === "admin" ? "admin/" + (adminRoute?.[1] || "overview")
-      : page === "challenge" ? "challenge/" + state.challengeId
-      : booklet ? "caderno/" + booklet.id : page);
+  const path =
+    resetRoute?.[0] ??
+    thematicRoute?.[1] ??
+    resourcesRoute?.[1] ??
+    (page === "admin"
+      ? "admin/" + (adminRoute?.[1] || "overview")
+      : page === "challenge"
+        ? "challenge/" + state.challengeId
+        : booklet
+          ? "caderno/" + booklet.id
+          : page);
   setRouteHistory(path, navigation);
   shell();
+  if (resetRoute) {
+    view.innerHTML = resetPasswordPage(resetRoute[1]);
+    restoreView(view, navigation);
+    focusPage(view);
+    return;
+  }
   if (thematicRoute) {
     view.innerHTML = '<p class="loading" role="status">Abrindo o mapa…</p>';
     try {
@@ -198,7 +216,10 @@ async function route(page, force = false, navigation = "push") {
       mountCodingGame(view, thematicRoute[2] ?? thematicRoute[3]);
     } catch {
       if (routeGeneration !== generation) return;
-      view.innerHTML = '<section class="empty"><h1>Mapa indisponível</h1><button class="btn outline" data-page="' + path + '">Tentar novamente</button></section>';
+      view.innerHTML =
+        '<section class="empty"><h1>Mapa indisponível</h1><button class="btn outline" data-page="' +
+        path +
+        '">Tentar novamente</button></section>';
     }
     restoreView(view, navigation);
     focusPage(view);
@@ -213,7 +234,8 @@ async function route(page, force = false, navigation = "push") {
         mountEcgCourse(view, path);
       } catch {
         if (routeGeneration !== generation) return;
-        view.innerHTML = '<section class="empty"><h1>Curso indisponível</h1><button class="btn outline" data-page="study/cursos">Tentar novamente</button></section>';
+        view.innerHTML =
+          '<section class="empty"><h1>Curso indisponível</h1><button class="btn outline" data-page="study/cursos">Tentar novamente</button></section>';
       }
       restoreView(view, navigation);
       focusPage(view);
@@ -226,10 +248,12 @@ async function route(page, force = false, navigation = "push") {
       const progress = view.querySelector("[data-enamed-progress]");
       try {
         const profile = await refreshProfile();
-        if (routeGeneration === generation) renderEnamedProgress(progress, profile.stats);
+        if (routeGeneration === generation)
+          renderEnamedProgress(progress, profile.stats);
       } catch (error) {
         if (routeGeneration === generation) {
-          progress.innerHTML = "<p>O histórico está indisponível no momento.</p>";
+          progress.innerHTML =
+            "<p>O histórico está indisponível no momento.</p>";
         }
       }
     }
@@ -264,7 +288,9 @@ async function route(page, force = false, navigation = "push") {
     ]);
     if (routeGeneration === generation) {
       const scroll = window.scrollY;
-      const focused = view.contains(document.activeElement) ? document.activeElement : null;
+      const focused = view.contains(document.activeElement)
+        ? document.activeElement
+        : null;
       view.innerHTML = revalidaPage(
         profile.status === "fulfilled" ? profile.value : state.profile,
         comparison.status === "fulfilled" ? comparison.value.editions : null,
@@ -273,7 +299,8 @@ async function route(page, force = false, navigation = "push") {
         $("#revalida-cohort-status").textContent =
           "Resultados indisponíveis no momento.";
       window.scrollTo({ top: scroll });
-      if (focused?.id) document.getElementById(focused.id)?.focus({ preventScroll: true });
+      if (focused?.id)
+        document.getElementById(focused.id)?.focus({ preventScroll: true });
       else if (focused?.tagName === "H1") focusPage(view);
     }
   }
@@ -298,7 +325,8 @@ async function route(page, force = false, navigation = "push") {
     try {
       await refreshProfile();
       if (routeGeneration === generation && state.page === "profile") {
-        const hadTitleFocus = document.activeElement === view.querySelector("h1");
+        const hadTitleFocus =
+          document.activeElement === view.querySelector("h1");
         shell();
         view.innerHTML = views.profile();
         if (hadTitleFocus) focusPage(view);
@@ -328,12 +356,52 @@ function renderProfileAvatar() {
 function openModal(html) {
   modal.innerHTML = html;
   if (!modal.open) modal.showModal();
+  modal.scrollTop = 0;
 }
 function closeModal() {
   modal.close();
 }
 
-function auth(type = "login") {
+function forgotPassword() {
+  if (!state.passwordResetAvailable) return;
+  openModal(`<div class="modal-content">
+    <div class="modal-top"><h2 id="modal-title">Esqueci minha senha</h2><button class="close-button" type="button" data-close aria-label="Fechar">×</button></div>
+    <p>Informe o e-mail cadastrado na sua conta.</p>
+    <form class="auth-form" id="forgot-password-form">
+      <label class="field"><span>E-mail</span><input name="email" type="email" autocomplete="email" maxlength="190" value="${esc(state.user?.email || "")}" required></label>
+      <div class="form-error" role="alert"></div>
+      <button class="btn" type="submit">Enviar link de recuperação</button>
+      <button class="text-button" type="button" data-auth="login">Voltar para entrar</button>
+    </form>
+  </div>`);
+  modal.querySelector('input[name="email"]').focus();
+}
+
+function resetPasswordPage(token) {
+  const body = token
+    ? `<form class="auth-form" id="reset-password-form">
+        <input type="hidden" name="token" value="${esc(token)}">
+        ${passwordField({ id: "reset-password", label: "Nova senha", isNew: true, showRules: true })}
+        ${passwordField({ id: "reset-confirmation", name: "confirmation", label: "Confirme a nova senha", isNew: true })}
+        <div class="form-error" role="alert"></div>
+        <button class="btn" type="submit">Salvar nova senha</button>
+      </form>`
+    : "<p>Link inválido ou expirado. Solicite um novo link.</p>";
+  return `<section class="panel coding-round">
+    <h1>Redefinir senha</h1>
+    ${body}
+    ${state.passwordResetAvailable ? '<p><button class="text-button" type="button" data-forgot-password>Solicitar novo link</button></p>' : ""}
+  </section>`;
+}
+
+function registrationFields() {
+  return `<label class="field"><span>Especialidade de interesse</span><select name="specialty">${views.specialtyOptions("")}</select></label>
+    <label class="check-label"><input type="checkbox" name="consent" required><span>Concordo com a exibição pública do meu nickname, especialidade e resultados no ranking e li as <a href="#ranking-rules" target="_blank" rel="noopener noreferrer">regras do ranking</a> e a <a href="#privacy" target="_blank" rel="noopener noreferrer">política de privacidade</a>. Meu e-mail não aparece na classificação pública.</span></label>`;
+}
+
+const nicknameField = '<label class="field"><span>Nickname</span><input name="nickname" placeholder="Seu nome no placar" autocomplete="nickname" minlength="3" maxlength="24" required></label>';
+
+function auth(type = "login", message = "") {
   if (state.user) {
     route("profile");
     return;
@@ -341,9 +409,60 @@ function auth(type = "login") {
   if (state.page === "challenge") state.pendingChallenge = state.challengeId;
   if (state.page === "admin") state.pendingAdmin = true;
   const register = type === "register";
-  openModal(`<div class="modal-content"><div class="modal-top"><h2 id="modal-title">${register ? "Crie seu operador." : "De volta ao round."}</h2><button class="close-button" data-close aria-label="Fechar">×</button></div><p>${register ? "Seu nickname no placar. Sua evolução salva entre dispositivos." : "Entre para continuar sua preparação."}</p><div class="auth-tabs"><button data-auth="login" class="${register ? "" : "active"}">Entrar</button><button data-auth="register" class="${register ? "active" : ""}">Criar conta</button></div>
-  ${!state.configured ? '<div class="notice">O cadastro será liberado quando o banco for conectado na hospedagem. Você já pode jogar como convidado.</div>' : ""}
-  <form class="auth-form" id="auth-form" data-kind="${type}">${register ? `<label class="field"><span>Nickname</span><input name="nickname" placeholder="Seu nome no placar" autocomplete="nickname" minlength="3" maxlength="24" required></label><label class="field"><span>E-mail</span><input type="email" name="email" placeholder="voce@exemplo.com" autocomplete="email" maxlength="190" required></label>` : `<label class="field"><span>E-mail ou nickname</span><input name="identity" placeholder="Seu e-mail ou nickname" autocomplete="username" required></label>`}<label class="field"><span>Senha ${register ? "· mínimo de 10 caracteres" : ""}</span><input type="password" name="password" autocomplete="${register ? "new-password" : "current-password"}" ${register ? 'minlength="10" maxlength="72"' : ""} required></label>${register ? `<label class="field"><span>Especialidade de interesse</span><select name="specialty">${views.specialtyOptions("")}</select></label><label class="check-label"><input type="checkbox" name="consent" required><span>Concordo com a exibição pública do meu nickname, especialidade e resultados no ranking e li as <a href="#ranking-rules" target="_blank" rel="noopener noreferrer">regras do ranking</a> e a <a href="#privacy" target="_blank" rel="noopener noreferrer">política de privacidade</a>. Meu e-mail não aparece na classificação pública.</span></label>` : ""}<div class="form-error" role="alert"></div><button class="btn" type="submit">${register ? "Criar meu operador" : "Entrar na conta"} ${icon("arrow", 18)}</button><button class="text-button" type="button" data-close>Continuar como convidado</button></form></div>`);
+  openModal(`<div class="modal-content">
+    <div class="modal-top"><h2 id="modal-title">${register ? "Crie seu operador." : "De volta ao round."}</h2><button class="close-button" data-close aria-label="Fechar">×</button></div>
+    <p>${register ? "Seu nickname no placar. Sua evolução salva entre dispositivos." : "Entre para continuar sua preparação."}</p>
+    <div class="auth-tabs"><button data-auth="login" class="${register ? "" : "active"}">Entrar</button><button data-auth="register" class="${register ? "active" : ""}">Criar conta</button></div>
+    ${!state.configured ? '<div class="notice">O cadastro será liberado quando o banco for conectado na hospedagem. Você já pode jogar como convidado.</div>' : ""}
+    <form class="auth-form" id="auth-form" data-kind="${type}">
+      ${message ? `<div class="notice" role="status">${esc(message)}</div>` : ""}
+      ${state.googleAuthAvailable ? googleButton(register ? "Criar conta com Google" : "Entrar com Google", 'type="button" data-google-start') : ""}
+      ${register ? `${nicknameField}<label class="field"><span>E-mail</span><input type="email" name="email" placeholder="voce@exemplo.com" autocomplete="email" maxlength="190" required></label>` : '<label class="field"><span>E-mail ou nickname</span><input name="identity" placeholder="Seu e-mail ou nickname" autocomplete="username" required></label>'}
+      ${passwordField({ id: "auth-password", isNew: register, showRules: register })}
+      ${register ? registrationFields() : ""}
+      <div class="form-error" role="alert"></div>
+      <button class="btn" type="submit">${register ? "Criar meu operador" : "Entrar na conta"} ${icon("arrow", 18)}</button>
+      ${!register && state.passwordResetAvailable ? '<button class="text-button" type="button" data-forgot-password>Esqueci minha senha</button>' : ""}
+      <button class="text-button" type="button" data-close>Continuar como convidado</button>
+    </form>
+  </div>`);
+}
+
+function googleSignup(email) {
+  openModal(`<div class="modal-content">
+    <div class="modal-top"><h2 id="modal-title">Complete seu cadastro</h2><button class="close-button" type="button" data-close aria-label="Fechar">×</button></div>
+    <form class="auth-form" id="auth-form" data-kind="google">
+      <label class="field"><span>E-mail do Google</span><input type="email" readonly value="${esc(email)}"></label>
+      ${nicknameField}
+      ${registrationFields()}
+      <div class="form-error" role="alert"></div>
+      <button class="btn" type="submit">Criar minha conta</button>
+      <button class="text-button" type="button" data-auth="login">Voltar para entrar</button>
+    </form>
+  </div>`);
+}
+
+function googleLink() {
+  openModal(`<div class="modal-content">
+    <div class="modal-top"><h2 id="modal-title">Vincular conta do Google</h2><button class="close-button" type="button" data-close aria-label="Fechar">×</button></div>
+    <p>Confirme sua senha do MDStrike. Na tela do Google, escolha a conta com o e-mail ${esc(state.user.email)}.</p>
+    <form class="auth-form" id="google-link-form">
+      ${passwordField({ id: "google-current-password", name: "currentPassword", label: "Senha atual" })}
+      <div class="form-error" role="alert"></div>
+      ${googleButton("Continuar com Google", 'type="submit"')}
+    </form>
+  </div>`);
+}
+
+async function startGoogle(data) {
+  const { url } = await api("google-start", data);
+  const returnPath = location.hash.slice(1);
+  if (/^(?:study|consulta|challenge)(?:\/|$)/.test(returnPath)) {
+    try { sessionStorage.setItem("mdstrike_google_return", returnPath); } catch {}
+  } else {
+    try { sessionStorage.removeItem("mdstrike_google_return"); } catch {}
+  }
+  location.assign(url);
 }
 
 function mapDetails(id) {
@@ -766,7 +885,15 @@ document.addEventListener("click", async (event) => {
   if (!b || b.disabled) return;
   try {
     if (b.matches("a")) {
-      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey || b.target || b.hasAttribute("download"))
+      if (
+        event.defaultPrevented ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.altKey ||
+        event.shiftKey ||
+        b.target ||
+        b.hasAttribute("download")
+      )
         return;
       const page = b.hash.slice(1);
       if (!page) return;
@@ -789,6 +916,22 @@ document.addEventListener("click", async (event) => {
       event.preventDefault();
       closeModal();
       await route(b.dataset.page);
+    } else if (b.hasAttribute("data-forgot-password")) {
+      forgotPassword();
+    } else if (b.hasAttribute("data-password-toggle")) {
+      setPasswordVisibility(b);
+    } else if (b.hasAttribute("data-google-link")) {
+      googleLink();
+    } else if (b.hasAttribute("data-google-start")) {
+      b.disabled = true;
+      const error = b.form.querySelector(".form-error");
+      error.textContent = "";
+      try {
+        await startGoogle({});
+      } catch (failure) {
+        error.textContent = failure.message;
+        b.disabled = false;
+      }
     } else if (b.hasAttribute("data-customize-avatar")) {
       await loadAvatarCatalog();
       if (state.page === "profile")
@@ -808,30 +951,10 @@ document.addEventListener("click", async (event) => {
       await route("challenge/" + state.challengeId);
     else if (
       b.hasAttribute("data-copy-challenge") ||
+      b.hasAttribute("data-copy-challenge-link") ||
       b.hasAttribute("data-share-challenge")
-    ) {
-      const field = $("#challenge-link");
-      if (b.hasAttribute("data-share-challenge") && navigator.share) {
-        try {
-          await navigator.share({
-            title: "Desafio MD Strike",
-            text: "Aceita meu desafio? Vamos responder às mesmas questões e comparar o placar.",
-            url: field.value,
-          });
-        } catch (error) {
-          if (error.name !== "AbortError") throw error;
-        }
-      } else {
-        try {
-          await navigator.clipboard.writeText(field.value);
-          toast("Link copiado! Envie para seu colega.");
-        } catch {
-          field.focus();
-          field.select();
-          toast("Link selecionado. Copie e envie para seu colega.");
-        }
-      }
-    } else if (b.hasAttribute("data-close")) closeModal();
+    ) await shareChallenge(b);
+    else if (b.hasAttribute("data-close")) closeModal();
     else if (b.hasAttribute("data-auth")) auth(b.dataset.auth);
     else if (b.hasAttribute("data-privacy")) {
       closeModal();
@@ -962,6 +1085,9 @@ document.addEventListener("submit", async (event) => {
       "auth-form",
       "profile-form",
       "password-form",
+      "forgot-password-form",
+      "reset-password-form",
+      "google-link-form",
       "challenge-form",
       "revalida-start-form",
       "avatar-form",
@@ -975,6 +1101,39 @@ document.addEventListener("submit", async (event) => {
   error.textContent = "";
   const data = Object.fromEntries(new FormData(form));
   try {
+    if (form.id === "google-link-form") {
+      await startGoogle({ currentPassword: data.currentPassword });
+      return;
+    }
+    if (form.id === "forgot-password-form") {
+      const result = await api("request-password-reset", { email: data.email });
+      if (form.isConnected) {
+        openModal(
+          `<div class="modal-content"><div class="modal-top"><h2 id="modal-title">Confira seu e-mail</h2><button class="close-button" type="button" data-close aria-label="Fechar">×</button></div><p>${esc(result.message)}</p><button class="btn outline" type="button" data-auth="login">Voltar para entrar</button></div>`,
+        );
+        modal.querySelector("[data-auth]").focus();
+      }
+      return;
+    }
+    if (form.id === "reset-password-form") {
+      if (data.password !== data.confirmation)
+        throw new Error("As senhas precisam ser iguais.");
+      const result = await api("reset-password", {
+        token: data.token,
+        password: data.password,
+      });
+      if (result.sessionEnded) {
+        state.user = null;
+        state.profile = null;
+        clearSavedViews();
+      }
+      if (form.isConnected) {
+        await route("lobby", true, "replace");
+        toast("Senha redefinida. Entre com a nova senha.");
+        if (!state.user) auth("login");
+      } else if (result.sessionEnded) shell();
+      return;
+    }
     if (form.id === "avatar-form") {
       const selection = avatarChoices(form);
       if (state.user) {
@@ -1003,7 +1162,7 @@ document.addEventListener("submit", async (event) => {
       const result = await api("create-challenge", data);
       closeModal();
       await route("challenge/" + result.id);
-      toast("Desafio criado. Copie o link e convide seu colega.");
+      toast("Desafio criado. Copie o convite para compartilhar.");
     }
     if (form.id === "auth-form") {
       const returnToResources = ["study", "consulta"].includes(state.page)
@@ -1011,7 +1170,7 @@ document.addEventListener("submit", async (event) => {
         : "";
       data.consent = !!data.consent;
       const result = await api(
-        form.dataset.kind === "register" ? "register" : "login",
+        form.dataset.kind === "google" ? "google-register" : form.dataset.kind,
         data,
       );
       state.user = result.user;
@@ -1060,6 +1219,7 @@ document.addEventListener("submit", async (event) => {
     if (form.id === "password-form") {
       await api("change-password", data);
       form.reset();
+      form.querySelectorAll("[data-password-toggle]").forEach((button) => setPasswordVisibility(button, false));
       toast("Senha atualizada.");
     }
   } catch (e) {
@@ -1127,14 +1287,50 @@ window.addEventListener("beforeunload", (event) => {
 });
 
 async function boot() {
+  const inviteId = /^\/d\/([a-f0-9]{32})\/?$/.exec(location.pathname)?.[1];
+  if (inviteId) history.replaceState(history.state, "", "/#challenge/" + inviteId);
+  let googleSignupEmail;
   try {
     const result = await api("session");
     state.csrf = result.csrf;
     state.configured = result.configured;
+    state.passwordResetAvailable = Boolean(result.passwordResetAvailable);
+    state.googleAuthAvailable = Boolean(result.googleAuthAvailable);
+    googleSignupEmail = result.googleSignupEmail;
     state.user = result.user;
   } catch {
     state.configured = false;
   }
-  await route(location.hash.slice(1) || "lobby", false, "traverse");
+  const path = location.hash.slice(1);
+  const status = /^google-auth\/([a-z-]+)$/.exec(path)?.[1];
+  if (!status) {
+    const signup = path === "study/enamed" && new URLSearchParams(location.search).get("cadastro") === "enamed";
+    if (signup) history.replaceState(history.state, "", "/#study/enamed");
+    await route(path || "lobby", false, "traverse");
+    if (signup && !state.user) auth("register");
+    return;
+  }
+  let returnPath;
+  try {
+    returnPath = sessionStorage.getItem("mdstrike_google_return");
+    sessionStorage.removeItem("mdstrike_google_return");
+  } catch {}
+  await route(returnPath || (state.user ? "profile" : "lobby"), false, "traverse");
+  if ((status === "signed-in" || status === "linked") && state.user) {
+    toast(status === "linked" ? "Conta do Google vinculada." : "Você entrou com Google.");
+  } else if (status === "signup" && googleSignupEmail && !state.user) {
+    if (state.page === "challenge") state.pendingChallenge = state.challengeId;
+    googleSignup(googleSignupEmail);
+  } else {
+    const message = {
+      existing: "Já tem uma conta com esse e-mail? Entre com sua senha e vincule o Google em Meu perfil.",
+      "email-mismatch": "Selecione a conta do Google com o mesmo e-mail do seu perfil.",
+      "link-conflict": "Esta conta do Google já está vinculada no MDStrike.",
+      "unverified-email": "Para criar uma conta com Google, use um endereço Gmail ou Google Workspace. Você também pode criar a conta com e-mail e senha.",
+      cancelled: "Você cancelou a entrada com Google.",
+    }[status] || "Não foi possível concluir a entrada com Google. Tente novamente.";
+    if (state.user) toast(message);
+    else auth("login", message);
+  }
 }
 boot();

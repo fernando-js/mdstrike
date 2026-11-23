@@ -1,8 +1,8 @@
 # Banco de dados do MD Strike
 
-O código define **12 tabelas**. A mesma rotina de criação atende o MySQL da Hostinger e o SQLite local. A lista e as colunas abaixo correspondem ao esquema definido no PHP e conferido em `.runtime/mdstrike.sqlite`. A contagem física em produção pode ser conferida pela consulta de metadados ao fim do guia. [Criação das tabelas](../app/bootstrap.php)
+O código define **16 tabelas**. A mesma rotina de criação atende o MySQL da Hostinger e o SQLite local. A lista e as colunas abaixo correspondem ao esquema definido no PHP. A contagem física em produção pode ser conferida pela consulta de metadados ao fim do guia. [Criação das tabelas](../app/bootstrap.php)
 
-## Inventário das 12 tabelas
+## Inventário das 16 tabelas
 
 | Tabela | O que guarda | Chave e restrições |
 | --- | --- | --- |
@@ -18,6 +18,10 @@ O código define **12 tabelas**. A mesma rotina de criação atende o MySQL da H
 | `md_audit_logs` | Eventos de conta, jogo e administração, com metadados e contexto da requisição | PK `id`. Ator e sujeito podem ficar vazios |
 | `md_auth_limits` | Contadores e janelas dos limites de uso da API | PK `bucket`, uma chave calculada por tipo de limite e identidade |
 | `md_migrations` | Controles de migrações e de rotinas internas | PK `name` |
+| `md_password_reset_requests` | Fila de pedidos de recuperação com datas e tentativas de envio | PK `job_key`. A conta é opcional |
+| `md_password_resets` | Hash do link ativo, impressão digital da senha e vencimento | PK `user_id`. `token_hash` único |
+| `md_google_accounts` | Vínculo da conta MDStrike ao identificador Google e data de criação | PK `user_id`. `google_subject` único |
+| `md_enamed_metrics` | Totais de eventos do treino Enamed por dia | PK composta `(event_day, event_name)` |
 
 PK é a chave primária que identifica uma linha. As ligações do diagrama são aplicadas pelo código. O esquema atual usa chaves primárias e restrições de unicidade, com referências lógicas entre tabelas. A exclusão manual de uma conta exige avaliar todas as referências associadas.
 
@@ -35,6 +39,9 @@ erDiagram
     md_users ||--o{ md_revalida_first : entrega
     md_users ||--o| md_admins : recebe
     md_users o|--o{ md_audit_logs : aparece_em
+    md_users o|--o{ md_password_reset_requests : solicita
+    md_users ||--o| md_password_resets : recebe_link
+    md_users ||--o| md_google_accounts : vincula
 ```
 
 ## Dicionário de colunas
@@ -84,6 +91,16 @@ A manutenção remove logs com mais de 90 dias e contadores inativos há mais de
 | `md_audit_subject` | `md_audit_logs(subject_id, id)` |
 | `md_audit_actor` | `md_audit_logs(actor_id, id)` |
 | `md_limits_window` | `md_auth_limits(window_start)` |
+| `md_reset_requests_available` | `md_password_reset_requests(available_at)` |
+
+### Recuperação de senha
+
+| Tabela | Colunas |
+| --- | --- |
+| `md_password_reset_requests` | `job_key`, `user_id`, `requested_at`, `available_at`, `attempts` |
+| `md_password_resets` | `user_id`, `token_hash`, `password_fingerprint`, `expires_at` |
+
+O worker processa a fila em lotes. Pedidos e links expirados são removidos pelo worker. O token em texto aparece somente no link da mensagem e no envio da nova senha. O banco armazena o hash. A API confere a validade e consome o link na mesma transação em que grava a senha. [Fluxo de recuperação](../app/password-reset.php) · [Worker de envio](../app/password-reset-worker.php)
 
 ## Dados em arquivos e no navegador
 

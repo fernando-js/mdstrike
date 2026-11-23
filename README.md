@@ -2,7 +2,7 @@
 
 Jogo de estudo com interface tática inspirada em jogos competitivos. PHP puro + MySQL na Hostinger, HTML/CSS e JavaScript modular, sem Laravel e sem build de frontend.
 
-O [manual técnico](docs/README.md) explica a arquitetura, as rotas, o esquema com as 12 tabelas, os arquivos e o processo de manutenção do projeto.
+O [manual técnico](docs/README.md) explica a arquitetura, as rotas, o esquema com as 16 tabelas, os arquivos e o processo de manutenção do projeto.
 
 ## Incluído
 
@@ -26,14 +26,14 @@ O [manual técnico](docs/README.md) explica a arquitetura, as rotas, o esquema c
 - Consulta rápida com busca por condição, sigla e CID-10, 23 temas com links aos documentos oficiais e o diretório de sociedades da AMB para as 55 especialidades. A aba Calculadoras reúne 12 ferramentas com pesquisa e filtro por área.
 - Em Consulta rápida → Bulas resumidas, as fichas são pesquisáveis por princípio ativo ou nome comercial, com indicação da apresentação e link para a bula consultada. O mapa Medicamentos e bulas tem oito questões com fontes. As fichas ficam em `assets/js/medication-content.js` e apontam também para o Bulário da Anvisa e a base pública de registros.
 
-Duelo, competitivo e copa são contra bots. O desafio por link compara tentativas reais de colegas, realizadas de forma independente. Não há sala simultânea por WebSocket nesta versão. O rating pertence ao jogo e não é nota TRI nem classificação oficial. Mapas sem questões específicas oferecem treino da área-base, explicitamente identificado. Não há recuperação de senha por e-mail nesta versão.
+Duelo, competitivo e copa são contra bots. O desafio por link compara tentativas reais de colegas, realizadas de forma independente. Não há sala simultânea por WebSocket nesta versão. O rating pertence ao jogo e não é nota TRI nem classificação oficial. Mapas sem questões específicas oferecem treino da área-base, explicitamente identificado.
 
 ## Convidar um colega
 
 1. Entre na sua conta em `https://mdstrike.com`.
 2. Abra **Competições → Criar desafio** (ou **Desafiar colega**, no lobby).
-3. Escolha a área e clique em **Gerar link de desafio**.
-4. Use **Copiar link** ou **Compartilhar** e envie ao colega.
+3. Escolha a área ou a especialidade e clique em **Gerar link de desafio**.
+4. Use **Copiar convite** ou **Compartilhar**. A mensagem inclui o tema, o número de questões, o tempo por questão e um endereço no próprio MDStrike. O endereço também fornece título, descrição e imagem para aplicativos que exibem prévias de links.
 5. Cada participante abre o link, entra na própria conta e escolhe **Aceitar desafio**. O convite é preservado após o login.
 6. Consulte o mesmo link para comparar os resultados. Seus links ficam em **Competições → Meus desafios**.
 
@@ -77,12 +77,32 @@ Requer PHP **8.2+**, extensões `pdo_mysql`, `mbstring`, `json` e sessões. Ativ
 2. Execute `npm run package` para gerar `release/mdstrike-hostinger.zip`. Não precisa instalar Node.js na hospedagem.
 3. Envie o conteúdo de `release/public_html/` à pasta pública do domínio, incluindo `.htaccess`. Não envie a raiz do repositório inteira.
 4. Crie o `.mdstrike/.env` privado conforme acima. Ele não é incluído no pacote com uma senha real.
-5. Abra `https://mdstrike.com`. O PHP cria as [12 tabelas da aplicação](docs/banco-de-dados.md) de forma aditiva ao inicializar a conexão com o banco.
+5. Abra `https://mdstrike.com`. O PHP cria as [16 tabelas da aplicação](docs/banco-de-dados.md) de forma aditiva ao inicializar a conexão com o banco.
 6. Crie uma conta real, termine um treino e confira o histórico e o ranking. Confirme no servidor que o arquivo privado está fora da raiz pública.
 
 O backend responde em `api/index.php?action=...`. Pontos/XP/rating são calculados no servidor; valores enviados pelo navegador não são aceitos como resultado. A chave de sessão usa cookie `HttpOnly`, `Secure` em produção e `SameSite=Lax`. POST exige token CSRF. As rotas privadas usam consultas preparadas. O e-mail não é retornado nos rankings. Uma troca de senha revoga as outras sessões.
 
 O `.htaccess` protege `app/` e diretórios de desenvolvimento e define cabeçalhos de segurança. O servidor deve respeitar as regras Apache/LiteSpeed; não publique em outro servidor sem regras equivalentes. Isso não remove automaticamente um bloqueio do SmartScreen: a contestação deve ser enviada à Microsoft.
+
+## Recuperação de senha
+
+O fluxo **Esqueci minha senha** fica disponível no login após configurar o SMTP. Cada solicitação recebe a mesma resposta. A fila de envio entrega o link ao e-mail da conta. O link vence em 30 minutos, funciona uma vez e a troca de senha encerra as sessões antigas daquela conta.
+
+1. Confirme a caixa `info@mdstrike.com` no painel de e-mails da Hostinger.
+2. No arquivo privado `.mdstrike/.env`, adicione `SMTP_PASSWORD` com a credencial dessa caixa. Os padrões são `SMTP_HOST=smtp.hostinger.com`, `SMTP_PORT=465`, `SMTP_ENCRYPTION=ssl` e `SMTP_USERNAME=info@mdstrike.com`. Mantenha os campos do MySQL que já existem no arquivo.
+3. Use um cron para executar `app/password-reset-worker.php` com PHP CLI a cada dois minutos. O worker roda apenas por linha de comando e encerra silenciosamente enquanto o SMTP aguarda configuração.
+4. Com uma conta de teste, solicite o link, abra o e-mail e confira o login com a nova senha.
+
+O envio usa [PHPMailer 7.2.0](https://github.com/PHPMailer/PHPMailer/releases/tag/v7.2.0). O código e a licença da biblioteca ficam em `app/vendor/phpmailer/`.
+
+## Entrada com Google
+
+1. No [Google Auth Platform](https://console.cloud.google.com/auth/clients), configure o nome MDStrike, a audiência externa, o domínio `mdstrike.com` e a política `https://mdstrike.com/#privacy`. No modo de testes, cadastre os e-mails autorizados por você.
+2. Crie um cliente OAuth do tipo **Aplicativo da Web** com o URI de redirecionamento autorizado `https://mdstrike.com/api/google-callback.php`. Para teste local, use um cliente separado e cadastre `http://127.0.0.1:8088/api/google-callback.php`.
+3. Salve `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` no arquivo privado `domains/mdstrike.com/.mdstrike/.env` da Hostinger. O botão aparece quando o servidor encontra as credenciais e a extensão cURL do PHP.
+4. Teste **Entrar com Google** com uma conta autorizada. Para vincular uma conta existente, entre com sua senha, vá a **Meu perfil** e selecione **Vincular conta do Google**. O e-mail do Google tem de corresponder ao e-mail cadastrado. Conclua a [publicação e a verificação de marca no Google](https://developers.google.com/identity/verification/authentication-policy-compliance) para disponibilizar o login ao público.
+
+O cadastro via Google exige um e-mail Gmail ou Google Workspace e a confirmação do nickname e das regras do ranking. O vínculo usa o identificador estável da conta Google e não armazena tokens do provedor. O painel administrativo usa o login por senha do MDStrike.
 
 ## Painel administrativo
 
@@ -169,4 +189,18 @@ O leitor PDF.js e suas fontes são hospedados em `assets/pdfjs/`, sob as licenç
 
 ## Limites de validação
 
-A suíte automatizada local usa SQLite. A conexão ao MySQL da Hostinger depende do `.env` privado e deve ser verificada após publicação. O arquivo SQL público nunca contém a senha. Sem SMTP configurado, não há verificação de e-mail ou recuperação por e-mail; o cadastro não afirma que o e-mail foi verificado.
+A suíte automatizada local usa SQLite. A conexão ao MySQL da Hostinger depende do `.env` privado e deve ser verificada após publicação. O arquivo SQL público nunca contém a senha. A recuperação depende da configuração do SMTP. O cadastro continua sem etapa de verificação do e-mail.
+
+## Treino curto do Enamed
+
+A página /enamed/treino/ abre dez questões oficiais em texto, com correção pelo gabarito do Inep, link para a página original, fila de erros e questões de reforço por tema. O progresso fica no navegador. O painel Administração → Visão geral exibe as visualizações, cliques, primeiras respostas, conclusões e retornos à revisão após o primeiro dia e em até sete dias. Os totais são de eventos. Primeiros treinos, primeiras respostas e retornos são contados uma vez por edição no navegador, quando o armazenamento está disponível.
+
+A seleção de cada edição em app/enamed-training segue a estrutura de 2025.json. Para preparar uma nova edição, mantenha a seleção de texto em um arquivo de trabalho, registre os URLs oficiais e a versão do gabarito, e coloque o PDF do caderno em assets/documents. Cada item inicial tem uma questão adicional com o mesmo campo de tema. Confira enunciados, alternativas e associação de temas com o caderno da edição. Os campos reviewedBy e reviewedAt são preenchidos após revisão médica do comentário.
+
+Para a edição 2026, use o [caderno 1 da aplicação regular](https://download.inep.gov.br/enamed/provas_e_gabaritos/2026_caderno_1.pdf) e consulte a [seção 2026 do Inep](https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enamed/provas-e-gabaritos/2026-1) para localizar o gabarito definitivo correspondente.
+
+Após a publicação do gabarito definitivo, baixe o PDF correspondente ao mesmo caderno e execute:
+
+    node scripts/import-enamed-training.mjs caminho/seleção.json caminho/gabarito-definitivo.pdf
+
+O importador confere a numeração, a página e a letra oficial antes de gravar a edição. Ao fazer a revisão final, confirme no PDF o caderno e a versão usados. A opção --check valida um arquivo já importado. Após publicar o pacote, a edição mais recente fica disponível em /enamed/treino/, com seletor para acessar edições anteriores.

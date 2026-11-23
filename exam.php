@@ -33,9 +33,17 @@ function edition_path(string $family, array $exam): string {
 }
 
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+if (is_string($path) && preg_match('~^/d(?:/|$)~', $path)) {
+    require __DIR__ . '/app/challenge-invite-page.php';
+    return;
+}
 require __DIR__ . '/app/cid10.php';
 require __DIR__ . '/app/medical-pages.php';
 $canonical = rtrim((string)$path, '/') . '/';
+if ($canonical === '/enamed/treino/') {
+    require __DIR__ . '/app/enamed-training-page.php';
+    return;
+}
 $medicalPages = medical_pages();
 if (isset($medicalPages[$canonical]) || $canonical === CID10_PATH ||
     preg_match('~^/cid-10/[a-z][0-9]{2}(?:\.?[0-9])?/$~iD', $canonical)) {
@@ -55,7 +63,7 @@ foreach ($families as $slug => $info) {
 if ($path === '/sitemap.xml') {
     require __DIR__ . '/app/enamed-results.php';
     header('Content-Type: application/xml; charset=UTF-8');
-    $urls = ['/'];
+    $urls = ['/', '/enamed/treino/'];
     foreach ($exams as $slug => $booklets) {
         $urls[] = '/' . $slug . '/';
         foreach ($booklets as $booklet) $urls[] = edition_path($slug, $booklet);
@@ -104,7 +112,8 @@ header('Content-Type: text/html; charset=UTF-8');
   <meta property="og:description" content="<?= h($description) ?>">
   <meta property="og:url" content="<?= h(SITE . $canonical) ?>">
   <link rel="icon" href="/favicon.ico">
-  <link rel="stylesheet" href="/assets/style.css?v=2.6.0">
+  <link rel="stylesheet" href="/assets/style.css?v=3.7.1">
+  <?php if ($family === 'enamed'): ?><script type="module" src="/assets/js/enamed-training-metrics.js?v=1"></script><?php endif; ?>
 </head>
 <body>
   <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
@@ -112,14 +121,16 @@ header('Content-Type: text/html; charset=UTF-8');
     <a class="brand" href="/" aria-label="MD Strike — início"><img src="/assets/favicon.svg" width="39" height="39" alt=""><span>MD <i>/</i> STRIKE</span></a>
     <nav aria-label="Exames"><?php foreach ($families as $slug => $item): ?><a class="nav-tab" <?= $slug === $family && !$exam ? 'aria-current="page"' : '' ?> href="/<?= h($slug) ?>/"><?= h($item['label']) ?></a><?php endforeach; ?></nav>
   </header>
-  <main id="conteudo" class="public-content">
+  <main id="conteudo" class="public-content" <?= $family === 'enamed' ? 'data-enamed-entry' : '' ?>>
     <?php if ($exam): ?><nav aria-label="Caminho da página"><a class="text-button" href="/<?= h($family) ?>/"><?= h($info['label']) ?> · Todas as provas</a></nav><?php endif; ?>
     <section class="public-intro">
       <h1><?= h($heading) ?></h1>
       <p><?= h($exam ? $description : $info['intro']) ?></p>
       <div class="row wrap">
         <?php if ($exam): ?>
-          <a class="btn" href="/#caderno/<?= h($exam['id']) ?>">Iniciar simulado</a>
+          <?php $hasShortTraining = $family === 'enamed' && is_file(__DIR__ . '/app/enamed-training/' . $exam['year'] . '.json'); ?>
+          <?php if ($hasShortTraining): ?><a class="btn" href="/enamed/treino/?edicao=<?= h($exam['year']) ?>" data-enamed-start>Começar treino Enamed</a><?php endif; ?>
+          <a class="<?= $hasShortTraining ? 'btn outline' : 'btn' ?>" href="/#caderno/<?= h($exam['id']) ?>">Iniciar simulado</a>
           <a class="btn outline" href="<?= h($exam['originalUrl']) ?>">Caderno original</a>
           <a class="text-button" href="<?= h($exam['key']) ?>">Gabarito definitivo</a>
           <?php if ($family === 'enamed'): ?><a class="text-button" href="/#study/enamed">Trilha Enamed</a><a class="text-button" href="/enamed/resultados/">Resultados por curso</a><?php endif; ?>
@@ -127,9 +138,10 @@ header('Content-Type: text/html; charset=UTF-8');
           <a class="btn" href="/#revalida">Entrar na Operação Revalida</a>
           <a class="btn outline" href="#provas">Ver provas anteriores</a>
         <?php elseif ($family === 'enamed'): ?>
-          <a class="btn" href="/#study/enamed">Começar a Trilha Enamed</a>
+          <a class="btn" href="/enamed/treino/" data-enamed-start>Começar treino Enamed</a>
           <a class="btn outline" href="#provas">Escolher uma prova</a>
           <a class="text-button" href="/enamed/resultados/">Resultados do Enamed por curso</a>
+          <a class="text-button" href="/#study/enamed">Começar a Trilha Enamed</a>
         <?php else: ?>
           <a class="btn" href="#provas">Escolher uma prova</a>
         <?php endif; ?>

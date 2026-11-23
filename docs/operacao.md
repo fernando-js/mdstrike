@@ -4,7 +4,7 @@ Este guia usa o ambiente local para aprender e testar, o GitHub para revisar e g
 
 ## Rodar o projeto na sua máquina
 
-Instale PHP 8.2 ou superior com PDO SQLite, sessões, JSON e mbstring. Use Node.js com npm. Para verificar a interface, tenha o Google Chrome instalado. O pacote de publicação usa o comando `zip`.
+Instale PHP 8.2 ou superior com PDO SQLite, sessões, JSON, mbstring e cURL. Use Node.js com npm. Para verificar a interface, tenha o Google Chrome instalado. O pacote de publicação usa o comando `zip`.
 
 ```sh
 npm ci
@@ -52,7 +52,7 @@ IDs de questões, provas e mapas já publicados são usados no histórico. Prese
 
 ## GitHub e Hostinger
 
-Na versão documentada, a Hostinger recebeu o pacote montado a partir da cópia local. Na última conferência, a branch `main` do GitHub estava em `6bbd35a` e as mudanças das versões mais recentes estavam na árvore local. [Commit conferido no GitHub](https://github.com/fernando-js/mdstrike/commit/6bbd35aa22461e6c541ae41876bbde2e7d5a8a52)
+A publicação na Hostinger usa o pacote montado a partir da cópia local. A última versão incorporada à branch `main` do GitHub foi a 3.4.0. [Pull request incorporado](https://github.com/fernando-js/mdstrike/pull/1)
 
 | Versão web | Entregas registradas |
 | --- | --- |

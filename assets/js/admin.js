@@ -143,6 +143,8 @@ function parseMetadata(value) {
 function body(data) {
   if (section === "overview") {
     const s = data.summary;
+    const m = data.enamedMetrics ?? {};
+    const daily = Object.entries(data.enamedMetricsDaily ?? {});
     return (
       statsStrip([
         [number(s.users), "Usuários cadastrados"],
@@ -150,6 +152,24 @@ function body(data) {
         [number(s.matches), "Partidas concluídas"],
         [number(s.challenges), "Desafios criados"],
       ]) +
+      '<section class="panel admin-overview"><h2>Treino Enamed</h2><p>Eventos agregados dos últimos 30 dias.</p>' +
+      statsStrip([
+        [number(m.entry_view), "Visualizações das páginas Enamed"],
+        [number(m.training_click), "Cliques em começar"],
+        [number(m.training_view), "Visualizações do treino"],
+        [number(m.training_start), "Primeiros treinos abertos"],
+        [number(m.first_answer), "Primeiras respostas"],
+        [number(m.training_complete), "Primeiros treinos concluídos"],
+        [number(m.review_7d), "Retornos à revisão em 7 dias"],
+      ]) +
+      (daily.length ? '<details><summary>Ver métricas por dia</summary>' + table(
+        ["Data", "Páginas Enamed", "Cliques", "Visitas ao treino", "Primeiros treinos", "Primeiras respostas", "Conclusões", "Retornos à revisão"],
+        daily.map(([date, events]) =>
+          "<tr>" + [date.split("-").reverse().join("/"), number(events.entry_view), number(events.training_click), number(events.training_view),
+            number(events.training_start), number(events.first_answer), number(events.training_complete), number(events.review_7d)]
+            .map((value) => "<td>" + esc(value) + "</td>").join("") + "</tr>",
+        ),
+      ) + "</details>" : "") + '</section>' +
       `<div class="two-col admin-overview"><section class="panel"><h2>Respostas e desempenho</h2><div class="row space-between"><span>${number(s.answers)} respostas registradas</span><strong class="display accent">${s.answers ? Math.round((s.correct / s.answers) * 100) + "%" : "—"}</strong></div><p class="small-text" style="margin-top:12px">${number(s.correct)} respostas corretas no total.</p><button class="text-button" data-admin-tab="matches" style="margin-top:20px">Consultar histórico de partidas ↗</button></section><section class="panel"><h2>Atividade do sistema</h2><p>${number(s.errors7d)} erros registrados nos últimos 7 dias.</p><p class="small-text" style="margin-top:12px">Início dos logs: ${stamp(s.startedAt)}.</p><button class="text-button" data-admin-tab="logs" style="margin-top:20px">Abrir logs de atividade ↗</button></section></div><div class="section-heading" style="margin-top:28px"><h2>Atividade recente</h2><button class="text-button" data-admin-tab="logs">Ver todos os registros ↗</button></div>${activity(data.recent)}`
     );
   }

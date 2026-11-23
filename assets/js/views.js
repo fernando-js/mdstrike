@@ -15,7 +15,8 @@ import {
   privacyDocument,
   rankingDocument,
   rankingSummary,
-} from "./policies.js?v=3.4.0";
+} from "./policies.js?v=3.6.1";
+import { passwordField } from "./auth-fields.js?v=3.6.0";
 import { educationFields } from "./education.js?v=2.4.0";
 import { avatarStage } from "./avatar.js?v=2.6.0";
 export const heading = (title, description, action = "") =>
@@ -186,6 +187,25 @@ export function rankingTable(rows) {
     return `<div class="empty">${icon("trophy", 42)}<h2>O primeiro lugar está em aberto.</h2><p>Conclua uma partida com sua conta para entrar na classificação.</p><button class="btn" ${state.user ? 'data-page="competitions"' : 'data-auth="register"'}>${state.user ? "Escolher competição" : "Criar minha conta"}</button></div>`;
   return `<div class="table-wrap"><table><thead><tr><th>Posição</th><th>Operador</th><th>Patente</th><th>Especialidade</th><th>Rating</th><th>Pontos</th><th>Partidas</th></tr></thead><tbody>${rows.map((u, i) => `<tr class="${state.user?.id === u.id ? "you" : ""}"><td class="rank-position">${String(i + 1).padStart(2, "0")}</td><td>${esc(u.nickname)}${state.user?.id === u.id ? " · você" : ""}</td><td>${esc(u.rank)}</td><td>${esc(specialtyName(u.specialty))}</td><td>${number(u.rating)}</td><td>${number(u.points)}</td><td>${number(u.played)}</td></tr>`).join("")}</tbody></table></div>`;
 }
+function securityPanel(user) {
+  const hasPassword = user.hasPassword !== false;
+  const password = hasPassword
+    ? `<h2>Alterar senha</h2><form id="password-form" class="auth-form">
+        ${passwordField({ id: "profile-current-password", name: "currentPassword", label: "Senha atual" })}
+        ${passwordField({ id: "profile-new-password", label: "Nova senha", isNew: true, showRules: true })}
+        <div class="form-error" role="alert"></div>
+        <button class="btn small" type="submit">Atualizar senha</button>
+      </form>`
+    : `<h2>Senha da conta</h2><p>Você criou a conta com Google.</p>
+      ${state.passwordResetAvailable ? '<button class="btn outline small" type="button" data-forgot-password>Criar senha por e-mail</button>' : ""}`;
+  const google = state.googleAuthAvailable && !user.isAdmin
+    ? `<div class="profile-google"><h3>Conta do Google</h3>${user.googleLinked
+      ? '<p class="muted">Conta do Google vinculada.</p>'
+      : '<button class="btn outline small" type="button" data-google-link>Vincular conta do Google</button>'}</div>`
+    : "";
+  return `<section class="panel">${password}${google}</section>`;
+}
+
 export function profile() {
   const p = player(),
     data = state.profile;
@@ -235,7 +255,7 @@ ${statsStrip([
         return `<div class="area-stat"><div class="row space-between"><span>${esc(label)}</span><span class="muted">${total ? `${percent}% · ${number(total)}` : "sem respostas"}</span></div><div class="bar"><i style="width:${percent}%"></i></div></div>`;
       })
       .join("")}</section></div>
-<div class="two-col" style="margin-top:24px"><section class="panel"><h2>Últimas partidas</h2>${(data?.history || guest.history).length ? (data?.history || guest.history).map((h) => `<div class="history-row"><div>${esc(modeName(h.mode))}<small>${esc(specialtyName(h.map_id))} · ${new Date(Number(h.finished_at) * 1000).toLocaleDateString("pt-BR")}</small></div><strong>${number(h.score)} pts</strong></div>`).join("") : "<p>Nenhuma partida concluída ainda. Seu próximo round começa no lobby.</p>"}</section>${state.user ? `<section class="panel"><h2>Alterar senha</h2><form id="password-form" class="auth-form"><label class="field"><span>Senha atual</span><input type="password" name="currentPassword" autocomplete="current-password" required></label><label class="field"><span>Nova senha</span><input type="password" name="password" minlength="10" maxlength="72" autocomplete="new-password" required></label><div class="form-error" role="alert"></div><button class="btn small" type="submit">Atualizar senha</button></form></section>` : `<section class="panel"><h2>Fila de revisão</h2><p>${number(guest.wrong.length)} questões esperando um novo round.</p><button class="btn small" style="margin-top:18px" data-start="review" data-map-id="all">Revisar meus erros</button></section>`}</div>`
+<div class="two-col" style="margin-top:24px"><section class="panel"><h2>Últimas partidas</h2>${(data?.history || guest.history).length ? (data?.history || guest.history).map((h) => `<div class="history-row"><div>${esc(modeName(h.mode))}<small>${esc(specialtyName(h.map_id))} · ${new Date(Number(h.finished_at) * 1000).toLocaleDateString("pt-BR")}</small></div><strong>${number(h.score)} pts</strong></div>`).join("") : "<p>Nenhuma partida concluída ainda. Seu próximo round começa no lobby.</p>"}</section>${state.user ? securityPanel(p) : `<section class="panel"><h2>Fila de revisão</h2><p>${number(guest.wrong.length)} questões esperando um novo round.</p><button class="btn small" style="margin-top:18px" data-start="review" data-map-id="all">Revisar meus erros</button></section>`}</div>`
   );
 }
 export function sources() {

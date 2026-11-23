@@ -4,6 +4,8 @@ require dirname(__DIR__) . '/app/bootstrap.php';
 require dirname(__DIR__) . '/app/challenges.php';
 require dirname(__DIR__) . '/app/admin.php';
 require dirname(__DIR__) . '/app/revalida.php';
+require dirname(__DIR__) . '/app/password-reset.php';
+require dirname(__DIR__) . '/app/google-auth.php';
 header_remove('X-Powered-By');
 if (!development()) { ini_set('display_errors', '0'); ini_set('log_errors', '1'); }
 
@@ -17,13 +19,40 @@ function player_payload(array $u): array {
     ];
 }
 
-function begin_auth(array $u): void {
-    session_regenerate_id(true);
-    $_SESSION['user_id'] = (int)$u['id'];
-    $_SESSION['authenticated_at'] = time();
-    $_SESSION['last_activity'] = time();
-    $_SESSION['password_fingerprint'] = hash('sha256',$u['password_hash']);
-    $_SESSION['csrf'] = bin2hex(random_bytes(32));
+function register_account(array $data, ?array $google = null): never {
+    rate_limit('register', 5, 3600);
+    $nickname = trim($data['nickname'] ?? '');
+    $email = $google['email'] ?? strtolower(trim($data['email'] ?? ''));
+    $password = $data['password'] ?? '';
+    if (!preg_match('/^[\p{L}\p{N}_.-]{3,24}$/u', $nickname)) fail('Use um nickname de 3 a 24 letras, números, ponto, hífen ou sublinhado.');
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 190) fail('Informe um e-mail válido.');
+    if (!$google && (strlen($password) < 10 || strlen($password) > 72 || str_contains($password, "\0"))) {
+        fail('Use uma senha de 10 a 72 caracteres.');
+    }
+    if (empty($data['consent'])) fail('Confirme o uso do nickname no ranking público.');
+    $specialty = $data['specialty'] ?? '';
+    if ($specialty && !in_array($specialty, array_column(catalog()['specialties'], 'id'), true)) fail('Especialidade inválida.');
+
+    $db = database();
+    $hash = $google ? '' : password_hash($password, PASSWORD_DEFAULT);
+    if ($google) $db->beginTransaction();
+    try {
+        $now = time();
+        query('INSERT INTO md_users (nickname,email,password_hash,specialty,created_at,last_seen) VALUES (?,?,?,?,?,?)', [$nickname, $email, $hash, $specialty, $now, $now]);
+        $id = (int)$db->lastInsertId();
+        if ($google) {
+            query('INSERT INTO md_google_accounts (user_id, google_subject, linked_at) VALUES (?, ?, ?)', [$id, $google['subject'], $now]);
+            $db->commit();
+        }
+    } catch (PDOException $error) {
+        if ($db->inTransaction()) $db->rollBack();
+        if (in_array((string)$error->getCode(), ['23000', '23505'], true)) fail('Nickname ou e-mail já cadastrado.', 409);
+        throw $error;
+    }
+    $user = query('SELECT * FROM md_users WHERE id = ?', [$id])->fetch();
+    begin_auth($user, $google ? 'google' : 'password');
+    audit_event('account.registered', $id, $id, $google ? ['method' => 'google'] : []);
+    send_json(['user' => public_user($user, true), 'csrf' => $_SESSION['csrf']], 201);
 }
 
 function match_state(array $m, array $payload): array {
@@ -79,7 +108,15 @@ try {
         $configured = development() || (bool)configuration()['db_password'];
         $u = $configured ? current_user() : null;
         if ($u) query('UPDATE md_users SET last_seen = ? WHERE id = ?', [time(),$u['id']]);
-        send_json(['csrf'=>$_SESSION['csrf'],'configured'=>$configured,'adminConfigured'=>$configured ? (bool)query('SELECT COUNT(*) FROM md_admins')->fetchColumn() : false,'user'=>$u ? public_user($u,true) : null]);
+        send_json([
+            'csrf' => $_SESSION['csrf'],
+            'configured' => $configured,
+            'passwordResetAvailable' => $configured && password_reset_ready(),
+            'googleAuthAvailable' => $configured && google_auth_ready(configuration()),
+            'googleSignupEmail' => $configured && !$u ? (pending_google_signup()['email'] ?? null) : null,
+            'adminConfigured' => $configured && (bool)query('SELECT COUNT(*) FROM md_admins')->fetchColumn(),
+            'user' => $u ? public_user($u, true) : null,
+        ]);
     }
     if (str_starts_with($action,'admin-')) {
         $operator=require_admin();
@@ -106,23 +143,15 @@ try {
     }
     if ($method !== 'POST') fail('Rota não encontrada.',404);
     require_csrf(); $data = input();
-    if ($action === 'register') {
-        rate_limit('register',5,3600);
-        $nick = trim((string)($data['nickname'] ?? ''));
-        $email = strtolower(trim((string)($data['email'] ?? '')));
-        $password = (string)($data['password'] ?? '');
-        if (!preg_match('/^[\p{L}\p{N}_.-]{3,24}$/u',$nick)) fail('Use um nickname de 3 a 24 letras, números, ponto, hífen ou sublinhado.');
-        if (!filter_var($email,FILTER_VALIDATE_EMAIL) || strlen($email)>190) fail('Informe um e-mail válido.');
-        if (strlen($password)<10 || strlen($password)>72) fail('Use uma senha de 10 a 72 caracteres.');
-        if (empty($data['consent'])) fail('Confirme o uso do nickname no ranking público.');
-        $specialty = (string)($data['specialty'] ?? '');
-        if ($specialty && !in_array($specialty,array_column(catalog()['specialties'],'id'),true)) fail('Especialidade inválida.');
-        try { query('INSERT INTO md_users (nickname,email,password_hash,specialty,created_at,last_seen) VALUES (?,?,?,?,?,?)',[$nick,$email,password_hash($password,PASSWORD_DEFAULT),$specialty,time(),time()]); }
-        catch (PDOException $e) { if (in_array((string)$e->getCode(),['23000','23505'],true)) fail('Nickname ou e-mail já cadastrado.',409); throw $e; }
-        $u = query('SELECT * FROM md_users WHERE email = ?',[$email])->fetch(); begin_auth($u);
-        audit_event('account.registered',(int)$u['id'],(int)$u['id']);
-        send_json(['user'=>public_user($u,true),'csrf'=>$_SESSION['csrf']],201);
+    if ($action === 'request-password-reset') request_password_reset($data);
+    if ($action === 'reset-password') reset_password($data);
+    if ($action === 'google-start') start_google_auth($data);
+    if ($action === 'google-register') {
+        $google = pending_google_signup();
+        if (!$google || current_user()) fail('Seu cadastro com Google expirou. Entre com Google novamente.', 409);
+        register_account($data, $google);
     }
+    if ($action === 'register') register_account($data);
     if ($action === 'login') {
         rate_limit('login',12,900);
         $identity = strtolower(trim((string)($data['identity'] ?? '')));
@@ -130,8 +159,9 @@ try {
         $loginSubject = $u ? 'user:' . $u['id'] : 'identity:' . $identity;
         rate_limit('login-account', 20, 900, $loginSubject);
         // Always perform a password hash check, including unknown accounts.
-        $valid = password_verify((string)($data['password'] ?? ''),$u['password_hash'] ?? '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.');
-        if (!$u || !$valid) { audit_event('auth.login_failed',null,$u?(int)$u['id']:null);fail('E-mail, nickname ou senha incorretos.',401); }
+        $hash = $u['password_hash'] ?? '';
+        $valid = password_verify($data['password'] ?? '', $hash ?: '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.');
+        if (!$hash || !$valid) { audit_event('auth.login_failed',null,$u?(int)$u['id']:null);fail('E-mail, nickname ou senha incorretos.',401); }
         if (password_needs_rehash($u['password_hash'],PASSWORD_DEFAULT)) {
             $u['password_hash']=password_hash($data['password'],PASSWORD_DEFAULT);
             query('UPDATE md_users SET password_hash = ? WHERE id = ?',[$u['password_hash'],$u['id']]);

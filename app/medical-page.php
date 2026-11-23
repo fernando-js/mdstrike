@@ -64,7 +64,7 @@ header('Content-Type: text/html; charset=UTF-8');
   <meta property="og:description" content="<?= h($info['description']) ?>">
   <meta property="og:url" content="<?= h(SITE . $canonical) ?>">
   <link rel="icon" href="/favicon.ico">
-  <link rel="stylesheet" href="/assets/style.css?v=3.2.0">
+  <link rel="stylesheet" href="/assets/style.css?v=3.7.1">
 </head>
 <body>
   <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>

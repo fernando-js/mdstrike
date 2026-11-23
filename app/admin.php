@@ -50,7 +50,17 @@ function admin_dispatch(string $action, array $params, array $operator): array {
         ];
         $recent=query('SELECT a.id,a.event,a.actor_id,a.subject_id,a.metadata_json,a.created_at,u.nickname AS actor_nickname,s.nickname AS subject_nickname FROM md_audit_logs a LEFT JOIN md_users u ON u.id = a.actor_id LEFT JOIN md_users s ON s.id = a.subject_id ORDER BY a.id DESC LIMIT 12')->fetchAll();
         audit_event('admin.viewed',$operatorId,null,['section'=>'overview']);
-        return ['summary'=>$summary,'recent'=>$recent];
+        $firstDay = (new DateTimeImmutable('today', new DateTimeZone('America/Sao_Paulo')))->modify('-29 days')->format('Y-m-d');
+        $enamedMetrics = [];
+        $enamedMetricsDaily = [];
+        $events = query('SELECT event_day, event_name, event_count FROM md_enamed_metrics WHERE event_day >= ? ORDER BY event_day DESC', [$firstDay])->fetchAll();
+        foreach ($events as $event) {
+            $name = $event['event_name'];
+            $count = (int)$event['event_count'];
+            $enamedMetrics[$name] = ($enamedMetrics[$name] ?? 0) + $count;
+            $enamedMetricsDaily[$event['event_day']][$name] = $count;
+        }
+        return ['summary'=>$summary,'recent'=>$recent,'enamedMetrics'=>$enamedMetrics,'enamedMetricsDaily'=>$enamedMetricsDaily];
     }
     if($action==='admin-users'){
         $where=[];$bindings=[];$search=mb_substr(trim((string)($params['search']??'')),0,100);

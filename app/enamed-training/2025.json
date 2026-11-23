@@ -1,0 +1,320 @@
+{
+  "edition": "2025",
+  "title": "ENAMED 2025 · Caderno 1",
+  "paper": "/assets/documents/enamed-2025-caderno-1.pdf",
+  "originalUrl": "https://download.inep.gov.br/enamed/provas_e_gabaritos/2025_caderno_1_preliminar.pdf",
+  "key": "https://download.inep.gov.br/enamed/provas_e_gabaritos/2025_gabarito_caderno_1_v2.pdf",
+  "keyStatus": "Definitivo v2",
+  "initial": [
+    6,
+    3,
+    16,
+    49,
+    14,
+    20,
+    34,
+    1,
+    68,
+    23
+  ],
+  "questions": [
+    {
+      "number": 6,
+      "area": "SC",
+      "topic": "Prevenção e rastreamento",
+      "page": 4,
+      "answer": "B",
+      "prompt": "Observe o encaminhamento realizado por um médico de família. “À cardiologia, Encaminho o Sr. J. L. S., de 56 anos, com diagnóstico de cardiopatia isquêmica, que sofreu um infarto agudo do miocárdio há 3 meses. Tem orientação para o uso de antiagregantes plaquetários, mas tem história de úlcera péptica e teve reação alérgica ao clopidogrel e à ticlopidina. Desta forma, solicito orientação quanto à conduta preventiva.” Ao ser assistido pelo cardiologista, o paciente será atendido em qual nível de atenção e receberá que tipo de prevenção, respectivamente?",
+      "options": [
+        "Primário; secundário.",
+        "Secundário; secundário.",
+        "Terciário; terciário.",
+        "Quaternário; terciário."
+      ]
+    },
+    {
+      "number": 12,
+      "area": "MFC",
+      "topic": "Prevenção e rastreamento",
+      "page": 5,
+      "answer": "D",
+      "prompt": "Homem de 52 anos, branco, solteiro, comparece à consulta agendada na Unidade Básica de Saúde (UBS) desejando realizar revisão clínica e exames laboratoriais. Desde os 35 anos não faz acompanhamento de saúde. Relata história familiar de diabetes e hipertensão, e a mãe faleceu com câncer de pulmão. Sem história familiar de câncer de próstata. Fuma cerca de 2 maços por dia há 21 anos. Exame físico: pressão arterial de 120 x 80 mmHg, índice de massa corporal de 23 kg/m², sem outras alterações. Considerando as recomendações de rastreamento para esse paciente, o médico de família e comunidade deve",
+      "options": [
+        "solicitar exames de colesterol total e frações, hemograma, glicemia de jejum, creatinina, PSA, radiografia de tórax, colonoscopia, realizar toque retal; orientar sobre a prática de atividade física regular.",
+        "solicitar exames de colesterol total, glicemia de jejum, pesquisa de sangue oculto nas fezes, PSA, ofertar anti-HIV e HBsAg, realizar toque retal; orientar sobre participação no grupo na UBS para abandono do tabagismo.",
+        "abordar mudanças no estilo de vida e cessação do tabagismo; acompanhar, em consultas longitudinais, as futuras possibilidades de exames complementares, quando o paciente atingir faixa etária para investigações adicionais.",
+        "solicitar exames de colesterol total, HDL e triglicerídeos, glicemia de jejum, pesquisa de sangue oculto nas fezes, ofertar testes rápidos para HIV, sífilis e hepatites B e C; realizar abordagem sobre possibilidade de cessação do tabagismo."
+      ]
+    },
+    {
+      "number": 3,
+      "area": "CIR",
+      "topic": "Atendimento ao trauma",
+      "page": 3,
+      "answer": "A",
+      "prompt": "Homem de 45 anos foi encontrado inconsciente por familiares junto a uma escada de sua casa. Familiares o conduziram em carro próprio, sem medidas-padrão de atendimento pré- hospitalar. Não sabem por quanto tempo ficou desacordado e nem sobre o histórico de saúde. Quando deu entrada no pronto-socorro, encontrava-se inconsciente, com equimose e escoriações na região orbital e palpebral direita, além de escoriações na região cervical posterior e em membros à direita. Não apresentava resposta ao comando verbal, mas respirava espontaneamente com frequência normal. Pressão arterial de 140 x 90 mmHg e pupilas isocóricas. Durante a avaliação, abriu os olhos e começou a se mexer, ainda sem responder a questões ou comandos. Após 30 minutos começou a responder, mas informava não se lembrar de ter caído da escada. Considerando o quadro, a conduta adequada é",
+      "options": [
+        "tomografia de crânio, face e coluna cervical; radiografia de membros; manter o paciente em observação por 12 horas.",
+        "radiografia de crânio, coluna cervical e membros em duas posições; internar o paciente para observação.",
+        "tomografia de crânio, face e radiografia de membros; liberar o paciente para observação domiciliar.",
+        "radiografia de crânio e face; radiografia de membros; internar o paciente por 24 horas."
+      ]
+    },
+    {
+      "number": 17,
+      "area": "CIR",
+      "topic": "Atendimento ao trauma",
+      "page": 6,
+      "answer": "D",
+      "prompt": "Paciente de 20 anos, sexo masculino, vítima de colisão “automóvel a muro”, sem cinto de segurança, é atendido ainda na cena pelo Serviço Móvel de Atendimento de Urgência (SAMU). Exame físico: paciente torporoso; saturação de O₂ de 60%, em ar ambiente; frequência respiratória de 28 irpm; frequência cardíaca de 112 bpm; pressão arterial de 90 x 50 mmHg. Desvio da traqueia para a direita, turgência de veias jugulares, hipofonese de bulhas cardíacas e diminuição acentuada do murmúrio vesicular à esquerda. Qual é a conduta adequada no atendimento pré-hospitalar?",
+      "options": [
+        "Reposição volêmica.",
+        "Cricotireoidostomia.",
+        "Pericardiocentese.",
+        "Toracocentese."
+      ]
+    },
+    {
+      "number": 16,
+      "area": "PED",
+      "topic": "Crescimento infantil",
+      "page": 6,
+      "answer": "B",
+      "prompt": "Recém-nascido de 15 dias, a termo, Apgar 8/9, peso e comprimento ao nascer de 2.600 g e 46 cm, respectivamente, com síndrome de Down, e cuja gestação não apresentou outras intercorrências. Está na consulta de puericultura com peso e comprimento atuais de 2.900 g e 47 cm, respectivamente. Para o acompanhamento pondero-estatural, os dados devem ser plotados nas",
+      "options": [
+        "curvas de crescimento da OMS desde o nascimento até a adolescência.",
+        "curvas de crescimento específicas para síndrome de Down desde o nascimento.",
+        "curvas de crescimento da OMS, corrigindo o peso e o comprimento para síndrome de Down.",
+        "curvas de crescimento da OMS até os dois anos e, a partir daí, em curvas específicas para síndrome de Down."
+      ],
+      "comment": {
+        "clue": "A condição que orienta a escolha do gráfico é a síndrome de Down. A alternativa B usa curvas específicas desde a primeira avaliação do crescimento, inclusive no período neonatal.",
+        "distractor": "A alternativa D troca a curva apenas aos dois anos, mas as diretrizes dispõem de curvas específicas para a faixa de zero a 24 meses.",
+        "sourceLabel": "Ministério da Saúde · Diretrizes de atenção à pessoa com síndrome de Down",
+        "source": "https://bvsms.saude.gov.br/bvs/publicacoes/diretrizes_atencao_pessoa_sindrome_down.pdf"
+      }
+    },
+    {
+      "number": 97,
+      "area": "PED",
+      "topic": "Crescimento infantil",
+      "page": 25,
+      "answer": "C",
+      "prompt": "Mãe de menina de 7 anos, em consulta na Unidade Básica de Saúde (UBS), relata preocupação por a filha ser a menor de sua sala de aula. Nega intercorrências nos períodos gestacional e neonatal. Nega internações ou uso de medicações contínuas. Exame físico sem alterações, estágio de desenvolvimento de Tanner M1P1; peso de 19 kg (z -1); estatura de 1,07 m (-3 < z < -2) com alvo de 1,50 m (z -2); índice de massa corporal de 16,6 (0 < z < +1); relação entre segmento superior e segmento inferior de 1,02 (valor de referência para a idade: 1 a 1,3). Em consulta com 6 anos e 8 meses, apresentava peso de 17 kg (-2 < z < -1); estatura de 1,05 m (-3 < z < -2); índice de massa corporal de 15,4 (z 0), quando foi realizado cálculo de idade óssea compatível com 5 anos e 10 meses. A hipótese diagnóstica adequada para o caso é",
+      "options": [
+        "acondroplasia.",
+        "síndrome de Turner.",
+        "baixa estatura familiar.",
+        "atraso constitucional do crescimento."
+      ]
+    },
+    {
+      "number": 49,
+      "area": "GO",
+      "topic": "Elegibilidade contraceptiva",
+      "page": 13,
+      "answer": "B",
+      "prompt": "Nulípara de 30 anos, com diagnóstico de lúpus eritematoso sistêmico e história recente de trombose venosa, apresenta ciclos menstruais prolongados de 8 a 10 dias, com intenso sangramento e cólicas fortes, busca orientação sobre métodos contraceptivos. Considerando os critérios de elegibilidade para uso de anticoncepção e o quadro clínico, qual é a melhor opção de contracepção?",
+      "options": [
+        "DIU de cobre.",
+        "DIU de levonorgestrel.",
+        "Anticoncepcional injetável mensal.",
+        "Pílula anticoncepcional combinada contínua."
+      ]
+    },
+    {
+      "number": 54,
+      "area": "GO",
+      "topic": "Elegibilidade contraceptiva",
+      "page": 15,
+      "answer": "C",
+      "prompt": "Uma adolescente de 15 anos comparece em consulta ginecológica com a finalidade de iniciar contracepção. Na história patológica pregressa, refere episódios de enxaqueca com aura. Nos antecedentes familiares, relata que a avó materna teve diagnóstico de câncer de mama, sua mãe é hipertensa e sua irmã tem diabetes. O uso do contraceptivo combinado está contraindicado para essa paciente devido ao risco de",
+      "options": [
+        "câncer de mama.",
+        "diabetes mellitus.",
+        "acidente vascular cerebral.",
+        "hipertensão arterial sistêmica."
+      ]
+    },
+    {
+      "number": 14,
+      "area": "SM",
+      "topic": "Saúde mental na infância",
+      "page": 5,
+      "answer": "B",
+      "prompt": "Pais de um menino de 10 anos levam a criança para avaliação médica em Unidade Básica de Saúde (UBS). Relatam que seu filho se dá bem com a família até que não lhe seja permitido fazer algo que deseja. Quando isso ocorre, ele fica irritado, impulsivamente agressivo e agitado por várias horas. Assim que se acalma ou consegue o que quer, fica feliz e agradável novamente. Os pais entendem que o filho parece agir deliberadamente para aborrecer os outros e nunca assume a culpa por seus próprios erros ou mau comportamento. Relatam ainda que ele discute com adultos ou figuras de autoridade e em várias situações não aceita as regras de boa convivência com os familiares. Considerando o caso descrito, qual é o diagnóstico mais provável?",
+      "options": [
+        "Transtorno afetivo bipolar.",
+        "Transtorno de oposição desafiante.",
+        "Transtorno disruptivo da desregulação do humor.",
+        "Transtorno do déficit de atenção e hiperatividade."
+      ]
+    },
+    {
+      "number": 57,
+      "area": "SM",
+      "topic": "Saúde mental na infância",
+      "page": 15,
+      "answer": "D",
+      "prompt": "Criança de 9 anos chega à Unidade Básica de Saúde (UBS) com o diagnóstico de transtorno de déficit de atenção e hiperatividade há 2 anos. Faz uso de metilfenidato há pelo menos 1 ano. O pai informa que, desde o início do uso, apresentou grande melhora na escola e solicita que o uso seja estendido por mais tempo. Quais estratégias de monitoramento referentes ao uso dessa medicação devem ser utilizadas?",
+      "options": [
+        "Realizar seguimento em conjunto com neuropediatra para acompanhar aumento de peso e possível dislipidemia associada ao uso crônico do medicamento.",
+        "Acompanhar com testes psicodinâmicos parâmetros de atenção e desempenho escolar, a fim de avaliar a efetividade da estimulação farmacológica.",
+        "Coletar hemograma e hormônios tireoidianos anuais e eventualmente prescrever antipsicóticos para combate dos efeitos colaterais.",
+        "Agendar consultas periódicas para verificação da estatura, peso e pressão arterial, com nova avaliação para retirada após 1 ano."
+      ]
+    },
+    {
+      "number": 20,
+      "area": "SC",
+      "topic": "Infecções sexualmente transmissíveis",
+      "page": 7,
+      "answer": "C",
+      "prompt": "Mulher travesti de 28 anos, profissional do sexo, comparece à Unidade Básica de Saúde (UBS) em demanda espontânea. Relata relações sexuais frequentes com diferentes parceiros, com uso inconsistente de preservativos, principalmente durante relações anais receptivas.Há 2 dias teve uma relação sexual desprotegida com um cliente que se recusou a usar camisinha. Nunca utilizou medicamento para profilaxia pré-exposição (PrEP) ou pós-exposição (PEP) à infecção pelo HIV. Considerando que a paciente está assintomática no momento, qual a melhor estratégia de prevenção?",
+      "options": [
+        "Prescrever PrEP após resultado não reagente para HIV; indicar PEP após tratamento inicial e orientar rastreamento de ISTs a cada 3 meses.",
+        "Oferecer teste rápido para HIV e sífilis; prescrever PrEP de início imediato; orientar sobre as vacinas disponíveis no SUS para seu grupo populacional.",
+        "Realizar testagem rápida para HIV e sífilis; prescrever PEP mediante resultado não reagente para HIV e programar início da PrEP após término da PEP.",
+        "Prescrever PEP e PrEP de forma concomitante; solicitar sorologias para ISTs; agendar retorno para analisar os resultados e revisar adesão ao tratamento."
+      ]
+    },
+    {
+      "number": 96,
+      "area": "MFC",
+      "topic": "Infecções sexualmente transmissíveis",
+      "page": 25,
+      "answer": "D",
+      "prompt": "Homem de 30 anos chega para consulta em Unidade Básica de Saúde (UBS) devido à astenia e úlcera no pênis. Trabalha como profissional do sexo e nem sempre faz uso de preservativo.Há cerca de 3 meses, vem notando emagrecimento (10 kg no período), astenia, febre baixa sem horário fixo e, há 1 semana, observou o aparecimento de úlcera dolorosa no pênis. Nega secreção uretral. Ao exame físico, apresenta-se emagrecido, com uma lesão ulcerada com bordas elevadas sem secreção de aproximadamente 3 centímetros logo abaixo da glande, rasa e de base mole, além de linfonodomegalia inguinal direita, com sinais inflamatórios, sem fistulização. Nesse caso, a investigação, o achado esperado e o tratamento referentes à úlcera devem ser, respectivamente,",
+      "options": [
+        "sorologia para Chlamydia trachomatis; positiva; doxiciclina 100 mg, 2 vezes ao dia, via oral, por 7 dias.",
+        "biópsia da úlcera; bacilos álcool ácido resistentes; esquema inicial com pirazinamida, isoniazida e rifampicina, via oral.",
+        "Veneral Disease Research Laboratory (VDRL); reagente; benzilpenicilina benzatina 1,2 milhão de unidades, intramuscular, dose única.",
+        "microscopia de esfregaço do fundo da úlcera; Gram negativos agrupados em correntes; azitromicina 500 mg, via oral, 2 comprimidos em dose única."
+      ]
+    },
+    {
+      "number": 34,
+      "area": "SC",
+      "topic": "Epidemiologia aplicada",
+      "page": 10,
+      "answer": "B",
+      "prompt": "Uma instituição de saúde está pesquisando um novo teste de triagem para hanseníase, com sensibilidade de 92% e especificidade de 65%, aplicado em uma população com baixa prevalência da doença. Nesse contexto, é correto afirmar que",
+      "options": [
+        "quase todos os testes positivos indicarão verdadeiros casos de hanseníase, diante da elevada sensibilidade do teste.",
+        "o número de falsos-positivos será elevado, devido à baixa especificidade do teste e à baixa prevalência da doença.",
+        "o número de falsos-negativos será elevado, reduzindo a capacidade do teste em detectar casos reais.",
+        "a elevada sensibilidade do teste o torna ideal para a confirmação do diagnóstico de hanseníase."
+      ],
+      "comment": {
+        "clue": "A especificidade de 65% implica que 35% das pessoas sem a doença podem testar positivo. Em uma população de baixa prevalência, há muitas pessoas sem a doença, o que aumenta o número de falsos positivos.",
+        "distractor": "A alternativa A confunde sensibilidade com valor preditivo positivo. A sensibilidade descreve o teste entre quem tem a condição. O valor preditivo positivo descreve a proporção de verdadeiros casos entre os resultados positivos.",
+        "sourceLabel": "FDA · Guia estatístico para avaliação de testes diagnósticos",
+        "source": "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/statistical-guidance-reporting-results-studies-evaluating-diagnostic-tests-guidance-industry-and-fda"
+      }
+    },
+    {
+      "number": 63,
+      "area": "SC",
+      "topic": "Epidemiologia aplicada",
+      "page": 17,
+      "answer": "B",
+      "prompt": "Uma equipe de saúde da família percebeu um aumento do número de casos complicados de diabetes mellitus. De um total de 3.500 pacientes cadastrados, 280 são acompanhados por diabetes mellitus tipo 2, sendo 4 casos de amputações, 28 casos de retinopatia diabética e 80 casos de algum grau de doença renal crônica. Foi identificado que essa população apresentava dieta inadequada, baixo nível de atividade física e pouco conhecimento sobre estilos de vida que poderiam prevenir complicações das doenças. A equipe de saúde decidiu elaborar um projeto de intervenção com ênfase em avaliação e orientação nutricional e práticas de atividade física de rotina. Qual é o desenho de pesquisa para avaliação do impacto desse projeto de intervenção coletiva?",
+      "options": [
+        "Estudo de caso-controle aninhado.",
+        "Ensaio clínico não randomizado.",
+        "Estudo de coorte retrospectivo.",
+        "Ensaio clínico randomizado."
+      ]
+    },
+    {
+      "number": 1,
+      "area": "CM",
+      "topic": "Cardiologia",
+      "page": 3,
+      "answer": "A",
+      "prompt": "Mulher de 58 anos, com diagnóstico de hipertensão arterial sistêmica (HAS) e em tratamento irregular, é encaminhada ao ambulatório de clínica médica de atenção secundária. Queixa-se de fadiga e dispneia aos esforços, com piora progressiva. Ao exame físico, é observado ritmo cardíaco regular em 4 tempos (B3 + B4), sem sopros no precórdio, mas com crépitos em bases pulmonares; pressão arterial: 148 x 90 mmHg. Ecocardiograma transtorácico evidencia hipertrofia ventricular esquerda concêntrica, associada com fração de ejeção de 38% (por Simpson). Exames laboratoriais normais, salvo pela elevação sérica de peptídeo natriurético tipo B (BNP). Para melhorar o controle da HAS e o prognóstico da paciente, o tratamento com inibidor da enzima conversora de angiotensina foi mantido, e o especialista optou por associar determinado fármaco, devido ao impacto positivo no prognóstico de sobrevida dessa paciente. O fármaco introduzido no tratamento da paciente foi",
+      "options": [
+        "espironolactona.",
+        "clortalidona.",
+        "hidralazina.",
+        "clonidina."
+      ]
+    },
+    {
+      "number": 91,
+      "area": "CM",
+      "topic": "Cardiologia",
+      "page": 23,
+      "answer": "B",
+      "prompt": "Homem de 56 anos, em acompanhamento médico por angina instável de início recente, diabetes mellitus tipo 2, hipertensão arterial sistêmica e dislipidemia, é internado em unidade coronariana de hospital de atenção terciária com quadro de dor torácica em aperto, de forte intensidade, irradiada para o membro superior esquerdo e mandíbula, iniciada há cerca de 2 horas. O paciente relata ter sofrido 3 episódios de dor com características similares, mas de menor duração, nas últimas 24 horas. Ele vem em uso crônico de losartana, hidroclorotiazida, ácido acetilsalicílico, dapagliflozina, metformina e atorvastatina. Ao exame físico, ausculta-se 4ª bulha, níveis pressóricos dentro da normalidade, sem congestão pulmonar. Um eletrocardiograma mostra novo infradesnivelamento segmento ST de 1 mm, com inversão de onda T, em parede anterior. O paciente evolui com elevação da troponina-I, fazendo curva enzimática. O escore de risco 'race é de 152 pontos, enquanto o TIMI risk score é de 5 pontos. A conduta indicada nesse caso é realizar",
+      "options": [
+        "angiotomografia coronária em até 48 horas.",
+        "cateterismo cardíaco nas primeiras 24 horas.",
+        "cateterismo cardíaco em até 3 dias do evento.",
+        "ecocardiograma de estresse em até 7 dias do evento."
+      ]
+    },
+    {
+      "number": 68,
+      "area": "GO",
+      "topic": "Rastreamento do câncer do colo do útero",
+      "page": 18,
+      "answer": "B",
+      "prompt": "Uma mulher de 30 anos recebeu a citologia oncótica com laudo de “atipias celulares escamosas de significado indeterminado, onde não se pode afastar alto grau (ASC-H)”. Ela nega antecedente de tabagismo e não se lembra de ter tido infecção sexualmente transmissível. Nesse caso, a conduta adequada deve ser a realização de",
+      "options": [
+        "conização.",
+        "colposcopia.",
+        "cirurgia de alta frequência.",
+        "nova citologia oncótica em 6 meses."
+      ]
+    },
+    {
+      "number": 83,
+      "area": "MFC",
+      "topic": "Rastreamento do câncer do colo do útero",
+      "page": 21,
+      "answer": "B",
+      "prompt": "Mulher de 32 anos, sexualmente ativa, comparece à consulta com o médico de família e comunidade para realização do seu primeiro exame preventivo. O médico realiza a coleta de citologia oncótica. Após 3 semanas, a paciente retorna com o resultado “presença de lesão intraepitelial de baixo grau”. Considerando esse resultado, qual é a conduta adequada do médico?",
+      "options": [
+        "Solicitar ultrassonografia transvaginal.",
+        "Repetir o exame citopatológico em 6 meses.",
+        "Encaminhar para a realização de colposcopia.",
+        "Repetir o exame citopatológico imediatamente."
+      ]
+    },
+    {
+      "number": 23,
+      "area": "PED",
+      "topic": "Proteção e notificação de violência",
+      "page": 7,
+      "answer": "B",
+      "prompt": "A violência contra adolescentes pode ter várias causas e atores. Os sinais que demonstram essas ações podem ser indiretos, mas devem ser observados pelos profissionais da saúde. Assinale a alternativa com a situação em que se deve notificar o Conselho Tutelar.",
+      "options": [
+        "Manuel, 15 anos, abandonado pelos pais e sob os cuidados de uma família acolhedora, apresenta febre, vômitos, petéquias que evoluem para púrpuras em MMII e SS, rigidez de nuca e história vacinal desconhecida.",
+        "Michele, 13 anos, está morando temporariamente com os tios enquanto a mãe faz um curso no exterior.Há 1 mês vem apresentando equimoses em face, pernas, coxas, em vários estágios de evolução, e evita falar sobre o fato.",
+        "Felipe, 11 anos, acolhido em um abrigo desde os 9 anos, há 3 dias está mais recolhido no seu quarto e dorme quase o tempo todo. Apresenta febre, muita dor no corpo e retro-orbitária, sangramento gengival quando escova os dentes e petéquias pelo corpo.",
+        "Edilene, 16 anos, que cumpre medidas socioeducativas em uma instituição do Estado, apresenta várias equimoses nos membros superiores e inferiores, além do tronco. Refere também suores noturnos, febre inexplicada, perda de peso e linfonodos aumentados de tamanho em região cervical, supraclavicular e inguinal bilateralmente."
+      ],
+      "comment": {
+        "clue": "Na alternativa B, equimoses em vários estágios, em diferentes regiões, associadas à dificuldade de falar do ocorrido, levantam suspeita de violência. O artigo 13 do ECA prevê comunicação ao Conselho Tutelar também na suspeita.",
+        "distractor": "A alternativa D descreve equimoses com febre, suores noturnos, perda de peso e linfonodos aumentados. No raciocínio da questão, esse conjunto aponta para investigação de uma causa sistêmica.",
+        "sourceLabel": "Estatuto da Criança e do Adolescente · artigo 13",
+        "source": "https://www.planalto.gov.br/ccivil_03/leis/l8069compilado.htm"
+      }
+    },
+    {
+      "number": 84,
+      "area": "SC",
+      "topic": "Proteção e notificação de violência",
+      "page": 22,
+      "answer": "C",
+      "prompt": "A agente comunitária de saúde de uma Unidade Básica de Saúde (UBS) relata, durante a reunião de equipe, a sua preocupação com os idosos de uma instituição de longa permanência para idosos (ILPI) no território da UBS. Em sua última visita, a agente observou que na instituição havia 38 idosos vivendo em isolamento excessivo, a maioria sem vínculos familiares ativos e sofrendo constantes agressões dos funcionários. Comenta ainda que havia sinais de contenção física em idosos com demência avançada e presença de lesões de pressão. Qual a conduta mais adequada da equipe de saúde?",
+      "options": [
+        "Formalizar denúncia ao Conselho Municipal do Idoso, considerando que situações como contenção e úlcera por pressão podem acontecer em ambientes de institucionalização prolongada e não requerem intervenção clínica imediata.",
+        "Oferecer apoio clínico para os casos de maior vulnerabilidade, como os com lesão por pressão e agitação psicomotora, sugerindo adequações na rotina assistencial, respeitando a autonomia da ILPI.",
+        "Articular ação intersetorial com órgãos de controle social, registrar notificação compulsória de violência institucional e elaborar plano de ação conjunta com a equipe da ILPI.",
+        "Agendar reuniões quinzenais com a equipe da ILPI para educação permanente sobre cuidados paliativos, sem envolver outras instâncias legais ou sociais."
+      ]
+    }
+  ]
+}

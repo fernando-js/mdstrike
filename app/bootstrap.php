@@ -14,7 +14,13 @@ function configuration(): array {
     $file = is_file($path) ? require $path : [];
     $envPath = private_directory() . '/.env';
     $env = is_file($envPath) ? (parse_ini_file($envPath, false, INI_SCANNER_RAW) ?: []) : [];
-    foreach (['DB_HOST'=>'db_host','DB_PORT'=>'db_port','DB_NAME'=>'db_name','DB_USER'=>'db_user','DB_PASSWORD'=>'db_password','APP_ORIGIN'=>'app_origin'] as $key=>$setting) {
+    foreach ([
+        'DB_HOST'=>'db_host', 'DB_PORT'=>'db_port', 'DB_NAME'=>'db_name',
+        'DB_USER'=>'db_user', 'DB_PASSWORD'=>'db_password', 'APP_ORIGIN'=>'app_origin',
+        'SMTP_HOST'=>'smtp_host', 'SMTP_PORT'=>'smtp_port', 'SMTP_USERNAME'=>'smtp_username',
+        'SMTP_PASSWORD'=>'smtp_password', 'SMTP_ENCRYPTION'=>'smtp_encryption',
+        'GOOGLE_CLIENT_ID'=>'google_client_id', 'GOOGLE_CLIENT_SECRET'=>'google_client_secret',
+    ] as $key=>$setting) {
         if (array_key_exists($key,$env)) $file[$setting]=$env[$key];
     }
     return array_merge([
@@ -25,6 +31,13 @@ function configuration(): array {
         'db_user' => getenv('DB_USER') ?: 'u586486438_mdstrike_user',
         'db_password' => getenv('DB_PASSWORD') ?: '',
         'app_origin' => getenv('APP_ORIGIN') ?: (development() ? 'http://127.0.0.1:8088' : 'https://mdstrike.com'),
+        'smtp_host' => getenv('SMTP_HOST') ?: 'smtp.hostinger.com',
+        'smtp_port' => getenv('SMTP_PORT') ?: 465,
+        'smtp_username' => getenv('SMTP_USERNAME') ?: 'info@mdstrike.com',
+        'smtp_password' => getenv('SMTP_PASSWORD') ?: '',
+        'smtp_encryption' => getenv('SMTP_ENCRYPTION') ?: 'ssl',
+        'google_client_id' => getenv('GOOGLE_CLIENT_ID') ?: '',
+        'google_client_secret' => getenv('GOOGLE_CLIENT_SECRET') ?: '',
     ], $file);
 }
 
@@ -56,6 +69,8 @@ function migrate(PDO $db): void {
     $matchIndexes = $sqlite ? '' : ', INDEX md_matches_user (user_id, finished_at)';
     $answerIndexes = $sqlite ? '' : ', INDEX md_answers_user (user_id, question_id, id)';
     $auditIndexes = $sqlite ? '' : ', INDEX md_audit_time (created_at, id), INDEX md_audit_subject (subject_id, id), INDEX md_audit_actor (actor_id, id)';
+    $resetQueueIndex = $sqlite ? '' : ', INDEX md_reset_requests_available (available_at)';
+    $googleSubject = $sqlite ? 'TEXT COLLATE BINARY' : 'VARBINARY(255)';
     $queries = [
         "CREATE TABLE IF NOT EXISTS md_users (id $id, nickname VARCHAR(24) NOT NULL UNIQUE, email VARCHAR(190) NOT NULL UNIQUE, password_hash VARCHAR(255) NOT NULL, specialty VARCHAR(90) NOT NULL DEFAULT '', institution VARCHAR(100) NOT NULL DEFAULT '', status VARCHAR(16) NOT NULL DEFAULT 'available', xp INTEGER NOT NULL DEFAULT 0, points INTEGER NOT NULL DEFAULT 0, rating INTEGER NOT NULL DEFAULT 1000, played INTEGER NOT NULL DEFAULT 0, wins INTEGER NOT NULL DEFAULT 0, answered INTEGER NOT NULL DEFAULT 0, correct INTEGER NOT NULL DEFAULT 0, created_at BIGINT NOT NULL, last_seen BIGINT NOT NULL, password_changed_at BIGINT NOT NULL DEFAULT 0)$tail",
         "CREATE TABLE IF NOT EXISTS md_matches (id VARCHAR(64) PRIMARY KEY, user_id BIGINT NOT NULL, mode VARCHAR(20) NOT NULL, map_id VARCHAR(90) NOT NULL, exam_id VARCHAR(90) NOT NULL DEFAULT '', questions_json TEXT NOT NULL, question_index INTEGER NOT NULL DEFAULT 0, score INTEGER NOT NULL DEFAULT 0, correct INTEGER NOT NULL DEFAULT 0, bot_score INTEGER NOT NULL DEFAULT 0, started_at BIGINT NOT NULL, issued_at BIGINT NOT NULL, finished_at BIGINT, result_json TEXT$matchIndexes)$tail",
@@ -69,6 +84,10 @@ function migrate(PDO $db): void {
         "CREATE TABLE IF NOT EXISTS md_revalida_first (user_id BIGINT NOT NULL, exam_id VARCHAR(90) NOT NULL, formation VARCHAR(10) NOT NULL, reached_cutoff INTEGER NOT NULL, PRIMARY KEY (user_id, exam_id))$tail",
         "CREATE TABLE IF NOT EXISTS md_migrations (name VARCHAR(100) PRIMARY KEY, applied_at BIGINT NOT NULL)$tail",
         "CREATE TABLE IF NOT EXISTS md_audit_logs (id $id, event VARCHAR(80) NOT NULL, actor_id BIGINT, subject_id BIGINT, metadata_json TEXT NOT NULL, client_ip VARCHAR(45) NOT NULL DEFAULT '', user_agent VARCHAR(255) NOT NULL DEFAULT '', request_id VARCHAR(32) NOT NULL, created_at BIGINT NOT NULL$auditIndexes)$tail",
+        "CREATE TABLE IF NOT EXISTS md_password_reset_requests (job_key CHAR(64) PRIMARY KEY, user_id BIGINT, requested_at BIGINT NOT NULL, available_at BIGINT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0$resetQueueIndex)$tail",
+        "CREATE TABLE IF NOT EXISTS md_password_resets (user_id BIGINT PRIMARY KEY, token_hash CHAR(64) NOT NULL UNIQUE, password_fingerprint CHAR(64) NOT NULL, expires_at BIGINT NOT NULL)$tail",
+        "CREATE TABLE IF NOT EXISTS md_enamed_metrics (event_day CHAR(10) NOT NULL, event_name VARCHAR(32) NOT NULL, event_count BIGINT NOT NULL, PRIMARY KEY (event_day,event_name))$tail",
+        "CREATE TABLE IF NOT EXISTS md_google_accounts (user_id BIGINT PRIMARY KEY, google_subject $googleSubject NOT NULL UNIQUE, linked_at BIGINT NOT NULL)$tail",
     ];
     foreach ($queries as $query) $db->exec($query);
     if ($sqlite) {
@@ -79,6 +98,7 @@ function migrate(PDO $db): void {
         $db->exec('CREATE INDEX IF NOT EXISTS md_audit_time ON md_audit_logs(created_at, id)');
         $db->exec('CREATE INDEX IF NOT EXISTS md_audit_subject ON md_audit_logs(subject_id, id)');
         $db->exec('CREATE INDEX IF NOT EXISTS md_audit_actor ON md_audit_logs(actor_id, id)');
+        $db->exec('CREATE INDEX IF NOT EXISTS md_reset_requests_available ON md_password_reset_requests(available_at)');
     }
     bootstrap_owner_admin($db);
     security_indexes($db);
@@ -122,7 +142,7 @@ function input(): array {
     if (!is_array($data)) fail('Dados inválidos.');
     foreach ($data as $key => $value) {
         if (is_array($value) || is_object($value)) fail('Campo inválido.');
-        if (in_array($key, ['nickname','email','password','currentPassword','specialty','identity','institution','status','mode','map','exam','match','question','challenge','educationStatus','educationMode','educationState','educationMunicipality','educationInstitution'], true) && !is_string($value)) fail('Campo de texto inválido.');
+        if (in_array($key, ['nickname','email','password','currentPassword','token','specialty','identity','institution','status','mode','map','exam','match','question','challenge','educationStatus','educationMode','educationState','educationMunicipality','educationInstitution'], true) && !is_string($value)) fail('Campo de texto inválido.');
     }
     return $data;
 }
@@ -134,6 +154,19 @@ function require_csrf(): void {
     if ($origin !== '' && $origin !== $allowed && !(development() && in_array($origin, ['http://127.0.0.1:8088','http://localhost:8088'], true))) fail('Origem não permitida.', 403);
 }
 
+function begin_auth(array $user, string $method = 'password'): void {
+    session_regenerate_id(true);
+    $now = time();
+    $_SESSION = [
+        'user_id' => (int)$user['id'],
+        'authenticated_at' => $now,
+        'last_activity' => $now,
+        'password_fingerprint' => hash('sha256', $user['password_hash']),
+        'auth_method' => $method,
+        'csrf' => bin2hex(random_bytes(32)),
+    ];
+}
+
 function current_user(): ?array {
     if (empty($_SESSION['user_id'])) return null;
     $u = query('SELECT * FROM md_users WHERE id = ?', [$_SESSION['user_id']])->fetch();
@@ -142,6 +175,12 @@ function current_user(): ?array {
     }
     $now = time();
     $admin = is_admin($u);
+    if ($admin && ($_SESSION['auth_method'] ?? '') === 'google') {
+        $_SESSION = [];
+        session_regenerate_id(true);
+        $_SESSION['csrf'] = bin2hex(random_bytes(32));
+        return null;
+    }
     $authenticated = (int)($_SESSION['authenticated_at'] ?? 0);
     $lastActivity = (int)($_SESSION['last_activity'] ?? $now);
     if (!$authenticated || $now - $authenticated >= ($admin ? 28800 : 86400) || $now - $lastActivity >= ($admin ? 1800 : 7200)) {
@@ -161,6 +200,8 @@ function public_user(array $u, bool $owner = false): array {
     if ($owner) {
         $result['email'] = $u['email'];
         $result['isAdmin'] = is_admin($u);
+        $result['hasPassword'] = $u['password_hash'] !== '';
+        $result['googleLinked'] = (bool)query('SELECT 1 FROM md_google_accounts WHERE user_id = ?', [$u['id']])->fetchColumn();
         $result['education'] = education_for_user((int)$u['id']);
         $result['avatar'] = avatar_for_user((int)$u['id']);
     }

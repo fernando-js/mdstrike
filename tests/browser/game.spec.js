@@ -295,23 +295,62 @@ test("shared challenge uses identical questions, supports two accounts and preve
   await page
     .getByRole("button", { name: "Criar desafio", exact: true })
     .click();
+  await page.getByLabel("Tema do desafio").selectOption("neurologia");
   await page.getByRole("button", { name: "Gerar link de desafio" }).click();
-  await expect(page.locator("#challenge-link")).toBeVisible();
-  const link = await page.locator("#challenge-link").inputValue();
-  expect(link).toMatch(/#challenge\/[a-f0-9]{32}$/);
+  const invite = page.getByLabel("Mensagem do convite");
+  await expect(invite).toBeVisible();
+  const message = await invite.inputValue();
+  const link = message.split("\n").at(-1);
+  expect(message).toContain("Desafio de Neurologia no MDStrike");
+  expect(message).toContain("7 questões, 60 segundos por questão");
+  expect(link).toMatch(/\/d\/[a-f0-9]{32}$/);
+  await host.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.getByRole("button", { name: "Copiar convite" }).click();
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(message);
+  await page.getByRole("button", { name: "Copiar só o link" }).click();
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(link);
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, "share", {
+      value: async (data) => { window.inviteShare = data; },
+    });
+  });
+  await page.getByRole("button", { name: "Compartilhar", exact: true }).click();
+  expect(await page.evaluate(() => window.inviteShare)).toEqual({
+    title: "Desafio de Neurologia no MDStrike",
+    text: message.slice(0, -link.length).trimEnd(),
+    url: link,
+  });
   const id = link.split("/").at(-1);
+  const preview = await colleague.request.get(link);
+  expect(preview.status()).toBe(200);
+  expect(preview.headers()["x-robots-tag"]).toBe("noindex");
+  expect(await preview.text()).toContain('<meta property="og:title" content="Desafio de Neurologia">');
+  expect(await preview.text()).toContain('<meta property="og:description" content="7 questões, 60 segundos por questão.');
+  expect(await preview.text()).toContain('<meta property="og:image"');
+  expect(await preview.text()).not.toContain(accounts[0].user.email);
+  expect((await colleague.request.get("/d/invalid")).status()).toBe(404);
   const invited = await colleague.newPage();
   await invited.goto(link);
-  await expect(invited.locator("h1")).toHaveText("Um link. O mesmo desafio.");
+  await expect(invited.locator("h1")).toHaveText("Desafio de Neurologia");
   await expect(
     invited.getByRole("button", { name: "Aceitar desafio" }),
   ).toBeVisible();
+  await invited.goto("/#challenge/" + id);
+  await expect(invited.locator("h1")).toHaveText("Desafio de Neurologia");
   const guest = await browser.newContext({ baseURL: "http://127.0.0.1:8088" });
   const guestPage = await guest.newPage();
   await guestPage.goto(link);
   await expect(
     guestPage.getByRole("button", { name: "Entrar para participar" }),
   ).toBeVisible();
+  const guestSession = await (
+    await guest.request.get("/api/index.php?action=session")
+  ).json();
+  const attemptWithoutLogin = await guest.request.post(
+    "/api/index.php?action=join-challenge",
+    { headers: { "X-CSRF-Token": guestSession.csrf }, data: { challenge: id } },
+  );
+  expect(attemptWithoutLogin.status()).toBe(401);
   await guestPage
     .getByRole("button", { name: "Entrar para participar" })
     .click();
@@ -321,7 +360,7 @@ test("shared challenge uses identical questions, supports two accounts and preve
   await guestPage
     .getByRole("button", { name: "Entrar na conta", exact: true })
     .click();
-  await expect(guestPage.locator("h1")).toHaveText("Um link. O mesmo desafio.");
+  await expect(guestPage.locator("h1")).toHaveText("Desafio de Neurologia");
   await expect(
     guestPage.getByRole("button", { name: "Aceitar desafio" }),
   ).toBeVisible();

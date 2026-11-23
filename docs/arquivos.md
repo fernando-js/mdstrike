@@ -22,6 +22,8 @@ Comece por `index.html` para entender a entrada da aplicação, `assets/js/app.j
 | [api/index.php](../api/index.php) | Entrada da API. Cadastro, sessão, perfil, ranking, partida e encaminhamento para rotinas específicas |
 | [app/bootstrap.php](../app/bootstrap.php) | Configuração, PDO, esquema, sessões, autenticação e auditoria |
 | [app/security.php](../app/security.php) | Validação da rota e do método, limites de uso, manutenção e filtro de partidas elegíveis |
+| [app/password-reset.php](../app/password-reset.php) e [app/password-reset-worker.php](../app/password-reset-worker.php) | Solicitação e troca da senha, fila de recuperação e entrega por SMTP |
+| [app/google-auth.php](../app/google-auth.php) e [api/google-callback.php](../api/google-callback.php) | Entrada com Google, troca do código pela identidade e vínculo de conta |
 | [app/admin.php](../app/admin.php) | Consultas administrativas |
 | [app/challenges.php](../app/challenges.php) | Geração de convites, vínculo de tentativas e placares de desafios |
 | [app/revalida.php](../app/revalida.php) | Histórico da operação, marcações, entrega, correção e agregados do Revalida |

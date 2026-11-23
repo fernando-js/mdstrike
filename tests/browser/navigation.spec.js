@@ -1,12 +1,65 @@
 import { test, expect } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 
+test.use({
+  launchOptions: { channel: "chrome", ignoreDefaultArgs: ["--hide-scrollbars"] },
+});
+
 test.beforeAll(async ({ request }) => {
   await request.get("/api/index.php?action=session");
   execFileSync("php", [
     "-r",
     '$db=new PDO("sqlite:.runtime/mdstrike.sqlite");$db->exec("DELETE FROM md_auth_limits");',
   ]);
+});
+
+test("desktop scrollbars can be dragged and long dialogs scroll independently", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 620 });
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/#archive");
+  await expect(page.getByRole("heading", { name: "Seu arsenal de estudo." })).toBeVisible();
+  const desktop = await page.evaluate(() => ({
+    gutter: innerWidth - document.documentElement.clientWidth,
+    width: document.body.getBoundingClientRect().width,
+    overflow: document.documentElement.scrollHeight - innerHeight,
+  }));
+  expect(desktop.overflow).toBeGreaterThan(100);
+  expect(desktop.gutter).toBe(14);
+  const nav = page.getByRole("navigation", { name: "Navegação principal" });
+  await nav.getByText("Menu", { exact: true }).click();
+  await expect(nav.getByRole("link", { name: "Revalida", exact: true })).toBeInViewport();
+  await page.keyboard.press("Escape");
+  await page.screenshot({ path: "/private/tmp/mdstrike-rolagem-desktop.png" });
+  await page.mouse.move(1280 - desktop.gutter / 2, 12);
+  await page.mouse.down();
+  await page.mouse.move(1280 - desktop.gutter / 2, 110, { steps: 6 });
+  await page.mouse.up();
+  await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(0);
+
+  await page.locator("#account-button").click();
+  const dialog = page.locator("#modal");
+  await dialog.getByRole("button", { name: "Criar conta", exact: true }).click();
+  const submit = dialog.getByRole("button", { name: "Criar meu operador" });
+  expect(
+    await dialog.evaluate((element) => element.scrollHeight - element.clientHeight),
+  ).toBeGreaterThan(0);
+  expect(await page.evaluate(() => document.body.getBoundingClientRect().width)).toBe(desktop.width);
+  await page.screenshot({ path: "/private/tmp/mdstrike-rolagem-cadastro.png" });
+  await dialog.hover();
+  const before = await page.evaluate(() => scrollY);
+  await page.mouse.wheel(0, 850);
+  await expect(submit).toBeInViewport();
+  await expect.poll(() => page.evaluate(() => scrollY)).toBe(before);
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect.poll(() => page.evaluate(() => scrollY)).toBe(before);
+
+  await page.setViewportSize({ width: 390, height: 620 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect(errors).toEqual([]);
 });
 
 test("logout is visible in the lobby and administrative routes stay hidden from guests and regular players", async ({

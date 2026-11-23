@@ -132,15 +132,14 @@
 }
 .challenge-share {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: end;
   gap: 12px;
   margin: 25px 0 16px;
 }
-.challenge-share input {
-  font:
-    12px ui-monospace,
-    monospace;
+.challenge-share textarea {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.45;
+  font-size: 14px;
 }
 .challenge-share .btn {
   min-height: 45px;
@@ -150,11 +149,8 @@
     flex-direction: column;
     align-items: flex-start;
   }
-  .challenge-share {
-    grid-template-columns: 1fr 1fr;
-  }
-  .challenge-share .field {
-    grid-column: 1/-1;
+  .challenge-share textarea {
+    min-height: 155px;
   }
 }
 * {
@@ -170,6 +166,34 @@ body {
     #24303144,
     transparent 55%
   );
+}
+@media (min-width: 721px) and (hover: hover) and (pointer: fine) and (forced-colors: none) {
+  :where(html, dialog, .sidebar nav, .table-wrap, .pdf-viewer, .mobile-menu > div) {
+    --scrollbar-thumb: #899b9e;
+    --scrollbar-track: #182124;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  }
+  :where(html, dialog) {
+    scrollbar-gutter: stable;
+  }
+  @supports selector(::-webkit-scrollbar) {
+    :where(html, dialog, .sidebar nav, .table-wrap, .pdf-viewer, .mobile-menu > div) {
+      scrollbar-color: auto;
+    }
+    :where(html, dialog, .sidebar nav, .table-wrap, .pdf-viewer, .mobile-menu > div)::-webkit-scrollbar {
+      width: 14px;
+      height: 14px;
+      background: var(--scrollbar-track);
+    }
+    :where(html, dialog, .sidebar nav, .table-wrap, .pdf-viewer, .mobile-menu > div)::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb);
+      border: 2px solid var(--scrollbar-track);
+      border-radius: 8px;
+    }
+    :where(html, dialog, .sidebar nav, .table-wrap, .pdf-viewer, .mobile-menu > div)::-webkit-scrollbar-thumb:hover {
+      background: #c6d2d3;
+    }
+  }
 }
 button,
 input,
@@ -1251,6 +1275,8 @@ dialog {
   max-width: 600px;
   width: calc(100% - 32px);
   max-height: 90dvh;
+  overflow: auto;
+  overscroll-behavior: contain;
   padding: 0;
   background: #151d20;
   color: var(--text);
@@ -1306,6 +1332,53 @@ dialog::backdrop {
   display: flex;
   flex-direction: column;
   gap: 17px;
+}
+.password-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.password-toggle {
+  min-height: 45px;
+  min-width: 104px;
+  padding: 0 10px;
+  border: 1px solid #536064;
+  border-left: 0;
+  color: var(--text);
+  background: #1b2528;
+  font-size: 12px;
+}
+.password-toggle:hover {
+  background: #263438;
+}
+.password-field small {
+  line-height: 1.45;
+}
+.google-auth-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid #747775;
+  border-radius: 4px;
+  background: #fff;
+  color: #1f1f1f;
+  font: 500 14px/20px "Google Sans", Arial, sans-serif;
+  letter-spacing: .25px;
+}
+.google-auth-button:hover {
+  background: #f2f2f2;
+}
+.google-auth-button img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+.profile-google {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
 }
 .modal-hero {
   width: 100%;
@@ -2890,7 +2963,7 @@ ul.resource-links {
   font-family: monospace;
 }
 
-@media (max-width: 1000px) {
+@media (max-width: 1360px) {
   .topbar nav {
     position: relative;
     justify-content: flex-start;

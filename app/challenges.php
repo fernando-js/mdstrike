@@ -1,11 +1,30 @@
 <?php
 declare(strict_types=1);
 
+function find_challenge(string $id): ?array {
+    if (!preg_match('/\A[a-f0-9]{32}\z/', $id)) return null;
+    return query('SELECT c.*, u.nickname AS creator_nickname FROM md_challenges c JOIN md_users u ON u.id = c.creator_id WHERE c.id = ?', [$id])->fetch() ?: null;
+}
+
 function challenge_record(string $id): array {
-    if (!preg_match('/^[a-f0-9]{32}$/', $id)) fail('Desafio não encontrado.', 404);
-    $row = query('SELECT c.*, u.nickname AS creator_nickname FROM md_challenges c JOIN md_users u ON u.id = c.creator_id WHERE c.id = ?', [$id])->fetch();
-    if (!$row) fail('Desafio não encontrado.', 404);
-    return $row;
+    return find_challenge($id) ?? fail('Desafio não encontrado.', 404);
+}
+
+function challenge_invite(array $challenge): array {
+    $map = $challenge['map_id'];
+    $topics = catalog()['areas'] + array_column(catalog()['specialties'], 'name', 'id');
+    $title = isset($topics[$map]) ? 'Desafio de ' . $topics[$map] : 'Desafio de Medicina · todas as áreas';
+    $total = count(json_decode($challenge['questions_json'], true));
+    $expired = time() > (int)$challenge['expires_at'];
+    return [
+        'title' => $title,
+        'description' => $expired
+            ? "$total questões. O prazo de participação terminou. Confira o placar."
+            : "$total questões, 60 segundos por questão. Jogue no seu horário e compare seus acertos com os colegas.",
+        'total' => $total,
+        'expired' => $expired,
+        'url' => rtrim(configuration()['app_origin'], '/') . '/d/' . $challenge['id'],
+    ];
 }
 
 function challenge_public(array $challenge, ?array $viewer): array {
@@ -32,7 +51,7 @@ function challenge_public(array $challenge, ?array $viewer): array {
     $own = $viewer ? query('SELECT m.finished_at, m.result_json FROM md_challenge_runs r JOIN md_matches m ON m.id = r.match_id WHERE r.challenge_id = ? AND r.user_id = ?', [$challenge['id'],$viewer['id']])->fetch() : false;
     $ownResult = $own && $own['result_json'] ? json_decode($own['result_json'],true) : null;
     $mine = !$own ? 'new' : (!$own['finished_at'] ? 'playing' : (!empty($ownResult['aborted'])?'aborted':'finished'));
-    return ['id'=>$challenge['id'], 'creator'=>$challenge['creator_nickname'], 'map'=>$challenge['map_id'], 'total'=>count(json_decode($challenge['questions_json'],true)), 'createdAt'=>(int)$challenge['created_at'], 'expiresAt'=>(int)$challenge['expires_at'], 'expired'=>time()>(int)$challenge['expires_at'], 'mine'=>$mine, 'scores'=>$scores, 'url'=>rtrim(configuration()['app_origin'],'/').'/#challenge/'.$challenge['id']];
+    return ['id'=>$challenge['id'], 'creator'=>$challenge['creator_nickname'], 'map'=>$challenge['map_id'], 'createdAt'=>(int)$challenge['created_at'], 'expiresAt'=>(int)$challenge['expires_at'], 'mine'=>$mine, 'scores'=>$scores, ...challenge_invite($challenge)];
 }
 
 function create_challenge(array $data, array $user): array {
