@@ -18,7 +18,7 @@ import {
   refreshProfile,
   beep,
 } from "./core.js?v=2.4.0";
-import * as views from "./views.js?v=3.6.1";
+import * as views from "./views.js?v=3.6.2";
 import { googleButton, passwordField, setPasswordVisibility } from "./auth-fields.js?v=3.6.0";
 import {
   clearSavedViews,
@@ -70,6 +70,7 @@ const nav = [
   ["maps", "map", "Mapas e especialidades"],
   ["archive", "clipboard", "Arquivo de provas"],
   ["revalida", "clipboard", "Revalida"],
+  ["tea", "mask", "Operação TEA"],
   ["competitions", "trophy", "Competições"],
   ["ranking", "ranking", "Ranking"],
   ["profile", "user", "Meu perfil"],
@@ -83,6 +84,7 @@ const topNav = [
   ["ranking", "Ranking"],
   ["archive", "Arquivo"],
   ["revalida", "Revalida"],
+  ["tea", "TEA"],
 ];
 
 function shell() {
@@ -175,6 +177,7 @@ async function route(page, force = false, navigation = "push") {
       "profile",
       "archive",
       "revalida",
+      "tea",
       "booklet",
       "sources",
       "privacy",
@@ -220,6 +223,20 @@ async function route(page, force = false, navigation = "push") {
         '<section class="empty"><h1>Mapa indisponível</h1><button class="btn outline" data-page="' +
         path +
         '">Tentar novamente</button></section>';
+    }
+    restoreView(view, navigation);
+    focusPage(view);
+    return;
+  }
+  if (page === "tea") {
+    view.innerHTML = '<p class="loading" role="status">Abrindo a Operação TEA…</p>';
+    try {
+      const { mountTea } = await import("./tea.js?v=1.0.0");
+      if (routeGeneration !== generation) return;
+      mountTea(view);
+    } catch {
+      if (routeGeneration !== generation) return;
+      view.innerHTML = '<section class="empty"><h1>Operação TEA indisponível</h1><button class="btn outline" data-page="tea">Tentar novamente</button></section>';
     }
     restoreView(view, navigation);
     focusPage(view);

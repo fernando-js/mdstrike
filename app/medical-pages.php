@@ -5,6 +5,19 @@ const PCDT = 'https://www.gov.br/conitec/pt-br/assuntos/avaliacao-de-tecnologias
 
 function medical_pages(): array {
     return [
+        '/tea/' => [
+            'title' => 'Operação TEA · Título de Especialista em Anestesiologia',
+            'description' => 'Estude para o TEA de Anestesiologia com quatro missões temáticas, questões autorais comentadas, três casos discursivos e revisão de erros.',
+            'action' => ['Jogar Operação TEA', '/#tea'],
+            'sections' => [
+                ['Missões por tema', 'Pratique via aérea e ventilação, monitorização e farmacologia, neuroeixo e bloqueios, complicações e recuperação. São 40 questões autorais relacionadas aos pontos do edital de 2026. O navegador guarda seu progresso.',
+                    [['Abrir as missões no MD Strike', '/#tea'], ['Programa teórico do TEA na SBA', 'https://www.sbahq.org/programa-tea/']]],
+                ['Casos clínicos discursivos', 'Escreva uma resposta curta antes de comparar com o espelho comentado. Em seguida, veja como o cenário evolui. Os casos são fictícios e a revisão médica independente do material está pendente.',
+                    [['Edital do exame de suficiência de 2026', 'https://www.sbahq.org/wp-content/uploads/2025/02/Edital-TEA-2026-3.pdf#page=9']]],
+                ['Materiais públicos da SBA', 'Consulte o gabarito histórico do TEA e use as avaliações de Médicos em Especialização e os tutoriais da WFSA para complementar o estudo.',
+                    [['Gabarito da primeira fase do TEA 2023', 'https://www.sbahq.org/gabarito-1a-fase-tea-2023/'], ['Avaliação ME2 de 2026 com enunciados e respostas', 'https://www.sbahq.org/wp-content/uploads/2026/06/ME2-1o-Quadri-gabarito.pdf'], ['Tutoriais em português da SBA e da WFSA', 'https://www.sbahq.org/estrutural/tutoriais-wfsa/']]],
+            ],
+        ],
         '/medicina/' => [
             'title' => 'Estudo de Medicina, provas e ferramentas clínicas',
             'description' => 'Encontre resumos por disciplina, casos PBL, questões de provas médicas e ferramentas de consulta para a graduação e o início da prática médica.',
@@ -13,6 +26,8 @@ function medical_pages(): array {
                     [['Resumos por disciplina', '/#study'], ['Casos PBL', '/#study/pbl'], ['Revisão espaçada', '/#study/revisao']]],
                 ['Enamed, Enare e Revalida', 'Compare seu desempenho em provas anteriores e verifique as respostas nos gabaritos oficiais. Para treinar uma área, use os mapas e volte às questões que errou.',
                     [['Simulados do Enamed', '/enamed/'], ['Provas anteriores do Enare', '/enare/'], ['Simulados do Revalida', '/revalida/']]],
+                ['Título de Especialista em Anestesiologia', 'Pratique questões autorais por tema e casos clínicos discursivos na Operação TEA.',
+                    [['Conhecer a Operação TEA', '/tea/']]],
                 ['Exames, protocolos e codificação', 'Alterne entre a leitura de exames, a busca de fontes clínicas e os exercícios de registro de diagnósticos e procedimentos.',
                     [['Exames médicos', '/exames-medicos/'], ['Consulta clínica', '/consulta-clinica/'], ['Consultar CID-10', CID10_PATH], ['CID-10, SIGTAP e TUSS', '/codificacao-em-saude/']]],
             ],

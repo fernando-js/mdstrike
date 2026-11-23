@@ -33,6 +33,6 @@ AddType application/javascript .mjs
   RewriteRule ^d(?:/|$) exam.php [L]
   RewriteRule ^enamed/resultados(?:/|$) exam.php [L]
   RewriteRule ^(?:enamed|enare|revalida)(?:/[^/]+)?/?$ exam.php [L]
-  RewriteRule ^(?:medicina|consulta-clinica|codificacao-em-saude|exames-medicos|cid-10)(?:/|$) exam.php [L]
+  RewriteRule ^(?:medicina|consulta-clinica|codificacao-em-saude|exames-medicos|cid-10|tea)(?:/|$) exam.php [L]
   RewriteRule ^sitemap\.xml$ exam.php [L]
 </IfModule>

@@ -83,6 +83,9 @@ header('Content-Type: text/html; charset=UTF-8');
     <section class="public-intro">
       <h1><?= h($info['title']) ?></h1>
       <?php if (!$entry): ?><p><?= h($info['description']) ?></p><?php endif; ?>
+      <?php if (isset($info['action'])): ?>
+      <div class="row wrap"><a class="btn" href="<?= h($info['action'][1]) ?>"><?= h($info['action'][0]) ?></a></div>
+      <?php endif; ?>
       <?php if ($canonical === CID10_PATH): ?>
       <form class="medical-cid-search" action="<?= CID10_PATH ?>" method="get" role="search" aria-label="Consulta CID-10">
         <label class="field"><span>Código ou nome</span><input name="q" type="search" maxlength="120" placeholder="Ex. E11.9, pressão alta ou cefaleia" value="<?= h($query) ?>" required></label>

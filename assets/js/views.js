@@ -65,6 +65,7 @@ export function lobby() {
   <a class="panel lobby-resource" href="#consulta">${icon("heart", 24)}<span><strong>Consulta rápida</strong><small>Protocolos, fontes brasileiras e calculadoras</small></span>${icon("arrow", 18)}</a>
   <a class="panel lobby-resource" href="#study/enamed">${icon("clipboard", 24)}<span><strong>Trilha Enamed</strong><small>Caderno oficial, treino por área e revisão</small></span>${icon("arrow", 18)}</a>
   <a class="panel lobby-resource" href="#maps/codificacao">${icon("map", 24)}<span><strong>Codificação em saúde</strong><small>Treine CID-10, SIGTAP e TUSS</small></span>${icon("arrow", 18)}</a>
+  <a class="panel lobby-resource" href="#tea">${icon("mask", 24)}<span><strong>Operação TEA</strong><small>Missões e casos de anestesiologia</small></span>${icon("arrow", 18)}</a>
 </div>
 <section class="panel lobby-revalida"><div><h2>Operação Revalida</h2><p>Provas anteriores do Inep, simulados e mapas por área.</p></div><button class="btn outline" data-page="revalida">Entrar na operação ${icon("arrow", 16)}</button></section>
 <div class="section-heading"><h2>Escolha seu mapa</h2><button class="text-button" data-page="maps">Ver todas as especialidades ${icon("arrow", 16)}</button></div><div class="map-grid">${["cardiologia", "anestesiologia", "neurologia"].map((id) => mapCard(catalog.specialties.find((s) => s.id === id))).join("")}</div>`
@@ -76,7 +77,7 @@ export function maps() {
       "O próximo round tem endereço.",
       "55 especialidades. Escolha seu território de estudo.",
     ) +
-    `<section class="resource-review-strip"><div><h2>Codificação em saúde</h2><p>Pratique diagnósticos e registros de procedimentos com CID-10, SIGTAP e TUSS.</p></div><a class="btn outline" href="#maps/codificacao">Abrir mapa ${icon("arrow", 16)}</a></section>` +
+    `<section class="resource-review-strip"><div><h2>Codificação em saúde</h2><p>Pratique diagnósticos e registros de procedimentos com CID-10, SIGTAP e TUSS.</p></div><a class="btn outline" href="#maps/codificacao">Abrir mapa ${icon("arrow", 16)}</a></section><section class="resource-review-strip"><div><h2>Operação TEA</h2><p>Treine por tema para o Título de Especialista em Anestesiologia.</p></div><a class="btn outline" href="#tea">Abrir Operação TEA ${icon("arrow", 16)}</a></section>` +
     `<section class="resource-grid coding-modes thematic-maps" aria-label="Mapas temáticos">
       <article class="panel coding-mode"><h2>História da Medicina</h2><p>Vacinas, descobertas e marcos da saúde no Brasil e no mundo.</p><a class="btn outline" href="#maps/historia-medicina">Jogar História da Medicina ${icon("arrow", 16)}</a></article>
       <article class="panel coding-mode"><h2>Epônimos em Medicina</h2><p>Identifique sinais e manobras da prática clínica.</p><a class="btn outline" href="#maps/eponimos">Jogar Epônimos ${icon("arrow", 16)}</a></article>
