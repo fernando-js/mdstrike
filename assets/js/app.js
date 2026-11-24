@@ -18,7 +18,7 @@ import {
   refreshProfile,
   beep,
 } from "./core.js?v=2.4.0";
-import * as views from "./views.js?v=3.6.2";
+import * as views from "./views.js?v=3.6.3";
 import { googleButton, passwordField, setPasswordVisibility } from "./auth-fields.js?v=3.6.0";
 import {
   clearSavedViews,
@@ -44,8 +44,8 @@ import {
   challengePage,
   loadMyChallenges,
   shareChallenge,
-} from "./challenges.js?v=3.7.2";
-import { openAdmin, stopAdmin } from "./admin.js?v=2.9.1";
+} from "./challenges.js?v=3.7.3";
+import { openAdmin, stopAdmin } from "./admin.js?v=2.9.2";
 import { mountEducation, educationFromForm } from "./education.js?v=2.4.0";
 import {
   RevalidaSimulation,
@@ -231,7 +231,7 @@ async function route(page, force = false, navigation = "push") {
   if (page === "tea") {
     view.innerHTML = '<p class="loading" role="status">Abrindo a Operação TEA…</p>';
     try {
-      const { mountTea } = await import("./tea.js?v=1.0.0");
+      const { mountTea } = await import("./tea.js?v=1.1.0");
       if (routeGeneration !== generation) return;
       mountTea(view);
     } catch {
@@ -474,11 +474,16 @@ function googleLink() {
 async function startGoogle(data) {
   const { url } = await api("google-start", data);
   const returnPath = location.hash.slice(1);
-  if (/^(?:study|consulta|challenge)(?:\/|$)/.test(returnPath)) {
+  if (/^(?:study|consulta|challenge|tea)(?:\/|$)/.test(returnPath)) {
     try { sessionStorage.setItem("mdstrike_google_return", returnPath); } catch {}
   } else {
     try { sessionStorage.removeItem("mdstrike_google_return"); } catch {}
   }
+  try {
+    if (returnPath === "tea" && state.pendingCreateChallenge === "tea")
+      sessionStorage.setItem("mdstrike_google_tea_challenge", "1");
+    else sessionStorage.removeItem("mdstrike_google_tea_challenge");
+  } catch {}
   location.assign(url);
 }
 
@@ -589,7 +594,7 @@ async function loadRanking() {
     container.innerHTML =
       '<div class="empty">' +
       icon("ranking", 40) +
-      "<h2>O ranking global aguarda conexão.</h2><p>Assim que o banco estiver conectado, esta tabela exibirá contas e resultados reais.</p></div>";
+      "<h2>O ranking global aguarda conexão.</h2><p>Assim que o banco estiver conectado, esta tabela exibirá a classificação do MD Strike.</p></div>";
     return;
   }
   const scope = rankingScope;
@@ -733,9 +738,9 @@ function renderMatch() {
     isTeam = c.mode === "competitive",
     official = q.kind === "official";
   const pdfUrl = official ? `${q.pdf}#page=${q.page}&view=FitH` : "";
-  view.innerHTML = `<div class="match-page"><div class="match-header"><div><h1>${esc(modeName(c.mode))}</h1><small>${esc(specialtyName(c.map))} · ${state.user ? "Conta conectada" : "Treino local de convidado"}</small></div><button class="btn outline small" data-page="${c.map.startsWith("revalida-") ? "revalida" : "lobby"}">${simulation ? "Sair do simulado" : "Sair da partida"}</button></div>${c.mode === "cup" ? `<div class="bracket">${["Quartas de final", "Semifinal", "Final"].map((name, i) => `<div class="bracket-stage ${c.stage === i ? "active" : ""}"><small>FASE ${i + 1}</small><strong>${name}</strong></div>`).join("")}</div>` : ""}
+  view.innerHTML = `<div class="match-page"><div class="match-header"><div><h1>${esc(modeName(c.mode))}</h1><small>${esc(c.map === "tea" ? "Operação TEA" : specialtyName(c.map))} · ${state.user ? "Conta conectada" : "Treino local de convidado"}</small></div><button class="btn outline small" data-page="${c.map === "tea" ? "challenge/" + c.challengeId : c.map.startsWith("revalida-") ? "revalida" : "lobby"}">${simulation ? "Sair do simulado" : "Sair da partida"}</button></div>${c.mode === "cup" ? `<div class="bracket">${["Quartas de final", "Semifinal", "Final"].map((name, i) => `<div class="bracket-stage ${c.stage === i ? "active" : ""}"><small>FASE ${i + 1}</small><strong>${name}</strong></div>`).join("")}</div>` : ""}
   ${simulation ? simulationControls(game) : `<div class="scoreboard"><div><span class="player-name">${isTeam ? "Seu time" : esc(player().nickname)}</span><strong id="my-score">${number(isTeam ? c.roundsWon : c.score)}</strong></div><div><span class="round-counter">ROUND ${c.index + 1} / ${c.total}</span><div class="round-dots">${Array.from({ length: Math.min(15, c.total) }, (_, i) => `<i class="${i < c.index ? "done" : ""}"></i>`).join("")}</div></div><div><span class="player-name enemy">${versus ? (isTeam ? "Time adversário · bots" : "Adversário · bot") : "Precisão"}</span><strong id="opponent-score">${versus ? number(isTeam ? c.roundsLost : c.botScore) : c.index ? Math.round((c.correct / c.index) * 100) + "%" : "—"}</strong></div></div>`}
-  <div class="match-layout" ${official ? 'style="grid-template-columns:minmax(0,1fr)"' : ""}><section class="question-panel ${official ? "pdf-question" : ""}">${c.timeLimit ? `<div class="timer-bar" id="question-timer"><div class="bar"><i id="timer-fill" style="width:100%"></i></div><strong id="time-left">${c.timeLimit}s</strong></div>` : ""}<div class="question-meta"><span>${esc(catalog.areas[q.area] || q.area)}</span><span class="tag ${official ? "official" : ""}">${official ? "Caderno oficial" : "Autoral · demonstração"}</span></div><h2>${esc(q.prompt)}</h2><p class="source-note">${esc(q.source)}${official ? ` · página ${q.page}` : ""}</p>
+  <div class="match-layout" ${official ? 'style="grid-template-columns:minmax(0,1fr)"' : ""}><section class="question-panel ${official ? "pdf-question" : ""}">${c.timeLimit ? `<div class="timer-bar" id="question-timer"><div class="bar"><i id="timer-fill" style="width:100%"></i></div><strong id="time-left">${c.timeLimit}s</strong></div>` : ""}<div class="question-meta"><span>${c.map === "tea" ? "Operação TEA · Ponto " + esc(q.point) : esc(catalog.areas[q.area] || q.area)}</span><span class="tag ${official ? "official" : ""}">${official ? "Caderno oficial" : c.map === "tea" ? "Questão autoral" : "Autoral · demonstração"}</span></div><h2>${esc(q.prompt)}</h2><p class="source-note">${q.sourceUrl ? `<a href="${esc(q.sourceUrl)}" target="_blank" rel="noopener noreferrer">${esc(q.source)}</a>` : esc(q.source)}${official ? ` · página ${q.page}` : ""}</p>
   ${official ? `<div class="row wrap space-between" style="margin-bottom:14px"><span class="small-text muted">Leia a questão ${q.number} na página ${q.page} do caderno e marque a alternativa abaixo.</span><a class="source-link" href="${esc(pdfUrl)}" target="_blank" rel="noopener noreferrer">Abrir PDF em outra aba ↗</a></div><div id="pdf-viewer" class="pdf-viewer" aria-busy="true" aria-label="Página do caderno oficial"><div class="loading">Abrindo a página original…</div></div>` : ""}
   <div class="answers" role="group" aria-label="Alternativas">${q.options.map((option, i) => `<button class="answer" data-answer="${i}" ${simulation ? `aria-pressed="${game.current.choices[game.index] === i}"` : ""}><span class="answer-letter">${"ABCDE"[i]}</span>${official ? "" : `<span>${esc(option)}</span>`}</button>`).join("")}</div><div id="feedback" aria-live="polite"></div><p class="key-help">Atalhos: ${q.options.length === 5 ? "1–5 ou A–E" : "1–4 ou A–D"} para ${simulation ? "marcar uma alternativa" : "responder · Enter para continuar"}</p><div class="match-tools">${simulation ? "<button data-skip>Limpar resposta</button>" : `<button data-sound>${icon("sound", 16)} ${state.sound ? "Som ligado" : "Som desligado"}</button><button data-skip>Pular questão</button>`}</div></section>${!official ? `<aside class="tactical-panel"><h3>Mapa de operação</h3>${tacticalMap(c)}<p>Avance um round por vez. Cada resposta mostra o raciocínio e alimenta seu histórico de estudo.</p><div class="notice">${versus ? "Adversários e aliados são bots." : c.mode === "challenge" ? "Desafio entre colegas. Cada um joga no seu horário." : "Treino sem relógio."}</div><p>As questões autorais ainda precisam de revisão médica.</p></aside>` : ""}</div></div>`;
   if (official) {
@@ -954,11 +959,12 @@ document.addEventListener("click", async (event) => {
       if (state.page === "profile")
         openModal(avatarEditor(player().avatar, Boolean(state.user)));
     } else if (b.hasAttribute("data-new-challenge")) {
+      const tea = b.dataset.newChallenge === "tea";
       if (!state.user) {
-        state.pendingCreateChallenge = true;
+        state.pendingCreateChallenge = tea ? "tea" : "all";
         auth("login");
         toast("Entre na sua conta para criar o desafio.");
-      } else openModal(challengeForm());
+      } else openModal(challengeForm(tea));
     } else if (b.hasAttribute("data-open-challenge")) {
       closeModal();
       await route("challenge/" + b.dataset.openChallenge);
@@ -971,7 +977,10 @@ document.addEventListener("click", async (event) => {
       b.hasAttribute("data-copy-challenge-link") ||
       b.hasAttribute("data-share-challenge")
     ) await shareChallenge(b);
-    else if (b.hasAttribute("data-close")) closeModal();
+    else if (b.hasAttribute("data-close")) {
+      if (modal.querySelector("#auth-form")) state.pendingCreateChallenge = null;
+      closeModal();
+    }
     else if (b.hasAttribute("data-auth")) auth(b.dataset.auth);
     else if (b.hasAttribute("data-privacy")) {
       closeModal();
@@ -1057,7 +1066,7 @@ document.addEventListener("click", async (event) => {
         state.game = null;
         state.pendingAdmin = false;
         state.pendingChallenge = null;
-        state.pendingCreateChallenge = false;
+        state.pendingCreateChallenge = null;
         pendingNavigation = null;
         closeModal();
         await route("lobby", true, "replace");
@@ -1075,7 +1084,7 @@ document.addEventListener("click", async (event) => {
       $("#ranking-controls").innerHTML =
         rankingScope === "global"
           ? ""
-          : `<div class="filters"><label class="field filter-select"><span>${rankingScope === "relative" ? "Interesse dos jogadores" : "Mapa das partidas"}</span><select id="ranking-specialty"><option value="">Escolha uma especialidade</option>${catalog.specialties.map((s) => `<option value="${s.id}" ${state.user?.specialty === s.id ? "selected" : ""}>${esc(s.name)}</option>`).join("")}${rankingScope === "map" ? views.areaOptions() : ""}</select></label></div>`;
+          : `<div class="filters"><label class="field filter-select"><span>${rankingScope === "relative" ? "Interesse dos jogadores" : "Mapa das partidas"}</span><select id="ranking-specialty"><option value="">Escolha uma especialidade</option>${catalog.specialties.map((s) => `<option value="${s.id}" ${state.user?.specialty === s.id ? "selected" : ""}>${esc(s.name)}</option>`).join("")}${rankingScope === "map" ? '<option value="all">Todas as áreas</option><option value="tea">Operação TEA</option>' + views.areaOptions() : ""}</select></label></div>`;
       await loadRanking();
     } else if (b.hasAttribute("data-retry-ranking")) await loadRanking();
   } catch (error) {
@@ -1201,9 +1210,10 @@ document.addEventListener("submit", async (event) => {
         state.pendingChallenge = null;
         await route("challenge/" + id);
       } else if (state.pendingCreateChallenge) {
-        state.pendingCreateChallenge = false;
-        await route("competitions");
-        openModal(challengeForm());
+        const tea = state.pendingCreateChallenge === "tea";
+        state.pendingCreateChallenge = null;
+        await route(tea ? "tea" : "competitions");
+        openModal(challengeForm(tea));
       } else await route(returnToResources || "profile");
       toast("Operador conectado. Bem-vindo ao round.");
     }
@@ -1328,15 +1338,21 @@ async function boot() {
     return;
   }
   let returnPath;
+  let teaChallenge = false;
   try {
     returnPath = sessionStorage.getItem("mdstrike_google_return");
     sessionStorage.removeItem("mdstrike_google_return");
+    teaChallenge = returnPath === "tea" &&
+      sessionStorage.getItem("mdstrike_google_tea_challenge") === "1";
+    sessionStorage.removeItem("mdstrike_google_tea_challenge");
   } catch {}
   await route(returnPath || (state.user ? "profile" : "lobby"), false, "traverse");
   if ((status === "signed-in" || status === "linked") && state.user) {
+    if (teaChallenge) openModal(challengeForm(true));
     toast(status === "linked" ? "Conta do Google vinculada." : "Você entrou com Google.");
   } else if (status === "signup" && googleSignupEmail && !state.user) {
     if (state.page === "challenge") state.pendingChallenge = state.challengeId;
+    if (teaChallenge) state.pendingCreateChallenge = "tea";
     googleSignup(googleSignupEmail);
   } else {
     const message = {

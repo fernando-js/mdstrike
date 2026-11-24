@@ -33,7 +33,7 @@ function request_password_reset(array $data): never {
 
     rate_limit('password-reset-ip', 10, 3600);
     if (consume_limit('password-reset-email', 3, 3600, $email) === 0) {
-        $userId = query('SELECT id FROM md_users WHERE email = ?', [$email])->fetchColumn();
+        $userId = query('SELECT u.id FROM md_users u LEFT JOIN md_synthetic_users s ON s.user_id = u.id WHERE u.email = ? AND s.user_id IS NULL', [$email])->fetchColumn();
         $jobKey = hash('sha256', 'password-reset|' . $email);
         $now = time();
         $onDuplicate = database()->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql'

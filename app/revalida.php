@@ -19,10 +19,11 @@ function exam_definition(string $id, string $operation = ''): ?array {
 
 function operation_progress(int $id, bool $revalida): array {
     $condition = $revalida ? "LIKE 'revalida-%'" : "NOT LIKE 'revalida-%'";
+    $reviewCondition = $revalida ? $condition : "$condition AND map_id <> 'tea'";
     return [
         'history' => query("SELECT id, mode, map_id, exam_id, score, correct, bot_score, result_json, finished_at FROM md_matches WHERE user_id = ? AND finished_at IS NOT NULL AND map_id $condition ORDER BY finished_at DESC, id DESC LIMIT 20", [$id])->fetchAll(),
         'stats' => query("SELECT area, COUNT(*) AS answered, SUM(correct) AS correct FROM md_answers WHERE user_id = ? AND map_id $condition GROUP BY area", [$id])->fetchAll(),
-        'wrong' => array_column(query("SELECT question_id FROM md_answers WHERE id IN (SELECT MAX(id) FROM md_answers WHERE user_id = ? AND map_id $condition GROUP BY question_id) AND correct = 0", [$id])->fetchAll(), 'question_id'),
+        'wrong' => array_column(query("SELECT question_id FROM md_answers WHERE id IN (SELECT MAX(id) FROM md_answers WHERE user_id = ? AND map_id $reviewCondition GROUP BY question_id) AND correct = 0", [$id])->fetchAll(), 'question_id'),
     ];
 }
 

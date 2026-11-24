@@ -10,12 +10,15 @@ import {
 } from "./core.js?v=2.4.0";
 import { heading, areaOptions, statsStrip } from "./views.js?v=3.6.0";
 
-export function challengeForm() {
+export function challengeForm(tea = false) {
   const specialties = catalog.specialties
     .filter((specialty) => specialty.originals >= 3)
     .map(({ id, name }) => `<option value="${esc(id)}">${esc(name)}</option>`)
     .join("");
-  return `<div class="modal-content"><div class="modal-top"><h2 id="modal-title">Desafie seu colega.</h2><button class="close-button" data-close aria-label="Fechar">×</button></div><p>Escolha o tema. O convite inclui o assunto, o número de questões e o link para participar.</p><form id="challenge-form" class="auth-form"><label class="field"><span>Tema do desafio</span><select name="map"><option value="all">Todas as áreas</option><optgroup label="Áreas">${areaOptions()}</optgroup>${specialties ? `<optgroup label="Especialidades">${specialties}</optgroup>` : ""}</select></label><div class="notice">Até 7 questões autorais · 60 segundos por questão · link válido por 7 dias. Uma tentativa por conta. O placar compara acertos, pontos e tempo de resposta. Desistir encerra sua tentativa. Este desafio não altera o rating.</div><div class="form-error" role="alert"></div><button class="btn" type="submit">Gerar link de desafio ${icon("arrow", 18)}</button></form></div>`;
+  const theme = tea
+    ? '<input type="hidden" name="map" value="tea">'
+    : `<label class="field"><span>Tema do desafio</span><select name="map"><option value="all">Todas as áreas</option><option value="tea">Operação TEA</option><optgroup label="Áreas">${areaOptions()}</optgroup>${specialties ? `<optgroup label="Especialidades">${specialties}</optgroup>` : ""}</select></label>`;
+  return `<div class="modal-content"><div class="modal-top"><h2 id="modal-title">${tea ? "Criar desafio TEA" : "Desafie seu colega."}</h2><button class="close-button" data-close aria-label="Fechar">×</button></div><p>${tea ? "Compartilhe um convite com sete questões da Operação TEA de Anestesiologia." : "Escolha o tema. O convite inclui o assunto, o número de questões e o link para participar."}</p><form id="challenge-form" class="auth-form">${theme}<div class="notice">Até 7 questões autorais · 60 segundos por questão · link válido por 7 dias. Uma tentativa por conta. O placar compara acertos, pontos e tempo de resposta. Desistir encerra sua tentativa. Este desafio não altera o rating.</div><div class="form-error" role="alert"></div><button class="btn" type="submit">Gerar link de desafio ${icon("arrow", 18)}</button></form></div>`;
 }
 
 function challengeShare(c) {
@@ -75,6 +78,7 @@ export function challengePage(c) {
       `${esc(c.creator)} convidou você para testar seus conhecimentos.`,
     ) +
     `
+  ${c.map === "tea" ? '<p class="section-return"><a class="text-button" href="#tea">‹ Voltar à Operação TEA</a></p>' : ""}
   <section class="panel challenge-panel">
   ${statsStrip([
     [c.total, "Questões iguais para todos"],
@@ -107,7 +111,7 @@ export async function loadMyChallenges() {
       ? data.challenges
           .map(
             (c) =>
-              `<div class="source-row"><div><h3>${esc(specialtyName(c.map))}</h3><p>${esc(c.creator)} · ${c.total} questões · ${c.scores.filter((s) => s.status === "finished").length} resultados${c.expired ? " · encerrado" : ""}</p></div><button class="btn outline small" data-open-challenge="${c.id}">Abrir desafio ${icon("arrow", 16)}</button></div>`,
+              `<div class="source-row"><div><h3>${esc(c.map === "tea" ? c.title : specialtyName(c.map))}</h3><p>${esc(c.creator)} · ${c.total} questões · ${c.scores.filter((s) => s.status === "finished").length} resultados${c.expired ? " · encerrado" : ""}</p></div><button class="btn outline small" data-open-challenge="${c.id}">Abrir desafio ${icon("arrow", 16)}</button></div>`,
           )
           .join("")
       : '<p class="muted">Seus desafios criados e aceitos ficam salvos aqui. Comece pelo botão “Criar desafio”.</p>';

@@ -166,7 +166,7 @@ export function ranking() {
   return (
     heading(
       "O conhecimento sobe de patente.",
-      "Compare seu desempenho com jogadores reais do MD Strike.",
+      "Compare seu desempenho na classificação do MD Strike.",
     ) +
     `<div class="segmented" role="group" aria-label="Escopo do ranking"><button data-ranking="global" class="active" aria-pressed="true">Ranking global</button><button data-ranking="relative" aria-pressed="false">Por especialidade</button><button data-ranking="map" aria-pressed="false">Por mapa jogado</button></div><div id="ranking-controls"></div><div id="ranking-content"><div class="loading">Consultando classificação…</div></div><div class="notice">${esc(rankingSummary)} <button class="text-button" data-page="ranking-rules">Ler as regras completas ↗</button></div><div class="section-heading" style="margin-top:26px"><h2>Patentes do MD Strike</h2></div><div class="badge-list">${[
       [0, "Recruta"],
@@ -256,7 +256,7 @@ ${statsStrip([
         return `<div class="area-stat"><div class="row space-between"><span>${esc(label)}</span><span class="muted">${total ? `${percent}% · ${number(total)}` : "sem respostas"}</span></div><div class="bar"><i style="width:${percent}%"></i></div></div>`;
       })
       .join("")}</section></div>
-<div class="two-col" style="margin-top:24px"><section class="panel"><h2>Últimas partidas</h2>${(data?.history || guest.history).length ? (data?.history || guest.history).map((h) => `<div class="history-row"><div>${esc(modeName(h.mode))}<small>${esc(specialtyName(h.map_id))} · ${new Date(Number(h.finished_at) * 1000).toLocaleDateString("pt-BR")}</small></div><strong>${number(h.score)} pts</strong></div>`).join("") : "<p>Nenhuma partida concluída ainda. Seu próximo round começa no lobby.</p>"}</section>${state.user ? securityPanel(p) : `<section class="panel"><h2>Fila de revisão</h2><p>${number(guest.wrong.length)} questões esperando um novo round.</p><button class="btn small" style="margin-top:18px" data-start="review" data-map-id="all">Revisar meus erros</button></section>`}</div>`
+<div class="two-col" style="margin-top:24px"><section class="panel"><h2>Últimas partidas</h2>${(data?.history || guest.history).length ? (data?.history || guest.history).map((h) => `<div class="history-row"><div>${esc(modeName(h.mode))}<small>${esc(h.map_id === "tea" ? "Operação TEA" : specialtyName(h.map_id))} · ${new Date(Number(h.finished_at) * 1000).toLocaleDateString("pt-BR")}</small></div><strong>${number(h.score)} pts</strong></div>`).join("") : "<p>Nenhuma partida concluída ainda. Seu próximo round começa no lobby.</p>"}</section>${state.user ? securityPanel(p) : `<section class="panel"><h2>Fila de revisão</h2><p>${number(guest.wrong.length)} questões esperando um novo round.</p><button class="btn small" style="margin-top:18px" data-start="review" data-map-id="all">Revisar meus erros</button></section>`}</div>`
   );
 }
 export function sources() {

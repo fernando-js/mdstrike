@@ -158,7 +158,12 @@ test("administration protects records, records activity and renders desktop/mobi
   const leaderboard = await (
     await request.get("/api/index.php?action=leaderboard")
   ).text();
-  expect(leaderboard).not.toMatch(/email|password|isAdmin|admin_since/);
+  expect(leaderboard).not.toMatch(/email|password|isAdmin|admin_since|synthetic/);
+  const synthetic = "dummy" + suffix;
+  fixture(`INSERT INTO md_users (nickname,email,password_hash,played,created_at,last_seen) VALUES ('${synthetic}','${synthetic}@example.invalid','',1,1,0); INSERT INTO md_synthetic_users (user_id) VALUES (last_insert_rowid())`);
+  const ranked = await (await request.get("/api/index.php?action=leaderboard")).json();
+  expect(ranked.rows.find((row) => row.nickname === synthetic)).toMatchObject({ played: 1 });
+  expect(ranked.rows.find((row) => row.nickname === synthetic)).not.toHaveProperty("synthetic");
   const page = await owner.newPage();
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -175,6 +180,10 @@ test("administration protects records, records activity and renders desktop/mobi
     fullPage: false,
   });
   await page.locator('[data-admin-tab="users"]').first().click();
+  await page.getByLabel("Tipo de perfil").selectOption("synthetic");
+  await page.getByRole("button", { name: "Filtrar", exact: true }).click();
+  await expect(page.getByRole("row").filter({ hasText: synthetic })).toContainText("Perfil fictício");
+  await page.getByLabel("Tipo de perfil").selectOption("");
   await page
     .locator('#admin-filter-form input[name="search"]')
     .fill(member.user.email);
@@ -208,6 +217,7 @@ test("administration protects records, records activity and renders desktop/mobi
   });
   expect(errors).toEqual([]);
   fixture(`DELETE FROM md_admins WHERE user_id=${Number(admin.user.id)}`);
+  fixture(`DELETE FROM md_synthetic_users WHERE user_id IN (SELECT id FROM md_users WHERE nickname='${synthetic}'); DELETE FROM md_users WHERE nickname='${synthetic}'`);
   expect(
     (await owner.request.get("/api/index.php?action=admin-users")).status(),
   ).toBe(403);

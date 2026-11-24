@@ -136,3 +136,94 @@ test("mobile TEA case keeps drafts and reveals the next scenario after the answe
     card.getByRole("button", { name: "Refazer caso" }),
   ).toBeVisible();
 });
+
+test("a TEA challenge survives sign-in and shares the same seven author questions", async ({
+  page,
+  browser,
+}) => {
+  const suffix = Date.now().toString(36);
+  const password = "Desafio-TEA-teste-123";
+  async function register(request, nickname) {
+    const endpoint = "/api/index.php?action=";
+    const { csrf } = await (await request.get(endpoint + "session")).json();
+    const response = await request.post(endpoint + "register", {
+      headers: { "X-CSRF-Token": csrf },
+      data: {
+        nickname,
+        email: nickname + "@example.test",
+        password,
+        consent: true,
+      },
+    });
+    expect(response.status()).toBe(201);
+    return response.json();
+  }
+  const registration = await browser.newContext();
+  const creator = "teacriador" + suffix;
+  const initial = await register(registration.request, creator);
+  await registration.close();
+
+  await page.goto("/#tea");
+  await page.getByRole("button", { name: "Criar desafio TEA" }).click();
+  await page.getByLabel("E-mail ou nickname").fill(creator);
+  await page.locator("#auth-password").fill(password);
+  await page.getByRole("button", { name: "Entrar na conta" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Criar desafio TEA" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Gerar link de desafio" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Desafio TEA · Anestesiologia" }),
+  ).toBeVisible();
+  const invite = await page
+    .locator("[data-invite-url]")
+    .getAttribute("data-invite-url");
+  const path = new URL(invite).pathname;
+
+  const participant = await browser.newContext();
+  try {
+    await register(participant.request, "teacolega" + suffix);
+    const invited = await participant.newPage();
+    await invited.goto(path);
+    await expect(
+      invited.getByRole("heading", { name: "Desafio TEA · Anestesiologia" }),
+    ).toBeVisible();
+    await expect(invited).toHaveTitle(/Desafio TEA/);
+    await page.getByRole("button", { name: "Aceitar desafio" }).click();
+    await invited.getByRole("button", { name: "Aceitar desafio" }).click();
+    const prompt = page.locator(".question-panel h2");
+    const expectedPrompt = await prompt.textContent();
+    await expect(invited.locator(".question-panel h2")).toHaveText(
+      expectedPrompt,
+    );
+    const answers = page.locator(".question-panel [data-answer]");
+    expect(
+      await invited.locator(".question-panel [data-answer]").allTextContents(),
+    ).toEqual(await answers.allTextContents());
+    await expect(page.getByText("ROUND 1 / 7", { exact: true })).toBeVisible();
+
+    const question = teaMissions
+      .flatMap(({ questions }) => questions)
+      .find((item) => item.prompt === expectedPrompt);
+    expect(question).toBeDefined();
+    await page.getByText(question.correct, { exact: true }).click();
+    await page.locator("[data-next]").click();
+    for (let round = 2; round <= 7; round++) {
+      await page.getByRole("button", { name: "Pular questão" }).click();
+      await page.locator("[data-next]").click();
+    }
+    await page.getByRole("button", { name: "Ver placar do desafio" }).click();
+    await expect(
+      page.getByRole("row").filter({ hasText: creator }),
+    ).toContainText("Concluído");
+    await expect(
+      page.getByRole("row").filter({ hasText: creator }),
+    ).toContainText("1/7");
+    const profile = await (
+      await page.request.get("/api/index.php?action=profile")
+    ).json();
+    expect(profile.user.rating).toBe(initial.user.rating);
+  } finally {
+    await participant.close();
+  }
+});

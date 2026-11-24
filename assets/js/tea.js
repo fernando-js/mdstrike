@@ -75,6 +75,10 @@ function mapPage(readLocal) {
     <span><strong>${completedCases}/${teaCases.length}</strong> casos concluídos</span>
     <span><strong>${missed}</strong> ${missed === 1 ? "questão para revisar" : "questões para revisar"}</span>
   </div>
+  <section class="panel lobby-revalida">
+    <div><h2>Desafie um colega no TEA</h2><p>Compartilhe um link para jogar as mesmas sete questões de anestesiologia e comparar os resultados.</p></div>
+    <button class="btn outline" data-new-challenge="tea">Criar desafio TEA ${icon("trophy", 16)}</button>
+  </section>
   <section class="operation-section">
     <div class="section-heading"><h2 class="section-anchor" id="tea-missions" tabindex="-1">Missões por tema</h2></div>
     <div class="operation-maps">${teaMissions

@@ -1,0 +1,722 @@
+[
+  {
+    "id": "tea-va-preox",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 5,
+    "source": "Via aérea fisiologicamente difícil · WFSA",
+    "sourceUrl": "https://resources.wfsahq.org/atotw/the-physiologically-difficult-airway/",
+    "prompt": "Qual é a finalidade fisiológica da pré-oxigenação antes de um período de apneia?",
+    "options": [
+      "Aumentar a reserva pulmonar de oxigênio por denitrogenação.",
+      "Aumentar a produção de CO₂ para estimular a ventilação.",
+      "Aumentar a quantidade de nitrogênio nos alvéolos.",
+      "Substituir a ventilação durante todo o período de apneia."
+    ],
+    "answer": 0,
+    "explanation": "Substituir parte do nitrogênio alveolar por oxigênio aumenta a reserva disponível e pode retardar a dessaturação durante a apneia."
+  },
+  {
+    "id": "tea-va-puma",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 5,
+    "source": "Consenso PUMA sobre intubação esofágica",
+    "sourceUrl": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9804892/",
+    "prompt": "Após intubação e início da ventilação, qual achado fornece evidência de ventilação alveolar pelo tubo?",
+    "options": [
+      "CO₂ expirado sustentado ao longo de várias ventilações.",
+      "Um único pico transitório de CO₂.",
+      "Saturação periférica estável logo após a pré-oxigenação.",
+      "Condensação na parede do tubo."
+    ],
+    "answer": 0,
+    "explanation": "Um capnograma com CO₂ expirado sustentado é a evidência objetiva procurada. Condensação, saturação inicial e picos transitórios isolados podem induzir a erro."
+  },
+  {
+    "id": "tea-va-pico",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 52,
+    "source": "Fundamentos de ventilação mecânica · WFSA",
+    "sourceUrl": "https://resources.wfsahq.org/atotw/basics-of-mechanical-ventilation-atotw-471/",
+    "prompt": "Em ventilação controlada a volume e com fluxo constante, a pressão de pico sobe enquanto a pressão de platô fica estável. Qual mudança explica melhor essa diferença?",
+    "options": [
+      "Aumento da resistência das vias aéreas.",
+      "Queda isolada da complacência do sistema respiratório.",
+      "Aumento da pressão alveolar estática ao fim da inspiração.",
+      "Redução da resistência do tubo traqueal."
+    ],
+    "answer": 0,
+    "explanation": "A pressão de pico inclui a pressão necessária para vencer a resistência enquanto há fluxo. A pressão de platô é medida durante uma pausa sem fluxo."
+  },
+  {
+    "id": "tea-va-plat",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 52,
+    "source": "Fundamentos de ventilação mecânica · WFSA",
+    "sourceUrl": "https://resources.wfsahq.org/atotw/basics-of-mechanical-ventilation-atotw-471/",
+    "prompt": "Como obter uma pressão de platô interpretável na ventilação invasiva controlada?",
+    "options": [
+      "Medir a pressão durante uma pausa inspiratória sem fluxo, sem esforço do paciente.",
+      "Usar o maior valor registrado no início da inspiração.",
+      "Medir a pressão imediatamente após desconectar o circuito.",
+      "Ler a pressão logo antes do início da expiração forçada pelo paciente."
+    ],
+    "answer": 0,
+    "explanation": "A pausa inspiratória permite estimar a pressão alveolar estática quando não há fluxo nem esforço respiratório que altere a medida."
+  },
+  {
+    "id": "tea-va-peep",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 52,
+    "source": "Fundamentos de ventilação mecânica · WFSA",
+    "sourceUrl": "https://resources.wfsahq.org/atotw/basics-of-mechanical-ventilation-atotw-471/",
+    "prompt": "Na curva fluxo-tempo, o fluxo expiratório ainda não voltou a zero quando começa a inspiração seguinte. O que esse padrão sugere?",
+    "options": [
+      "Esvaziamento expiratório incompleto, com risco de auto-PEEP.",
+      "Ausência de qualquer resistência expiratória.",
+      "Pressão de platô igual a zero.",
+      "Expiração completa em todos os ciclos."
+    ],
+    "answer": 0,
+    "explanation": "O ciclo seguinte começa antes que a expiração termine. Isso favorece o aprisionamento de gás e a pressão positiva intrínseca ao fim da expiração."
+  },
+  {
+    "id": "tea-va-predito",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 52,
+    "source": "Fundamentos de ventilação mecânica · WFSA",
+    "sourceUrl": "https://resources.wfsahq.org/atotw/basics-of-mechanical-ventilation-atotw-471/",
+    "prompt": "Para dimensionar o volume corrente em um adulto com obesidade, qual referência se aproxima melhor do tamanho pulmonar?",
+    "options": [
+      "Peso predito a partir da altura e do sexo.",
+      "Peso corporal total aferido na balança.",
+      "Índice de massa corporal usado diretamente como volume.",
+      "Massa de tecido adiposo estimada."
+    ],
+    "answer": 0,
+    "explanation": "O peso predito estima o tamanho pulmonar de forma mais apropriada em adultos. O peso total pode superestimar o volume corrente quando há obesidade."
+  },
+  {
+    "id": "tea-va-minuto",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 10,
+    "source": "Fundamentos de ventilação mecânica · WFSA",
+    "sourceUrl": "https://resources.wfsahq.org/atotw/basics-of-mechanical-ventilation-atotw-471/",
+    "prompt": "Se ventilação-minuto é volume corrente multiplicado pela frequência respiratória, qual é o valor para 450 mL e 12 incursões por minuto?",
+    "options": [
+      "5,4 L/min.",
+      "0,54 L/min.",
+      "3,75 L/min.",
+      "12 L/min."
+    ],
+    "answer": 0,
+    "explanation": "450 mL × 12 corresponde a 5.400 mL/min. A ventilação alveolar é menor porque parte de cada volume corrente ventila o espaço morto."
+  },
+  {
+    "id": "tea-va-vq",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 10,
+    "source": "Fundamentos de ventilação mecânica · WFSA",
+    "sourceUrl": "https://resources.wfsahq.org/atotw/basics-of-mechanical-ventilation-atotw-471/",
+    "prompt": "Em uma região pulmonar ventilada, mas sem perfusão, o que a unidade representa?",
+    "options": [
+      "Espaço morto alveolar.",
+      "Shunt intrapulmonar.",
+      "Unidade com baixa relação ventilação-perfusão.",
+      "Superfície com troca gasosa preservada."
+    ],
+    "answer": 0,
+    "explanation": "Há ventilação sem fluxo sanguíneo para participar das trocas. No extremo oposto, o shunt tem perfusão sem ventilação."
+  },
+  {
+    "id": "tea-va-desconexao",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 21,
+    "source": "Padrões de monitorização na anestesia e recuperação · Association of Anaesthetists",
+    "sourceUrl": "https://doi.org/10.1111/anae.15501",
+    "prompt": "Durante ventilação controlada, a pressão de via aérea cai abruptamente e o capnograma desaparece no mesmo ciclo. Qual falha é compatível com os dois achados?",
+    "options": [
+      "Desconexão do circuito respiratório.",
+      "Artefato apenas no sensor de oximetria.",
+      "Elevação isolada da produção metabólica de CO₂.",
+      "Aumento isolado da resistência do tubo."
+    ],
+    "answer": 0,
+    "explanation": "Uma desconexão pode reduzir a pressão e impedir que gás expirado chegue ao capnógrafo. Alterações combinadas ajudam a distinguir uma falha ventilatória de um problema isolado do sensor."
+  },
+  {
+    "id": "tea-va-fisio",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 5,
+    "source": "Via aérea fisiologicamente difícil · WFSA",
+    "sourceUrl": "https://resources.wfsahq.org/atotw/the-physiologically-difficult-airway/",
+    "prompt": "Qual achado caracteriza uma via aérea fisiologicamente difícil mesmo quando se prevê boa visualização da glote?",
+    "options": [
+      "Hipoxemia importante antes da indução.",
+      "Visão ampla da glote à laringoscopia.",
+      "Boa abertura oral e mobilidade cervical.",
+      "Conexão frouxa do cabo do monitor."
+    ],
+    "answer": 0,
+    "explanation": "Uma reserva fisiológica baixa pode causar deterioração durante a abordagem. A facilidade anatômica prevista não elimina esse risco."
+  },
+  {
+    "id": "tea-mf-oximetria",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 21,
+    "source": "Padrões de monitorização na anestesia e recuperação · Association of Anaesthetists",
+    "sourceUrl": "https://doi.org/10.1111/anae.15501",
+    "prompt": "Em sedação sob oxigênio suplementar, qual interpretação é correta para uma SpO₂ de 99%?",
+    "options": [
+      "A saturação informa sobre oxigenação e pode permanecer alta durante hipoventilação.",
+      "A saturação exclui retenção de CO₂.",
+      "A leitura mede diretamente a ventilação alveolar.",
+      "A leitura confirma que o paciente mantém resposta a comandos."
+    ],
+    "answer": 0,
+    "explanation": "A oximetria estima a saturação arterial periférica. Sob oxigênio suplementar, ela pode demorar a revelar hipoventilação. A capnografia oferece informação sobre ventilação."
+  },
+  {
+    "id": "tea-mf-tof",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 15,
+    "source": "Monitorização e reversão do bloqueio neuromuscular · ASA",
+    "sourceUrl": "https://doi.org/10.1097/ALN.0000000000004379",
+    "prompt": "Qual razão T4/T1, medida quantitativamente no adutor do polegar, a diretriz da ASA recomenda confirmar antes da extubação após bloqueador neuromuscular?",
+    "options": [
+      "Pelo menos 0,90.",
+      "Pelo menos 0,40.",
+      "Pelo menos 0,60.",
+      "Qualquer valor, se quatro contrações forem visíveis."
+    ],
+    "answer": 0,
+    "explanation": "A diretriz recomenda comprovar razão TOF de pelo menos 0,90. Observar quatro respostas qualitativamente não demonstra que a razão atingiu esse valor."
+  },
+  {
+    "id": "tea-mf-razao",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 15,
+    "source": "Monitorização e reversão do bloqueio neuromuscular · ASA",
+    "sourceUrl": "https://doi.org/10.1097/ALN.0000000000004379",
+    "prompt": "Na sequência de quatro estímulos (TOF), o que expressa a razão T4/T1?",
+    "options": [
+      "Amplitude da quarta resposta dividida pela amplitude da primeira.",
+      "Número total de respostas dividido por quatro.",
+      "Tempo entre o quarto e o primeiro estímulo.",
+      "Amplitude da primeira resposta dividida pela quarta."
+    ],
+    "answer": 0,
+    "explanation": "A razão compara a quarta resposta muscular à primeira e quantifica o grau de redução das respostas sucessivas."
+  },
+  {
+    "id": "tea-mf-sugamadex",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 15,
+    "source": "Monitorização e reversão do bloqueio neuromuscular · ASA",
+    "sourceUrl": "https://doi.org/10.1097/ALN.0000000000004379",
+    "prompt": "Qual bloqueador neuromuscular é compatível com reversão por sugamadex?",
+    "options": [
+      "Rocurônio.",
+      "Succinilcolina.",
+      "Cisatracúrio.",
+      "Atracúrio."
+    ],
+    "answer": 0,
+    "explanation": "O sugamadex forma complexos com rocurônio e vecurônio. Atracúrio, cisatracúrio e succinilcolina têm outros mecanismos de término do efeito."
+  },
+  {
+    "id": "tea-mf-cam",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 13,
+    "source": "Farmacologia dos anestésicos inalatórios · WFSA",
+    "sourceUrl": "https://resources.wfsahq.org/wp-content/uploads/uia-24-2-Pharmacology-of-Inhalational-Anaesthetics.pdf",
+    "prompt": "Qual resposta é usada na definição clássica da concentração alveolar mínima (CAM)?",
+    "options": [
+      "Ausência de movimento à incisão em 50% dos indivíduos.",
+      "Ausência de lembrança em 50% dos indivíduos.",
+      "Redução de 50% da pressão arterial média.",
+      "Ausência de resposta pupilar em todos os indivíduos."
+    ],
+    "answer": 0,
+    "explanation": "A CAM expressa a potência dos anestésicos inalatórios usando a imobilidade frente a um estímulo cirúrgico como desfecho definido."
+  },
+  {
+    "id": "tea-mf-solubilidade",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 13,
+    "source": "Farmacologia dos anestésicos inalatórios · WFSA",
+    "sourceUrl": "https://resources.wfsahq.org/wp-content/uploads/uia-24-2-Pharmacology-of-Inhalational-Anaesthetics.pdf",
+    "prompt": "Em condições comparáveis, qual efeito se espera de um menor coeficiente de partição sangue/gás de um anestésico volátil?",
+    "options": [
+      "A concentração alveolar acompanha mais rapidamente as mudanças na concentração inspirada.",
+      "A concentração alveolar se aproxima mais lentamente da inspirada.",
+      "O anestésico fica mais solúvel no sangue.",
+      "A CAM obrigatoriamente aumenta."
+    ],
+    "answer": 0,
+    "explanation": "Quanto menor a solubilidade no sangue, menor a captação necessária para elevar a pressão parcial. A solubilidade influencia a velocidade, enquanto a CAM expressa potência."
+  },
+  {
+    "id": "tea-mf-propofol",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 12,
+    "source": "Propofol · Informação de prescrição no DailyMed",
+    "sourceUrl": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=7b9599e0-5bad-742d-e053-2991aa0aee97",
+    "prompt": "Após indução com propofol, qual combinação de efeitos imediatos é reconhecida?",
+    "options": [
+      "Hipotensão e apneia.",
+      "Hipertensão persistente e broncodilatação como regra.",
+      "Aumento sustentado do impulso ventilatório e taquicardia obrigatória.",
+      "Bloqueio neuromuscular profundo e analgesia cirúrgica."
+    ],
+    "answer": 0,
+    "explanation": "Propofol pode reduzir a pressão arterial e deprimir a ventilação, particularmente na indução. É um hipnótico intravenoso, sem função de bloqueador neuromuscular."
+  },
+  {
+    "id": "tea-mf-capno",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 21,
+    "source": "Padrões de monitorização na anestesia e recuperação · Association of Anaesthetists",
+    "sourceUrl": "https://doi.org/10.1111/anae.15501",
+    "prompt": "Qual grandeza o valor de EtCO₂ representa em um capnograma?",
+    "options": [
+      "CO₂ no fim da expiração.",
+      "CO₂ arterial medido por gasometria.",
+      "Fração inspirada de oxigênio.",
+      "Pressão de via aérea durante a pausa inspiratória."
+    ],
+    "answer": 0,
+    "explanation": "EtCO₂ é a medida de CO₂ ao fim da expiração. É influenciado por ventilação, perfusão e produção de CO₂ e pode diferir do CO₂ arterial."
+  },
+  {
+    "id": "tea-mf-o2",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 21,
+    "source": "Padrões de monitorização na anestesia e recuperação · Association of Anaesthetists",
+    "sourceUrl": "https://doi.org/10.1111/anae.15501",
+    "prompt": "O oxímetro mostra queda da saturação com onda pletismográfica irregular logo após o braço se movimentar. Qual informação ajuda a avaliar a confiabilidade da leitura?",
+    "options": [
+      "Qualidade do sinal e concordância do pulso exibido com outra medida da frequência cardíaca.",
+      "O número da saturação isolado.",
+      "Somente a pressão arterial medida antes da movimentação.",
+      "A temperatura do circuito anestésico."
+    ],
+    "answer": 0,
+    "explanation": "Movimento e perfusão periférica ruim podem prejudicar o sinal. Conferir a onda e comparar frequências ajuda a verificar a medida enquanto se avalia o paciente."
+  },
+  {
+    "id": "tea-mf-calor",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 21,
+    "source": "Padrões de monitorização na anestesia e recuperação · Association of Anaesthetists",
+    "sourceUrl": "https://doi.org/10.1111/anae.15501",
+    "prompt": "Qual alternativa contém uma medida diretamente relacionada à temperatura central durante a anestesia?",
+    "options": [
+      "Temperatura medida com sonda esofágica em posição adequada.",
+      "Temperatura do ambiente cirúrgico.",
+      "Pressão arterial do manguito no braço.",
+      "Temperatura da superfície do campo cirúrgico."
+    ],
+    "answer": 0,
+    "explanation": "A medida esofágica adequadamente posicionada pode estimar a temperatura central. O ambiente e a superfície exposta podem apresentar temperaturas bem diferentes."
+  },
+  {
+    "id": "tea-rb-intratecal",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 17,
+    "source": "Ultrassom para anestesia do neuroeixo · WFSA",
+    "sourceUrl": "https://resources.wfsahq.org/atotw/ultrasound-guided-neuraxial-anaesthesia/",
+    "prompt": "Em relação à dura-máter, onde é depositada a solução na anestesia subaracnóidea?",
+    "options": [
+      "No espaço subaracnóideo, em contato com o líquor.",
+      "No espaço peridural, fora da dura-máter.",
+      "No disco intervertebral.",
+      "Entre o ligamento amarelo e o processo espinhoso."
+    ],
+    "answer": 0,
+    "explanation": "A anestesia subaracnóidea deposita a solução no líquor. A técnica peridural deposita o anestésico no espaço externo à dura-máter."
+  },
+  {
+    "id": "tea-rb-peridural",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 17,
+    "source": "Ultrassom para anestesia do neuroeixo · WFSA",
+    "sourceUrl": "https://resources.wfsahq.org/atotw/ultrasound-guided-neuraxial-anaesthesia/",
+    "prompt": "Qual estrutura separa o espaço peridural do compartimento intratecal?",
+    "options": [
+      "A dura-máter e a aracnoide.",
+      "A pele e o tecido subcutâneo.",
+      "O ligamento supraespinhoso sozinho.",
+      "O corpo vertebral e o disco intervertebral."
+    ],
+    "answer": 0,
+    "explanation": "Da posição peridural até o líquor, há a dura-máter e a aracnoide. O espaço subaracnóideo encontra-se após essas membranas."
+  },
+  {
+    "id": "tea-rb-baricidade",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 17,
+    "source": "Dispersão da anestesia subaracnóidea · WFSA",
+    "sourceUrl": "https://resources.wfsahq.org/atotw/spinal-anaesthetic-spread-anaesthesia-tutorial-of-the-week-37/",
+    "prompt": "Como se define a baricidade de uma solução intratecal?",
+    "options": [
+      "Relação entre a densidade da solução e a densidade do líquor à mesma temperatura.",
+      "Relação entre o pH da solução e o pH arterial.",
+      "Relação entre o volume injetado e a dose em miligramas.",
+      "Relação entre a pressão do líquor e a pressão atmosférica."
+    ],
+    "answer": 0,
+    "explanation": "Uma solução hiperbárica é mais densa que o líquor na mesma temperatura. Densidade relativa e posição do paciente influenciam sua distribuição."
+  },
+  {
+    "id": "tea-rb-posicao",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 17,
+    "source": "Dispersão da anestesia subaracnóidea · WFSA",
+    "sourceUrl": "https://resources.wfsahq.org/atotw/spinal-anaesthetic-spread-anaesthesia-tutorial-of-the-week-37/",
+    "prompt": "Qual característica da solução hiperbárica tem implicação na distribuição após a injeção subaracnóidea?",
+    "options": [
+      "Tende a se deslocar para regiões dependentes da gravidade.",
+      "Tende a subir independentemente da posição do paciente.",
+      "Permanece necessariamente no ponto de injeção.",
+      "Distribui-se apenas de acordo com a pressão arterial."
+    ],
+    "answer": 0,
+    "explanation": "A solução hiperbárica se desloca em direção às regiões dependentes. A anatomia do canal e a posição influenciam quais regiões ficam dependentes."
+  },
+  {
+    "id": "tea-rb-sodio",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 14,
+    "source": "Farmacologia dos anestésicos locais em português · WFSA",
+    "sourceUrl": "https://resources.wfsahq.org/atotw/tutorial-de-anestesia-da-semana-farmacologia-dos-anestesicos-locais/",
+    "prompt": "Qual alvo explica o bloqueio da condução nervosa pelos anestésicos locais?",
+    "options": [
+      "Canais de sódio dependentes de voltagem.",
+      "Receptores opioides μ.",
+      "Receptores nicotínicos da junção neuromuscular.",
+      "Receptores GABA-A como mecanismo principal."
+    ],
+    "answer": 0,
+    "explanation": "O bloqueio de canais de sódio prejudica a propagação do potencial de ação ao longo da fibra nervosa."
+  },
+  {
+    "id": "tea-rb-ph",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 14,
+    "source": "Farmacologia dos anestésicos locais em português · WFSA",
+    "sourceUrl": "https://resources.wfsahq.org/atotw/tutorial-de-anestesia-da-semana-farmacologia-dos-anestesicos-locais/",
+    "prompt": "Para um anestésico local do tipo base fraca, o que ocorre com a fração não ionizada em meio mais ácido?",
+    "options": [
+      "Diminui.",
+      "Aumenta.",
+      "Permanece fixa em 50%.",
+      "Passa a depender apenas da ligação a proteínas."
+    ],
+    "answer": 0,
+    "explanation": "O meio ácido favorece a forma protonada. A forma não ionizada atravessa com mais facilidade a membrana lipídica."
+  },
+  {
+    "id": "tea-rb-ultrassom",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 17,
+    "source": "Ultrassom para anestesia do neuroeixo · WFSA",
+    "sourceUrl": "https://resources.wfsahq.org/atotw/ultrasound-guided-neuraxial-anaesthesia/",
+    "prompt": "Na ultrassonografia pré-procedimento do neuroeixo, qual informação pode orientar o planejamento?",
+    "options": [
+      "Identificação da linha média, do espaço intervertebral e estimativa de profundidade.",
+      "Confirmação de anticoagulação adequada para punção.",
+      "Determinação da concentração do anestésico no líquor.",
+      "Previsão exata do nível sensitivo após a injeção."
+    ],
+    "answer": 0,
+    "explanation": "O ultrassom ajuda a identificar referências anatômicas e estimar a profundidade. A estimativa pode variar com compressão dos tecidos e o trajeto da agulha."
+  },
+  {
+    "id": "tea-rb-plano",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 25,
+    "source": "Bloqueios de nervos periféricos · WFSA",
+    "sourceUrl": "https://resources.wfsahq.org/atotw/peripheral-nerve-blocks-getting-started/",
+    "prompt": "Em uma abordagem no plano do ultrassom, como a agulha se relaciona com o feixe de imagem?",
+    "options": [
+      "O eixo da agulha acompanha o plano do feixe, permitindo visualizar haste e ponta quando bem alinhadas.",
+      "A agulha cruza perpendicularmente o plano e é vista do cabo à ponta.",
+      "A ponta fica visível automaticamente, mesmo após sair do plano.",
+      "O avanço só pode ser acompanhado com Doppler colorido."
+    ],
+    "answer": 0,
+    "explanation": "A visão longitudinal depende do alinhamento com o feixe. Perder a ponta da imagem exige recuperar a referência antes de interpretar sua posição."
+  },
+  {
+    "id": "tea-rb-dispersao",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 25,
+    "source": "Bloqueios de nervos periféricos · WFSA",
+    "sourceUrl": "https://resources.wfsahq.org/atotw/peripheral-nerve-blocks-getting-started/",
+    "prompt": "Em um bloqueio periférico guiado por ultrassom, o que a imagem em tempo real acrescenta durante a injeção?",
+    "options": [
+      "Permite observar a dispersão da solução em relação ao nervo e aos planos anatômicos.",
+      "Confirma que o paciente ficará livre de complicações.",
+      "Calcula automaticamente a dose total absorvida.",
+      "Dispensa o acompanhamento da ponta da agulha."
+    ],
+    "answer": 0,
+    "explanation": "Além de localizar estruturas e acompanhar a ponta, o ultrassom pode mostrar a dispersão do líquido. A imagem é uma ferramenta de orientação e tem limitações."
+  },
+  {
+    "id": "tea-rb-cefaleia",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 17,
+    "source": "Cefaleia pós-punção dural · WFSA",
+    "sourceUrl": "https://resources.wfsahq.org/atotw/an-update-on-effective-management-of-the-postdural-puncture-headache/",
+    "prompt": "Depois de uma punção dural, qual padrão de cefaleia favorece a hipótese de cefaleia pós-punção?",
+    "options": [
+      "Piora ao sentar ou ficar em pé e melhora ao deitar.",
+      "Surge exclusivamente durante o sono e melhora ao levantar.",
+      "Depende apenas da exposição a sons altos.",
+      "Desaparece ao ficar em pé e piora sistematicamente ao deitar."
+    ],
+    "answer": 0,
+    "explanation": "A cefaleia pós-punção dural costuma ter componente postural. Esse padrão ajuda a levantar a hipótese, que deve ser considerada junto ao restante do quadro."
+  },
+  {
+    "id": "tea-cr-mh",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 18,
+    "source": "Reconhecimento da hipertermia maligna · EMHG",
+    "sourceUrl": "https://www.emhg.org/recommendations-1/2024/11/4/recognising-and-managing-a-malignant-hyperthermia-crisis-v2024",
+    "prompt": "Durante anestesia com agente volátil, há aumento progressivo e inexplicado do EtCO₂, taquicardia e rigidez. Qual hipótese integra os achados?",
+    "options": [
+      "Hipertermia maligna.",
+      "Náusea isolada no pós-operatório.",
+      "Hipotermia leve por exposição ambiental.",
+      "Bloqueio neuromuscular residual isolado."
+    ],
+    "answer": 0,
+    "explanation": "Aumento desproporcional da produção de CO₂, taquicardia e rigidez sugerem uma crise hipermetabólica. Temperatura muito alta pode surgir mais tarde."
+  },
+  {
+    "id": "tea-cr-gatilho",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 18,
+    "source": "Reconhecimento da hipertermia maligna · EMHG",
+    "sourceUrl": "https://www.emhg.org/recommendations-1/2024/11/4/recognising-and-managing-a-malignant-hyperthermia-crisis-v2024",
+    "prompt": "Qual par inclui dois agentes reconhecidos como gatilhos de hipertermia maligna?",
+    "options": [
+      "Sevoflurano e succinilcolina.",
+      "Propofol e rocurônio.",
+      "Óxido nitroso e lidocaína.",
+      "Midazolam e fentanil."
+    ],
+    "answer": 0,
+    "explanation": "Anestésicos voláteis halogenados e succinilcolina são gatilhos clássicos. A identificação da exposição ajuda na interpretação dos sinais."
+  },
+  {
+    "id": "tea-cr-last",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 18,
+    "source": "Checklist de toxicidade sistêmica por anestésico local · ASRA",
+    "sourceUrl": "https://rapm.bmj.com/content/46/1/81",
+    "prompt": "Logo após um bloqueio periférico, aparecem alteração neurológica aguda e uma arritmia. Qual complicação do anestésico local merece consideração imediata nesse contexto?",
+    "options": [
+      "Toxicidade sistêmica por anestésico local.",
+      "Cefaleia pós-punção dural.",
+      "Náusea pós-operatória isolada.",
+      "Hipotermia por redistribuição térmica."
+    ],
+    "answer": 0,
+    "explanation": "A toxicidade sistêmica pode ter manifestações neurológicas e cardiovasculares. A proximidade temporal com a injeção reforça a suspeita no cenário descrito."
+  },
+  {
+    "id": "tea-cr-vt",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 19,
+    "source": "Padrões de monitorização na anestesia e recuperação · Association of Anaesthetists",
+    "sourceUrl": "https://doi.org/10.1111/anae.15501",
+    "prompt": "Na unidade de recuperação, um paciente em oxigênio suplementar mantém SpO₂ de 98%, mas fica muito sonolento e passa a fazer pausas respiratórias. Qual variável ajuda a reconhecer essa alteração?",
+    "options": [
+      "Ventilação acompanhada por observação e capnografia, quando disponível.",
+      "Apenas a saturação atual.",
+      "Pressão arterial isolada.",
+      "Temperatura da sala."
+    ],
+    "answer": 0,
+    "explanation": "A saturação pode permanecer alta enquanto o paciente hipoventila sob oxigênio. Observação respiratória e capnografia ajudam a reconhecer pausas e alterações ventilatórias."
+  },
+  {
+    "id": "tea-cr-bnm",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 19,
+    "source": "Monitorização e reversão do bloqueio neuromuscular · ASA",
+    "sourceUrl": "https://doi.org/10.1097/ALN.0000000000004379",
+    "prompt": "Na recuperação, um paciente apresenta fraqueza após uso de rocurônio e razão T4/T1 de 0,62. Como interpretar a medida?",
+    "options": [
+      "É compatível com bloqueio neuromuscular residual.",
+      "Comprova recuperação neuromuscular adequada.",
+      "Mede principalmente a intensidade da dor.",
+      "Comprova que a ventilação alveolar é adequada."
+    ],
+    "answer": 0,
+    "explanation": "A razão de 0,62 está abaixo do limiar de recuperação usado na monitorização quantitativa. O achado ajuda a explicar fraqueza no cenário."
+  },
+  {
+    "id": "tea-cr-hipo",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 44,
+    "source": "Hipotermia perioperatória · WFSA",
+    "sourceUrl": "https://resources.wfsahq.org/atotw/perioperative-hypothermia-prevention-and-management-tutorial-of-the-week-number-117/",
+    "prompt": "Qual mecanismo contribui para a queda inicial da temperatura central após indução de anestesia geral?",
+    "options": [
+      "Redistribuição de calor do compartimento central para tecidos periféricos.",
+      "Aumento imediato da produção de calor por tremores.",
+      "Transferência inicial de calor dos membros para o compartimento central.",
+      "Aumento da temperatura central acompanhado de queda da temperatura periférica."
+    ],
+    "answer": 0,
+    "explanation": "A alteração da termorregulação e a vasodilatação favorecem o fluxo de calor do centro para a periferia. Isso ajuda a explicar a queda inicial da temperatura central."
+  },
+  {
+    "id": "tea-cr-tremor",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 44,
+    "source": "Hipotermia perioperatória · WFSA",
+    "sourceUrl": "https://resources.wfsahq.org/atotw/perioperative-hypothermia-prevention-and-management-tutorial-of-the-week-number-117/",
+    "prompt": "Qual efeito fisiológico pode acompanhar tremores pós-anestésicos importantes?",
+    "options": [
+      "Elevação do consumo de oxigênio.",
+      "Diminuição sustentada da demanda metabólica.",
+      "Desaparecimento da produção de CO₂.",
+      "Redução do trabalho muscular."
+    ],
+    "answer": 0,
+    "explanation": "A contração muscular repetitiva aumenta a demanda metabólica e o consumo de oxigênio. O tremor também pode dificultar a leitura de monitores."
+  },
+  {
+    "id": "tea-cr-ponv",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 19,
+    "source": "Consenso sobre náuseas e vômitos pós-operatórios",
+    "sourceUrl": "https://doi.org/10.1213/ANE.0000000000007816",
+    "prompt": "Em um adulto, qual história pessoal é um fator reconhecido de risco para náuseas e vômitos pós-operatórios?",
+    "options": [
+      "Episódios prévios de náuseas e vômitos pós-operatórios ou cinetose.",
+      "Uso habitual de óculos.",
+      "Apendicectomia antiga sem intercorrências.",
+      "Alergia de contato isolada a bijuteria."
+    ],
+    "answer": 0,
+    "explanation": "História de episódios prévios ou cinetose compõe modelos clínicos de risco. A informação pode ser identificada ainda na avaliação pré-operatória."
+  },
+  {
+    "id": "tea-cr-alta",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 19,
+    "source": "Padrões de monitorização na anestesia e recuperação · Association of Anaesthetists",
+    "sourceUrl": "https://doi.org/10.1111/anae.15501",
+    "prompt": "Qual situação indica necessidade de reavaliar a prontidão para alta da unidade de recuperação, mesmo com pressão arterial estável?",
+    "options": [
+      "Episódios repetidos de obstrução respiratória quando o paciente adormece.",
+      "Conforto respiratório com sinais estáveis.",
+      "Nível de consciência compatível com o basal.",
+      "Ventilação espontânea adequada e sustentada."
+    ],
+    "answer": 0,
+    "explanation": "Estabilidade circulatória isolada não garante recuperação. Obstruções repetidas indicam que a ventilação e a capacidade de manter a via aérea ainda precisam ser avaliadas."
+  },
+  {
+    "id": "tea-cr-capno-sinal",
+    "area": "CIR",
+    "kind": "original",
+    "reviewed": false,
+    "point": 19,
+    "source": "Padrões de monitorização na anestesia e recuperação · Association of Anaesthetists",
+    "sourceUrl": "https://doi.org/10.1111/anae.15501",
+    "prompt": "Em um paciente que respira espontaneamente na recuperação, que informação o traçado capnográfico pode revelar antes de uma queda da SpO₂?",
+    "options": [
+      "Pausas ventilatórias e alterações do padrão respiratório.",
+      "A concentração sanguínea de anestésico local.",
+      "A intensidade subjetiva da dor.",
+      "A temperatura central exata."
+    ],
+    "answer": 0,
+    "explanation": "A onda de CO₂ expirado acompanha os ciclos ventilatórios. A oximetria acompanha a oxigenação e a dessaturação pode aparecer depois, sobretudo com oxigênio suplementar."
+  }
+]

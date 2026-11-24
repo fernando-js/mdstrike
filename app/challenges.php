@@ -13,7 +13,7 @@ function challenge_record(string $id): array {
 function challenge_invite(array $challenge): array {
     $map = $challenge['map_id'];
     $topics = catalog()['areas'] + array_column(catalog()['specialties'], 'name', 'id');
-    $title = isset($topics[$map]) ? 'Desafio de ' . $topics[$map] : 'Desafio de Medicina · todas as áreas';
+    $title = $map === 'tea' ? 'Desafio TEA · Anestesiologia' : (isset($topics[$map]) ? 'Desafio de ' . $topics[$map] : 'Desafio de Medicina · todas as áreas');
     $total = count(json_decode($challenge['questions_json'], true));
     $expired = time() > (int)$challenge['expires_at'];
     return [
@@ -57,8 +57,8 @@ function challenge_public(array $challenge, ?array $viewer): array {
 function create_challenge(array $data, array $user): array {
     rate_limit('create-challenge', 15, 3600);
     $map=(string)($data['map']??'all');
-    if ($map!=='all' && !in_array($map,array_merge(array_column(catalog()['specialties'],'id'),array_keys(catalog()['areas'])),true)) fail('Mapa inválido.');
-    $pool=array_values(array_filter(question_bank(),fn($q)=>$q['kind']==='original' && ($map==='all'||$q['area']===$map||in_array($map,$q['specialties']??[],true))));
+    if (!in_array($map,['all','tea'],true) && !in_array($map,array_merge(array_column(catalog()['specialties'],'id'),array_keys(catalog()['areas'])),true)) fail('Mapa inválido.');
+    $pool=$map==='tea' ? match_question_bank($map) : array_values(array_filter(question_bank(),fn($q)=>$q['kind']==='original' && ($map==='all'||$q['area']===$map||in_array($map,$q['specialties']??[],true))));
     if (count($pool)<3) fail('Escolha um mapa com pelo menos três questões autorais ou uma área mais ampla.');
     shuffle($pool);$items=[];
     foreach (array_slice($pool,0,7) as $q) { $order=range(0,count($q['options'])-1);shuffle($order);$items[]=['id'=>$q['id'],'order'=>$order]; }

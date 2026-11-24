@@ -57,7 +57,7 @@ function register_account(array $data, ?array $google = null): never {
 
 function match_state(array $m, array $payload): array {
     $items = $payload['items']; $cursor = (int)$m['question_index'];
-    $bank = array_column(question_bank(), null, 'id');
+    $bank = array_column(match_question_bank($m['map_id']), null, 'id');
     $item = $items[$cursor] ?? null;
     $q = $item ? $bank[$item['id']] : null;
     return [
@@ -155,7 +155,7 @@ try {
     if ($action === 'login') {
         rate_limit('login',12,900);
         $identity = strtolower(trim((string)($data['identity'] ?? '')));
-        $u = query('SELECT * FROM md_users WHERE email = ? OR LOWER(nickname) = ?',[$identity,$identity])->fetch();
+        $u = query('SELECT u.* FROM md_users u LEFT JOIN md_synthetic_users s ON s.user_id = u.id WHERE (u.email = ? OR LOWER(u.nickname) = ?) AND s.user_id IS NULL',[$identity,$identity])->fetch();
         $loginSubject = $u ? 'user:' . $u['id'] : 'identity:' . $identity;
         rate_limit('login-account', 20, 900, $loginSubject);
         // Always perform a password hash check, including unknown accounts.
@@ -292,7 +292,7 @@ try {
         if (!empty($payload['awaitingNext'])) { $db->rollBack(); fail('Pressione Continuar para iniciar a próxima questão.',409); }
         $item=$payload['items'][(int)$m['question_index']] ?? null;
         if (!$item || $item['id']!==($data['question'] ?? '')) { $db->rollBack(); fail('Questão fora de ordem. Atualize a partida.',409); }
-        $bank=array_column(question_bank(),null,'id'); $q=$bank[$item['id']];
+        $bank=array_column(match_question_bank($m['map_id']),null,'id'); $q=$bank[$item['id']];
         $choice=$data['choice'] ?? -1;
         if (!is_int($choice) || $choice < -1 || $choice >= count($q['options'])) { $db->rollBack(); fail('Alternativa inválida.'); }
         $elapsed=max(0,time()-(int)$m['issued_at']);

@@ -39,9 +39,10 @@ function admin_dispatch(string $action, array $params, array $operator): array {
     if($action==='admin-overview'){
         $since=time()-7*86400;
         $summary=[
-            'users'=>(int)query('SELECT COUNT(*) FROM md_users')->fetchColumn(),
+            'users'=>(int)query('SELECT COUNT(*) FROM md_users u LEFT JOIN md_synthetic_users s ON s.user_id = u.id WHERE s.user_id IS NULL')->fetchColumn(),
+            'syntheticUsers'=>(int)query('SELECT COUNT(*) FROM md_synthetic_users')->fetchColumn(),
             'active7d'=>(int)query('SELECT COUNT(*) FROM md_users WHERE last_seen >= ?',[$since])->fetchColumn(),
-            'matches'=>(int)query('SELECT COUNT(*) FROM md_matches m WHERE ' . completed_match_filter())->fetchColumn(),
+            'matches'=>(int)query('SELECT COUNT(*) FROM md_matches m LEFT JOIN md_synthetic_users s ON s.user_id = m.user_id WHERE s.user_id IS NULL AND ' . completed_match_filter())->fetchColumn(),
             'challenges'=>(int)query('SELECT COUNT(*) FROM md_challenges')->fetchColumn(),
             'answers'=>(int)query('SELECT COUNT(*) FROM md_answers')->fetchColumn(),
             'correct'=>(int)query('SELECT COALESCE(SUM(correct),0) FROM md_answers')->fetchColumn(),
@@ -69,8 +70,12 @@ function admin_dispatch(string $action, array $params, array $operator): array {
             if(!in_array($params['status'],['available','studying','away'],true))fail('Status inválido.');
             $where[]='u.status = ?';$bindings[]=$params['status'];
         }
+        $type = $params['type'] ?? '';
+        if ($type === 'synthetic') $where[] = 's.user_id IS NOT NULL';
+        elseif ($type === 'member') $where[] = 's.user_id IS NULL';
+        elseif ($type !== '') fail('Tipo de perfil inválido.');
         admin_date_conditions($params,'u.created_at',$where,$bindings);
-        $response=admin_rows('FROM md_users u LEFT JOIN md_admins ad ON ad.user_id = u.id','u.id,u.nickname,u.email,u.specialty,u.institution,u.status,u.xp,u.points,u.rating,u.played,u.correct,u.answered,u.created_at,u.last_seen,ad.granted_at AS admin_since',$where,$bindings,'u.id DESC',$params);
+        $response=admin_rows('FROM md_users u LEFT JOIN md_admins ad ON ad.user_id = u.id LEFT JOIN md_synthetic_users s ON s.user_id = u.id','u.id,u.nickname,u.email,u.specialty,u.institution,u.status,u.xp,u.points,u.rating,u.played,u.correct,u.answered,u.created_at,u.last_seen,ad.granted_at AS admin_since,CASE WHEN s.user_id IS NULL THEN 0 ELSE 1 END AS synthetic',$where,$bindings,'u.id DESC',$params);
         audit_event('admin.viewed',$operatorId,null,['section'=>'users','page'=>$response['page']]);return $response;
     }
     if($action==='admin-user'){
@@ -78,6 +83,7 @@ function admin_dispatch(string $action, array $params, array $operator): array {
         $user=query('SELECT id,nickname,email,specialty,institution,status,xp,points,rating,played,wins,answered,correct,created_at,last_seen FROM md_users WHERE id = ?',[$id])->fetch();
         if(!$user)fail('Usuário não encontrado.',404);
         $user['isAdmin']=is_admin($user);
+        $user['synthetic'] = (bool)query('SELECT 1 FROM md_synthetic_users WHERE user_id = ?', [$id])->fetchColumn();
         $user['education']=education_for_user($id);
         $stats=query('SELECT area,COUNT(*) AS answered,SUM(correct) AS correct FROM md_answers WHERE user_id = ? GROUP BY area',[$id])->fetchAll();
         $matches=query('SELECT id,user_id,mode,map_id,score,correct,question_index,started_at,issued_at,finished_at,result_json FROM md_matches WHERE user_id = ? ORDER BY started_at DESC LIMIT 30',[$id])->fetchAll();
@@ -95,7 +101,7 @@ function admin_dispatch(string $action, array $params, array $operator): array {
             $where[]='m.mode = ?';$bindings[]=$params['mode'];
         }
         admin_date_conditions($params,'m.started_at',$where,$bindings);
-        $response=admin_rows('FROM md_matches m JOIN md_users u ON u.id = m.user_id','m.id,m.user_id,u.nickname,m.mode,m.map_id,m.score,m.correct,m.question_index,m.started_at,m.issued_at,m.finished_at,m.result_json',$where,$bindings,'m.started_at DESC,m.id DESC',$params);
+        $response=admin_rows('FROM md_matches m JOIN md_users u ON u.id = m.user_id LEFT JOIN md_synthetic_users s ON s.user_id = u.id','m.id,m.user_id,u.nickname,m.mode,m.map_id,m.score,m.correct,m.question_index,m.started_at,m.issued_at,m.finished_at,m.result_json,CASE WHEN s.user_id IS NULL THEN 0 ELSE 1 END AS synthetic',$where,$bindings,'m.started_at DESC,m.id DESC',$params);
         $response['rows']=array_map('admin_match',$response['rows']);
         audit_event('admin.viewed',$operatorId,null,['section'=>'matches','page'=>$response['page']]);return $response;
     }

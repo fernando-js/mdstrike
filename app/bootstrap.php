@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/security.php';
 require_once __DIR__ . '/education.php';
 require_once __DIR__ . '/avatar.php';
+require_once __DIR__ . '/synthetic-rankings.php';
 
 function private_directory(): string {
     $directory = getenv('MDSTRIKE_PRIVATE_DIR') ?: dirname(__DIR__, 2) . '/.mdstrike';
@@ -73,6 +74,7 @@ function migrate(PDO $db): void {
     $googleSubject = $sqlite ? 'TEXT COLLATE BINARY' : 'VARBINARY(255)';
     $queries = [
         "CREATE TABLE IF NOT EXISTS md_users (id $id, nickname VARCHAR(24) NOT NULL UNIQUE, email VARCHAR(190) NOT NULL UNIQUE, password_hash VARCHAR(255) NOT NULL, specialty VARCHAR(90) NOT NULL DEFAULT '', institution VARCHAR(100) NOT NULL DEFAULT '', status VARCHAR(16) NOT NULL DEFAULT 'available', xp INTEGER NOT NULL DEFAULT 0, points INTEGER NOT NULL DEFAULT 0, rating INTEGER NOT NULL DEFAULT 1000, played INTEGER NOT NULL DEFAULT 0, wins INTEGER NOT NULL DEFAULT 0, answered INTEGER NOT NULL DEFAULT 0, correct INTEGER NOT NULL DEFAULT 0, created_at BIGINT NOT NULL, last_seen BIGINT NOT NULL, password_changed_at BIGINT NOT NULL DEFAULT 0)$tail",
+        "CREATE TABLE IF NOT EXISTS md_synthetic_users (user_id BIGINT PRIMARY KEY)$tail",
         "CREATE TABLE IF NOT EXISTS md_matches (id VARCHAR(64) PRIMARY KEY, user_id BIGINT NOT NULL, mode VARCHAR(20) NOT NULL, map_id VARCHAR(90) NOT NULL, exam_id VARCHAR(90) NOT NULL DEFAULT '', questions_json TEXT NOT NULL, question_index INTEGER NOT NULL DEFAULT 0, score INTEGER NOT NULL DEFAULT 0, correct INTEGER NOT NULL DEFAULT 0, bot_score INTEGER NOT NULL DEFAULT 0, started_at BIGINT NOT NULL, issued_at BIGINT NOT NULL, finished_at BIGINT, result_json TEXT$matchIndexes)$tail",
         "CREATE TABLE IF NOT EXISTS md_answers (id $id, match_id VARCHAR(64) NOT NULL, user_id BIGINT NOT NULL, question_id VARCHAR(100) NOT NULL, area VARCHAR(8) NOT NULL, map_id VARCHAR(90) NOT NULL, choice INTEGER NOT NULL, correct INTEGER NOT NULL, points INTEGER NOT NULL, elapsed INTEGER NOT NULL, created_at BIGINT NOT NULL, UNIQUE(match_id, question_id)$answerIndexes)$tail",
         "CREATE TABLE IF NOT EXISTS md_auth_limits (bucket VARCHAR(190) PRIMARY KEY, attempts INTEGER NOT NULL, window_start BIGINT NOT NULL)$tail",
@@ -102,6 +104,9 @@ function migrate(PDO $db): void {
     }
     bootstrap_owner_admin($db);
     security_indexes($db);
+    if (development() ? getenv('MDSTRIKE_SEED_SYNTHETIC_RANKINGS') === '1' : rtrim(configuration()['app_origin'], '/') === 'https://mdstrike.com') {
+        seed_synthetic_rankings($db);
+    }
 }
 
 function query(string $sql, array $params = []): PDOStatement {
@@ -229,8 +234,14 @@ function question_bank(): array {
     return $data ??= json_decode(file_get_contents(__DIR__ . '/questions.json'), true, 512, JSON_THROW_ON_ERROR);
 }
 
+function match_question_bank(string $map): array {
+    if ($map !== 'tea') return question_bank();
+    static $tea;
+    return $tea ??= json_decode(file_get_contents(__DIR__ . '/tea-questions.json'), true, 512, JSON_THROW_ON_ERROR);
+}
+
 function question_public(array $q, array $order): array {
-    $public = array_intersect_key($q, array_flip(['id','area','prompt','source','kind','specialties','exam','number','pdf','page','reviewed']));
+    $public = array_intersect_key($q, array_flip(['id','area','prompt','source','sourceUrl','point','kind','specialties','exam','number','pdf','page','reviewed']));
     $public['options'] = array_map(fn($i) => $q['options'][$i], $order);
     return $public;
 }

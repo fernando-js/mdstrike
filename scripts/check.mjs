@@ -9,6 +9,7 @@ for (const file of [
   "app/education.php",
   "app/avatar.php",
   "app/challenges.php",
+  "app/synthetic-rankings.php",
   "app/challenge-invite-page.php",
   "app/admin.php",
   "app/revalida.php",
@@ -28,6 +29,7 @@ for (const file of [
   execFileSync("php", ["-l", file], { stdio: "inherit" });
 for (const file of fs.readdirSync("assets/js").filter((f) => f.endsWith(".js")))
   execFileSync("node", ["--check", `assets/js/${file}`], { stdio: "inherit" });
+execFileSync("node", ["scripts/tea-bank.mjs", "--check"], { stdio: "inherit" });
 const bank = JSON.parse(fs.readFileSync("app/questions.json"));
 const catalog = JSON.parse(fs.readFileSync("app/catalog.json"));
 if (catalog.specialties.length !== 55)
