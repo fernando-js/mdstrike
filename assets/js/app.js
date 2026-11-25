@@ -45,7 +45,7 @@ import {
   loadMyChallenges,
   shareChallenge,
 } from "./challenges.js?v=3.7.3";
-import { openAdmin, stopAdmin } from "./admin.js?v=2.9.2";
+import { openAdmin, stopAdmin } from "./admin.js?v=2.9.3";
 import { mountEducation, educationFromForm } from "./education.js?v=2.4.0";
 import {
   RevalidaSimulation,

@@ -63,6 +63,10 @@ const userButton = (id, name) =>
   id
     ? `<button class="text-button" data-admin-user="${Number(id)}">${esc(name || "#" + id)}</button>`
     : esc(name || "Sistema");
+const profileTypeTag = (synthetic) =>
+  Number(synthetic)
+    ? '<span class="tag">Fictício</span>'
+    : '<span class="tag official">Real</span>';
 
 export function stopAdmin() {
   generation++;
@@ -106,7 +110,7 @@ function filters() {
           )
           .join("")}</select></label>`
       : ""
-  }${section === "users" ? `<label class="field"><span>Tipo de perfil</span><select name="type"><option value="">Todos os perfis</option><option value="member" ${params.type === "member" ? "selected" : ""}>Contas de jogadores</option><option value="synthetic" ${params.type === "synthetic" ? "selected" : ""}>Perfis fictícios</option></select></label>` : ""}${section === "matches" ? `<label class="field"><span>Modo</span><select name="mode"><option value="">Todos os modos</option>${["practice", "duel", "competitive", "cup", "exam", "review", "challenge"].map((id) => `<option value="${id}" ${params.mode === id ? "selected" : ""}>${modeName(id)}</option>`).join("")}</select></label>` : ""}<label class="field"><span>Desde</span><input type="date" name="from" value="${esc(params.from || "")}"></label><label class="field"><span>Até</span><input type="date" name="to" value="${esc(params.to || "")}"></label><button class="btn small" type="submit">Filtrar</button><button class="text-button" type="button" data-admin-clear>Limpar</button></form>${params.user ? `<p class="notice">Filtrando registros do usuário #${Number(params.user)}. <button class="text-button" data-admin-clear>Remover filtro</button></p>` : ""}`;
+  }${section === "users" ? `<label class="field"><span>Tipo de perfil</span><select name="type"><option value="">Todos os perfis</option><option value="member" ${params.type === "member" ? "selected" : ""}>Usuários reais</option><option value="synthetic" ${params.type === "synthetic" ? "selected" : ""}>Perfis fictícios</option></select></label>` : ""}${section === "matches" ? `<label class="field"><span>Modo</span><select name="mode"><option value="">Todos os modos</option>${["practice", "duel", "competitive", "cup", "exam", "review", "challenge"].map((id) => `<option value="${id}" ${params.mode === id ? "selected" : ""}>${modeName(id)}</option>`).join("")}</select></label>` : ""}<label class="field"><span>Desde</span><input type="date" name="from" value="${esc(params.from || "")}"></label><label class="field"><span>Até</span><input type="date" name="to" value="${esc(params.to || "")}"></label><button class="btn small" type="submit">Filtrar</button><button class="text-button" type="button" data-admin-clear>Limpar</button></form>${params.user ? `<p class="notice">Filtrando registros do usuário #${Number(params.user)}. <button class="text-button" data-admin-clear>Remover filtro</button></p>` : ""}`;
 }
 
 function pagination(data) {
@@ -147,7 +151,7 @@ function body(data) {
     const daily = Object.entries(data.enamedMetricsDaily ?? {});
     return (
       statsStrip([
-        [number(s.users), "Usuários cadastrados"],
+        [number(s.users), "Usuários reais"],
         [number(s.syntheticUsers), "Perfis fictícios"],
         [number(s.active7d), "Ativos nos últimos 7 dias"],
         [number(s.matches), "Partidas concluídas"],
@@ -179,6 +183,7 @@ function body(data) {
       table(
         [
           "Usuário",
+          "Tipo de perfil",
           "E-mail",
           "Especialidade",
           "Status",
@@ -189,7 +194,7 @@ function body(data) {
         ],
         data.rows.map(
           (u) =>
-            `<tr><td>${userButton(u.id, u.nickname)}${u.admin_since ? '<small class="admin-subtext accent">Administrador</small>' : ""}${Number(u.synthetic) ? '<small class="admin-subtext accent">Perfil fictício</small>' : ""}</td><td>${Number(u.synthetic) ? "—" : esc(u.email)}</td><td>${esc(specialtyName(u.specialty))}</td><td>${esc(statusLabel(u.status))}</td><td>${number(u.rating)} / ${number(u.xp)} XP</td><td>${number(u.played)}</td><td>${stamp(u.created_at)}</td><td>${stamp(u.last_seen)}</td></tr>`,
+            `<tr><td>${userButton(u.id, u.nickname)}${u.admin_since ? '<small class="admin-subtext accent">Administrador</small>' : ""}</td><td>${profileTypeTag(u.synthetic)}</td><td>${Number(u.synthetic) ? "—" : esc(u.email)}</td><td>${esc(specialtyName(u.specialty))}</td><td>${esc(statusLabel(u.status))}</td><td>${number(u.rating)} / ${number(u.xp)} XP</td><td>${number(u.played)}</td><td>${stamp(u.created_at)}</td><td>${stamp(u.last_seen)}</td></tr>`,
         ),
       ) + pagination(data)
     );
@@ -264,7 +269,7 @@ async function userDetail(id) {
     if (current !== generation || state.page !== "admin") return;
     const u = data.user;
     $("#admin-content").innerHTML =
-      `<section class="panel admin-user-detail"><div class="row space-between wrap"><div><h2>${esc(u.nickname)}</h2><p>${u.synthetic ? "Perfil fictício" : esc(u.email)}${u.isAdmin ? " · Administrador" : ""}</p></div><button class="btn secondary small" data-admin-tab="users">Voltar aos usuários</button></div>${statsStrip(
+      `<section class="panel admin-user-detail"><div class="row space-between wrap"><div><h2>${esc(u.nickname)}</h2><p>${profileTypeTag(u.synthetic)}${u.synthetic ? "" : " " + esc(u.email)}${u.isAdmin ? " · Administrador" : ""}</p></div><button class="btn secondary small" data-admin-tab="users">Voltar aos usuários</button></div>${statsStrip(
         [
           [number(u.rating), "Rating"],
           [number(u.xp), "XP"],

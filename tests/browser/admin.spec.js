@@ -170,8 +170,9 @@ test("administration protects records, records activity and renders desktop/mobi
   await page.goto("/#admin");
   await expect(page.locator("h1")).toHaveText("Central de comando.");
   await expect(page.locator("#admin-content")).toContainText(
-    "Usuários cadastrados",
+    "Usuários reais",
   );
+  await expect(page.locator("#admin-content")).toContainText("Perfis fictícios");
   await page.getByText("Ver métricas por dia", { exact: true }).click();
   await expect(page.getByRole("columnheader", { name: "Primeiras respostas" })).toBeVisible();
   await expect(page).toHaveTitle(/MD Strike/i);
@@ -180,16 +181,27 @@ test("administration protects records, records activity and renders desktop/mobi
     fullPage: false,
   });
   await page.locator('[data-admin-tab="users"]').first().click();
+  await expect(page.getByRole("columnheader", { name: "Tipo de perfil" })).toBeVisible();
+  const realRow = page.getByRole("row").filter({ hasText: member.user.nickname });
+  const syntheticRow = page.getByRole("row").filter({ hasText: synthetic });
+  await expect(realRow.getByRole("cell", { name: "Real", exact: true })).toBeVisible();
+  await expect(realRow.getByRole("cell", { name: "Disponível", exact: true })).toBeVisible();
+  await expect(syntheticRow.getByRole("cell", { name: "Fictício", exact: true })).toBeVisible();
   await page.getByLabel("Tipo de perfil").selectOption("synthetic");
   await page.getByRole("button", { name: "Filtrar", exact: true }).click();
-  await expect(page.getByRole("row").filter({ hasText: synthetic })).toContainText("Perfil fictício");
-  await page.getByLabel("Tipo de perfil").selectOption("");
+  await expect(realRow).toHaveCount(0);
+  await syntheticRow.getByRole("button", { name: synthetic }).click();
+  await expect(page.locator(".admin-user-detail").getByText("Fictício", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Voltar aos usuários" }).click();
+  await page.getByLabel("Tipo de perfil").selectOption("member");
   await page
     .locator('#admin-filter-form input[name="search"]')
     .fill(member.user.email);
   await page.getByRole("button", { name: "Filtrar", exact: true }).click();
   await expect(page.locator("#admin-content tbody tr")).toHaveCount(1);
+  await expect(syntheticRow).toHaveCount(0);
   await page.locator('[data-admin-user="' + member.user.id + '"]').click();
+  await expect(page.locator(".admin-user-detail").getByText("Real", { exact: true })).toBeVisible();
   await expect(page.locator(".admin-user-detail")).toContainText(
     member.user.email,
   );
