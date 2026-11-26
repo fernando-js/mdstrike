@@ -16,6 +16,7 @@ test("public TEA page leads to a resumable mission and review removes corrected 
   const response = await page.goto("/tea/");
   expect(response.ok()).toBeTruthy();
   await expect(page).toHaveTitle(/Título de Especialista em Anestesiologia/);
+  await expect(page.getByText(/70 questões autorais/)).toBeVisible();
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     "href",
     "https://mdstrike.com/tea/",
@@ -25,6 +26,9 @@ test("public TEA page leads to a resumable mission and review removes corrected 
   await expect(
     page.getByRole("heading", { name: "Operação TEA" }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Iniciar missão" }),
+  ).toHaveCount(7);
   await page.screenshot({ path: testInfo.outputPath("tea-desktop.png") });
   await expect(
     page.getByRole("button", { name: "Revisar erros" }),
@@ -137,7 +141,7 @@ test("mobile TEA case keeps drafts and reveals the next scenario after the answe
   ).toBeVisible();
 });
 
-test("a TEA challenge survives sign-in and shares the same seven author questions", async ({
+test("themed and mixed TEA challenges use the selected question count and share identical rounds", async ({
   page,
   browser,
 }) => {
@@ -171,9 +175,29 @@ test("a TEA challenge survives sign-in and shares the same seven author question
   await expect(
     page.getByRole("heading", { name: "Criar desafio TEA" }),
   ).toBeVisible();
+  const count = page.getByLabel("Quantidade de questões");
+  await count.selectOption("20");
+  await page.getByLabel("Tema do TEA").selectOption("obstetricia");
+  await expect(count).toHaveValue("7");
+  await expect(count.locator('option[value="20"]')).toBeDisabled();
+  await count.selectOption("5");
+
+  const endpoint = "/api/index.php?action=";
+  const { csrf } = await (await page.request.get(endpoint + "session")).json();
+  for (const settings of [
+    { topic: "inexistente", questionCount: 5 },
+    { topic: "obstetricia", questionCount: 20 },
+  ]) {
+    const rejected = await page.request.post(endpoint + "create-challenge", {
+      headers: { "X-CSRF-Token": csrf },
+      data: { map: "tea", ...settings },
+    });
+    expect(rejected.status()).toBe(400);
+  }
+
   await page.getByRole("button", { name: "Gerar link de desafio" }).click();
   await expect(
-    page.getByRole("heading", { name: "Desafio TEA · Anestesiologia" }),
+    page.getByRole("heading", { name: "Desafio TEA · Anestesia obstétrica" }),
   ).toBeVisible();
   const invite = await page
     .locator("[data-invite-url]")
@@ -186,7 +210,9 @@ test("a TEA challenge survives sign-in and shares the same seven author question
     const invited = await participant.newPage();
     await invited.goto(path);
     await expect(
-      invited.getByRole("heading", { name: "Desafio TEA · Anestesiologia" }),
+      invited.getByRole("heading", {
+        name: "Desafio TEA · Anestesia obstétrica",
+      }),
     ).toBeVisible();
     await expect(invited).toHaveTitle(/Desafio TEA/);
     await page.getByRole("button", { name: "Aceitar desafio" }).click();
@@ -200,15 +226,16 @@ test("a TEA challenge survives sign-in and shares the same seven author question
     expect(
       await invited.locator(".question-panel [data-answer]").allTextContents(),
     ).toEqual(await answers.allTextContents());
-    await expect(page.getByText("ROUND 1 / 7", { exact: true })).toBeVisible();
+    await expect(page.getByText("ROUND 1 / 5", { exact: true })).toBeVisible();
 
-    const question = teaMissions
-      .flatMap(({ questions }) => questions)
-      .find((item) => item.prompt === expectedPrompt);
+    const obstetrics = teaMissions.find(
+      ({ id }) => id === "obstetricia",
+    ).questions;
+    const question = obstetrics.find((item) => item.prompt === expectedPrompt);
     expect(question).toBeDefined();
     await page.getByText(question.correct, { exact: true }).click();
     await page.locator("[data-next]").click();
-    for (let round = 2; round <= 7; round++) {
+    for (let round = 2; round <= 5; round++) {
       await page.getByRole("button", { name: "Pular questão" }).click();
       await page.locator("[data-next]").click();
     }
@@ -218,11 +245,26 @@ test("a TEA challenge survives sign-in and shares the same seven author question
     ).toContainText("Concluído");
     await expect(
       page.getByRole("row").filter({ hasText: creator }),
-    ).toContainText("1/7");
+    ).toContainText("1/5");
     const profile = await (
       await page.request.get("/api/index.php?action=profile")
     ).json();
     expect(profile.user.rating).toBe(initial.user.rating);
+
+    await page.goto("/#competitions");
+    await page
+      .getByRole("button", { name: "Criar desafio", exact: true })
+      .click();
+    await expect(count).toBeHidden();
+    await page.getByLabel("Tema do desafio").selectOption("tea");
+    await expect(count).toBeVisible();
+    await count.selectOption("20");
+    await page.getByRole("button", { name: "Gerar link de desafio" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Desafio TEA · Anestesiologia" }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Aceitar desafio" }).click();
+    await expect(page.getByText("ROUND 1 / 20", { exact: true })).toBeVisible();
   } finally {
     await participant.close();
   }

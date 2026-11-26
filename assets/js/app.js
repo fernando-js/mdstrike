@@ -44,7 +44,8 @@ import {
   challengePage,
   loadMyChallenges,
   shareChallenge,
-} from "./challenges.js?v=3.7.3";
+  updateChallengeOptions,
+} from "./challenges.js?v=3.7.4";
 import { openAdmin, stopAdmin } from "./admin.js?v=2.9.3";
 import { mountEducation, educationFromForm } from "./education.js?v=2.4.0";
 import {
@@ -231,7 +232,7 @@ async function route(page, force = false, navigation = "push") {
   if (page === "tea") {
     view.innerHTML = '<p class="loading" role="status">Abrindo a Operação TEA…</p>';
     try {
-      const { mountTea } = await import("./tea.js?v=1.1.0");
+      const { mountTea } = await import("./tea.js?v=1.2.0");
       if (routeGeneration !== generation) return;
       mountTea(view);
     } catch {
@@ -737,9 +738,11 @@ function renderMatch() {
   const versus = c.timeLimit > 0 && c.mode !== "challenge",
     isTeam = c.mode === "competitive",
     official = q.kind === "official";
+  const roundDots = Math.min(15, c.total);
+  const completedDots = Math.floor(c.index * roundDots / c.total);
   const pdfUrl = official ? `${q.pdf}#page=${q.page}&view=FitH` : "";
   view.innerHTML = `<div class="match-page"><div class="match-header"><div><h1>${esc(modeName(c.mode))}</h1><small>${esc(c.map === "tea" ? "Operação TEA" : specialtyName(c.map))} · ${state.user ? "Conta conectada" : "Treino local de convidado"}</small></div><button class="btn outline small" data-page="${c.map === "tea" ? "challenge/" + c.challengeId : c.map.startsWith("revalida-") ? "revalida" : "lobby"}">${simulation ? "Sair do simulado" : "Sair da partida"}</button></div>${c.mode === "cup" ? `<div class="bracket">${["Quartas de final", "Semifinal", "Final"].map((name, i) => `<div class="bracket-stage ${c.stage === i ? "active" : ""}"><small>FASE ${i + 1}</small><strong>${name}</strong></div>`).join("")}</div>` : ""}
-  ${simulation ? simulationControls(game) : `<div class="scoreboard"><div><span class="player-name">${isTeam ? "Seu time" : esc(player().nickname)}</span><strong id="my-score">${number(isTeam ? c.roundsWon : c.score)}</strong></div><div><span class="round-counter">ROUND ${c.index + 1} / ${c.total}</span><div class="round-dots">${Array.from({ length: Math.min(15, c.total) }, (_, i) => `<i class="${i < c.index ? "done" : ""}"></i>`).join("")}</div></div><div><span class="player-name enemy">${versus ? (isTeam ? "Time adversário · bots" : "Adversário · bot") : "Precisão"}</span><strong id="opponent-score">${versus ? number(isTeam ? c.roundsLost : c.botScore) : c.index ? Math.round((c.correct / c.index) * 100) + "%" : "—"}</strong></div></div>`}
+  ${simulation ? simulationControls(game) : `<div class="scoreboard"><div><span class="player-name">${isTeam ? "Seu time" : esc(player().nickname)}</span><strong id="my-score">${number(isTeam ? c.roundsWon : c.score)}</strong></div><div><span class="round-counter">ROUND ${c.index + 1} / ${c.total}</span><div class="round-dots">${Array.from({ length: roundDots }, (_, i) => `<i class="${i < completedDots ? "done" : ""}"></i>`).join("")}</div></div><div><span class="player-name enemy">${versus ? (isTeam ? "Time adversário · bots" : "Adversário · bot") : "Precisão"}</span><strong id="opponent-score">${versus ? number(isTeam ? c.roundsLost : c.botScore) : c.index ? Math.round((c.correct / c.index) * 100) + "%" : "—"}</strong></div></div>`}
   <div class="match-layout" ${official ? 'style="grid-template-columns:minmax(0,1fr)"' : ""}><section class="question-panel ${official ? "pdf-question" : ""}">${c.timeLimit ? `<div class="timer-bar" id="question-timer"><div class="bar"><i id="timer-fill" style="width:100%"></i></div><strong id="time-left">${c.timeLimit}s</strong></div>` : ""}<div class="question-meta"><span>${c.map === "tea" ? "Operação TEA · Ponto " + esc(q.point) : esc(catalog.areas[q.area] || q.area)}</span><span class="tag ${official ? "official" : ""}">${official ? "Caderno oficial" : c.map === "tea" ? "Questão autoral" : "Autoral · demonstração"}</span></div><h2>${esc(q.prompt)}</h2><p class="source-note">${q.sourceUrl ? `<a href="${esc(q.sourceUrl)}" target="_blank" rel="noopener noreferrer">${esc(q.source)}</a>` : esc(q.source)}${official ? ` · página ${q.page}` : ""}</p>
   ${official ? `<div class="row wrap space-between" style="margin-bottom:14px"><span class="small-text muted">Leia a questão ${q.number} na página ${q.page} do caderno e marque a alternativa abaixo.</span><a class="source-link" href="${esc(pdfUrl)}" target="_blank" rel="noopener noreferrer">Abrir PDF em outra aba ↗</a></div><div id="pdf-viewer" class="pdf-viewer" aria-busy="true" aria-label="Página do caderno oficial"><div class="loading">Abrindo a página original…</div></div>` : ""}
   <div class="answers" role="group" aria-label="Alternativas">${q.options.map((option, i) => `<button class="answer" data-answer="${i}" ${simulation ? `aria-pressed="${game.current.choices[game.index] === i}"` : ""}><span class="answer-letter">${"ABCDE"[i]}</span>${official ? "" : `<span>${esc(option)}</span>`}</button>`).join("")}</div><div id="feedback" aria-live="polite"></div><p class="key-help">Atalhos: ${q.options.length === 5 ? "1–5 ou A–E" : "1–4 ou A–D"} para ${simulation ? "marcar uma alternativa" : "responder · Enter para continuar"}</p><div class="match-tools">${simulation ? "<button data-skip>Limpar resposta</button>" : `<button data-sound>${icon("sound", 16)} ${state.sound ? "Som ligado" : "Som desligado"}</button><button data-skip>Pular questão</button>`}</div></section>${!official ? `<aside class="tactical-panel"><h3>Mapa de operação</h3>${tacticalMap(c)}<p>Avance um round por vez. Cada resposta mostra o raciocínio e alimenta seu histórico de estudo.</p><div class="notice">${versus ? "Adversários e aliados são bots." : c.mode === "challenge" ? "Desafio entre colegas. Cada um joga no seu horário." : "Treino sem relógio."}</div><p>As questões autorais ainda precisam de revisão médica.</p></aside>` : ""}</div></div>`;
@@ -1098,6 +1101,7 @@ document.addEventListener("input", (event) => {
 });
 document.addEventListener("change", (event) => {
   updateAvatarEditor(event);
+  updateChallengeOptions(event.target);
   if (["map-area", "map-content"].includes(event.target.id)) filterMaps();
   if (event.target.id === "exam-filter") filterExams();
   if (event.target.id === "sim-question-jump")

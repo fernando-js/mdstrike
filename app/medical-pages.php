@@ -7,11 +7,13 @@ function medical_pages(): array {
     return [
         '/tea/' => [
             'title' => 'Operação TEA · Título de Especialista em Anestesiologia',
-            'description' => 'Estude para o TEA de Anestesiologia com quatro missões temáticas, questões autorais comentadas, três casos discursivos e revisão de erros.',
+            'description' => 'Estude para o TEA de Anestesiologia com sete missões, 70 questões comentadas, casos discursivos, desafios entre colegas e revisão de erros.',
             'action' => ['Jogar Operação TEA', '/#tea'],
             'sections' => [
-                ['Missões por tema', 'Pratique via aérea e ventilação, monitorização e farmacologia, neuroeixo e bloqueios, complicações e recuperação. São 40 questões autorais relacionadas aos pontos do edital de 2026. O navegador guarda seu progresso.',
+                ['Missões por tema', 'Pratique via aérea e ventilação, monitorização e farmacologia, neuroeixo e bloqueios, complicações e recuperação, avaliação pré-anestésica, anestesia obstétrica e pediátrica. São 70 questões autorais relacionadas aos pontos do edital de 2026. O navegador guarda seu progresso.',
                     [['Abrir as missões no MD Strike', '/#tea'], ['Programa teórico do TEA na SBA', 'https://www.sbahq.org/programa-tea/']]],
+                ['Desafios entre colegas', 'Gere um convite com um tema específico ou combine os assuntos em um desafio de até 20 questões. Os participantes recebem as mesmas perguntas e alternativas e comparam o desempenho em um placar próprio.',
+                    [['Abrir a Operação TEA', '/#tea']]],
                 ['Casos clínicos discursivos', 'Escreva uma resposta curta antes de comparar com o espelho comentado. Em seguida, veja como o cenário evolui. Os casos são fictícios e a revisão médica independente do material está pendente.',
                     [['Edital do exame de suficiência de 2026', 'https://www.sbahq.org/wp-content/uploads/2025/02/Edital-TEA-2026-3.pdf#page=9']]],
                 ['Materiais públicos da SBA', 'Consulte o gabarito histórico do TEA e use as avaliações de Médicos em Especialização e os tutoriais da WFSA para complementar o estudo.',

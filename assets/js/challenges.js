@@ -9,6 +9,9 @@ import {
   toast,
 } from "./core.js?v=2.4.0";
 import { heading, areaOptions, statsStrip } from "./views.js?v=3.6.0";
+import { teaChallengeTopics } from "./tea-challenge-options.js?v=1.0.0";
+
+const teaChallengeCounts = [5, 7, 10, 15, 20];
 
 export function challengeForm(tea = false) {
   const specialties = catalog.specialties
@@ -18,7 +21,34 @@ export function challengeForm(tea = false) {
   const theme = tea
     ? '<input type="hidden" name="map" value="tea">'
     : `<label class="field"><span>Tema do desafio</span><select name="map"><option value="all">Todas as áreas</option><option value="tea">Operação TEA</option><optgroup label="Áreas">${areaOptions()}</optgroup>${specialties ? `<optgroup label="Especialidades">${specialties}</optgroup>` : ""}</select></label>`;
-  return `<div class="modal-content"><div class="modal-top"><h2 id="modal-title">${tea ? "Criar desafio TEA" : "Desafie seu colega."}</h2><button class="close-button" data-close aria-label="Fechar">×</button></div><p>${tea ? "Compartilhe um convite com sete questões da Operação TEA de Anestesiologia." : "Escolha o tema. O convite inclui o assunto, o número de questões e o link para participar."}</p><form id="challenge-form" class="auth-form">${theme}<div class="notice">Até 7 questões autorais · 60 segundos por questão · link válido por 7 dias. Uma tentativa por conta. O placar compara acertos, pontos e tempo de resposta. Desistir encerra sua tentativa. Este desafio não altera o rating.</div><div class="form-error" role="alert"></div><button class="btn" type="submit">Gerar link de desafio ${icon("arrow", 18)}</button></form></div>`;
+  const availability = tea ? "" : "disabled";
+  const visibility = tea ? "" : "hidden";
+  return `<div class="modal-content"><div class="modal-top"><h2 id="modal-title">${tea ? "Criar desafio TEA" : "Desafie seu colega."}</h2><button class="close-button" data-close aria-label="Fechar">×</button></div><p>${tea ? "Escolha o tema e a quantidade de questões para criar o convite." : "Escolha o tema. O convite inclui o assunto, o número de questões e o link para participar."}</p><form id="challenge-form" class="auth-form">${theme}
+    <div ${visibility}><label class="field"><span>Tema do TEA</span><select name="topic" ${availability}><option value="">Misturar temas</option>${teaChallengeTopics.map(({ id, title }) => `<option value="${esc(id)}">${esc(title)}</option>`).join("")}</select></label></div>
+    <div ${visibility}><label class="field"><span>Quantidade de questões</span><select name="questionCount" ${availability}>${teaChallengeCounts.map((count) => `<option value="${count}" ${count === 7 ? "selected" : ""}>${count} questões</option>`).join("")}</select></label></div>
+    <div class="notice">60 segundos por questão · link válido por 7 dias · uma tentativa por conta. O placar compara acertos, pontos e tempo de resposta.</div><div class="form-error" role="alert"></div><button class="btn" type="submit">Gerar link de desafio ${icon("arrow", 18)}</button></form></div>`;
+}
+
+export function updateChallengeOptions(control) {
+  const form = control.form;
+  if (form?.id !== "challenge-form" || !["map", "topic"].includes(control.name)) return;
+  const { map, topic, questionCount } = form.elements;
+  const tea = map.value === "tea";
+  for (const field of [topic, questionCount]) {
+    field.disabled = !tea;
+    field.closest("div").hidden = !tea;
+  }
+  if (!tea) return;
+  const limit = teaChallengeTopics.find(({ id }) => id === topic.value)?.total ?? 20;
+  const options = [...questionCount.options];
+  for (const option of options) {
+    option.disabled = Number(option.value) > limit;
+    option.hidden = option.disabled;
+  }
+  if (questionCount.selectedOptions[0]?.disabled) {
+    const allowed = options.filter((option) => !option.disabled);
+    questionCount.value = allowed.find((option) => option.value === "7")?.value ?? allowed[0]?.value ?? "";
+  }
 }
 
 function challengeShare(c) {

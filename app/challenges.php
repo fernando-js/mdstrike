@@ -10,11 +10,19 @@ function challenge_record(string $id): array {
     return find_challenge($id) ?? fail('Desafio não encontrado.', 404);
 }
 
+function challenge_questions(array $challenge): array {
+    $data = json_decode($challenge['questions_json'], true, 512, JSON_THROW_ON_ERROR);
+    return $data['items'] ?? $data;
+}
+
 function challenge_invite(array $challenge): array {
     $map = $challenge['map_id'];
     $topics = catalog()['areas'] + array_column(catalog()['specialties'], 'name', 'id');
     $title = $map === 'tea' ? 'Desafio TEA · Anestesiologia' : (isset($topics[$map]) ? 'Desafio de ' . $topics[$map] : 'Desafio de Medicina · todas as áreas');
-    $total = count(json_decode($challenge['questions_json'], true));
+    $data = json_decode($challenge['questions_json'], true, 512, JSON_THROW_ON_ERROR);
+    $topicTitle = $data['topicTitle'] ?? '';
+    if ($map === 'tea' && $topicTitle !== '') $title = 'Desafio TEA · ' . $topicTitle;
+    $total = count($data['items'] ?? $data);
     $expired = time() > (int)$challenge['expires_at'];
     return [
         'title' => $title,
@@ -58,12 +66,29 @@ function create_challenge(array $data, array $user): array {
     rate_limit('create-challenge', 15, 3600);
     $map=(string)($data['map']??'all');
     if (!in_array($map,['all','tea'],true) && !in_array($map,array_merge(array_column(catalog()['specialties'],'id'),array_keys(catalog()['areas'])),true)) fail('Mapa inválido.');
-    $pool=$map==='tea' ? match_question_bank($map) : array_values(array_filter(question_bank(),fn($q)=>$q['kind']==='original' && ($map==='all'||$q['area']===$map||in_array($map,$q['specialties']??[],true))));
-    if (count($pool)<3) fail('Escolha um mapa com pelo menos três questões autorais ou uma área mais ampla.');
+    $count = 7;
+    $topicTitle = '';
+    if ($map === 'tea') {
+        $pool = match_question_bank($map);
+        $topic = $data['topic'] ?? '';
+        $topics = array_column($pool, 'topicTitle', 'topic');
+        if (!is_string($topic) || ($topic !== '' && !isset($topics[$topic]))) fail('Tema do TEA inválido.');
+        if ($topic !== '') {
+            $topicTitle = $topics[$topic];
+            $pool = array_values(array_filter($pool, static fn($q) => $q['topic'] === $topic));
+        }
+        $count = $data['questionCount'] ?? 7;
+        if (is_string($count) && ctype_digit($count)) $count = (int)$count;
+        if (!in_array($count, [5, 7, 10, 15, 20], true) || $count > count($pool)) fail('Quantidade de questões indisponível para este tema.');
+    } else {
+        $pool = array_values(array_filter(question_bank(), fn($q) => $q['kind'] === 'original' && ($map === 'all' || $q['area'] === $map || in_array($map, $q['specialties'] ?? [], true))));
+        if (count($pool) < 3) fail('Escolha um mapa com pelo menos três questões autorais ou uma área mais ampla.');
+    }
     shuffle($pool);$items=[];
-    foreach (array_slice($pool,0,7) as $q) { $order=range(0,count($q['options'])-1);shuffle($order);$items[]=['id'=>$q['id'],'order'=>$order]; }
+    foreach (array_slice($pool,0,$count) as $q) { $order=range(0,count($q['options'])-1);shuffle($order);$items[]=['id'=>$q['id'],'order'=>$order]; }
+    $stored = $topicTitle === '' ? $items : ['items' => $items, 'topicTitle' => $topicTitle];
     $id=bin2hex(random_bytes(16));
-    query('INSERT INTO md_challenges (id, creator_id, map_id, questions_json, created_at, expires_at) VALUES (?,?,?,?,?,?)',[$id,$user['id'],$map,json_encode($items),time(),time()+7*86400]);
+    query('INSERT INTO md_challenges (id, creator_id, map_id, questions_json, created_at, expires_at) VALUES (?,?,?,?,?,?)',[$id,$user['id'],$map,json_encode($stored, JSON_THROW_ON_ERROR),time(),time()+7*86400]);
     audit_event('challenge.created',(int)$user['id'],(int)$user['id'],['challenge_id'=>$id,'map'=>$map,'questions'=>count($items)]);
     return challenge_public(challenge_record($id),$user);
 }
@@ -88,7 +113,7 @@ function join_challenge(string $id, array $user): array {
             $db->commit();audit_event('challenge.resumed',(int)$user['id'],(int)$user['id'],['challenge_id'=>$id,'match_id'=>$existing['id']]);return match_state($existing,$payload);
         }
         $match=bin2hex(random_bytes(24));
-        $payload=['items'=>json_decode($challenge['questions_json'],true),'challengeId'=>$id,'roundsWon'=>0,'roundsLost'=>0,'stageMe'=>0,'stageBot'=>0];
+        $payload=['items'=>challenge_questions($challenge),'challengeId'=>$id,'roundsWon'=>0,'roundsLost'=>0,'stageMe'=>0,'stageBot'=>0];
         // Each invitation is independent: opening B must not abort the player's run in A.
         query('INSERT INTO md_matches (id,user_id,mode,map_id,questions_json,started_at,issued_at) VALUES (?,?,?,?,?,?,?)',[$match,$user['id'],'challenge',$challenge['map_id'],json_encode($payload),time(),time()]);
         query('INSERT INTO md_challenge_runs (challenge_id,user_id,match_id) VALUES (?,?,?)',[$id,$user['id'],$match]);

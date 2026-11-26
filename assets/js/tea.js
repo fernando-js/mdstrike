@@ -4,7 +4,7 @@ import {
   teaLibrary,
   teaMissions,
   teaSources,
-} from "./tea-content.js?v=1.0.0";
+} from "./tea-content.js?v=1.1.0";
 
 const questions = new Map(
   teaMissions.flatMap(({ questions }) =>
@@ -76,7 +76,7 @@ function mapPage(readLocal) {
     <span><strong>${missed}</strong> ${missed === 1 ? "questão para revisar" : "questões para revisar"}</span>
   </div>
   <section class="panel lobby-revalida">
-    <div><h2>Desafie um colega no TEA</h2><p>Compartilhe um link para jogar as mesmas sete questões de anestesiologia e comparar os resultados.</p></div>
+    <div><h2>Desafie um colega no TEA</h2><p>Escolha uma missão ou misture os temas. Compartilhe o link para jogar as mesmas questões e comparar os resultados.</p></div>
     <button class="btn outline" data-new-challenge="tea">Criar desafio TEA ${icon("trophy", 16)}</button>
   </section>
   <section class="operation-section">
